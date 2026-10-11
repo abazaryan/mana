@@ -9,3 +9,6 @@ apkg/
 # Personal Claude Code settings (launch.json is shared)
 .claude/settings.local.json
 .claude/*.local.*
+
+# Closed LivreVivant code and transfer report (not published)
+reference/
