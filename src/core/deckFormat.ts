@@ -25,6 +25,22 @@ export type Gender = (typeof GENDERS)[number];
 export const DETERMINERS = ['definite', 'indefinite'] as const;
 export type Determiner = (typeof DETERMINERS)[number];
 
+export const NUMBERS = ['singular', 'plural'] as const;
+export type GrammaticalNumber = (typeof NUMBERS)[number];
+
+/**
+ * Which form of the item the answer must be in (decision Р16). Shown as hints
+ * before the answer, in the interface language: one correct answer per entry (Р3),
+ * so `ravi` and `ravie` are two entries told apart by `form.gender`.
+ */
+export interface EntryForm {
+  determiner?: Determiner;
+  gender?: Gender;
+  number?: GrammaticalNumber;
+}
+
+export const FORM_KEYS = ['determiner', 'gender', 'number'] as const;
+
 export const AUDIO_EXTENSIONS = ['mp3', 'wav'] as const;
 
 /** Above this archive size the validator warns (mobile download, shared library, offline). */
@@ -46,8 +62,10 @@ export interface DeckEntry {
   hint?: Localized;
   note?: Localized;
   audio?: string;
+  /** Gender of the word itself; shown at the introduction only, not when recalling. */
   gender?: Gender;
-  determiner?: Determiner;
+  /** Form hints shown before the answer. */
+  form?: EntryForm;
   /** Tag codes, described in Deck.tags. */
   tags?: string[];
   skills: Skill[];
@@ -95,10 +113,46 @@ export interface DeckCheck {
 
 const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'entries']);
 const ENTRY_KEYS = new Set([
-  'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'determiner', 'tags', 'skills',
+  'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills',
 ]);
+/** Former field names: an error with a rename hint, not an "unknown field" warning. */
+const OLD_ENTRY_KEYS = new Set(['fr', 'determiner']);
 
 const GENDER_NAMES: Record<Gender, string> = { m: 'мужской', f: 'женский', n: 'средний' };
+
+/** A bracket or a slash left in `text`: a printed way to pack two answers into one. */
+const PACKED_FORMS = /[(/]/;
+
+/** Form hint labels in interface languages (Р14, Р16). */
+export const FORM_LABELS: {
+  determiner: Record<Determiner, Record<UiLang, string>>;
+  gender: Record<Gender, Record<UiLang, string>>;
+  number: Record<GrammaticalNumber, Record<UiLang, string>>;
+} = {
+  determiner: {
+    definite: { tg: 'муай.', ru: 'опред.', en: 'def.' },
+    indefinite: { tg: 'номуай.', ru: 'неопред.', en: 'indef.' },
+  },
+  gender: {
+    m: { tg: 'музак.', ru: 'м. р.', en: 'm.' },
+    f: { tg: 'муан.', ru: 'ж. р.', en: 'f.' },
+    n: { tg: 'хунсо', ru: 'ср. р.', en: 'n.' },
+  },
+  number: {
+    singular: { tg: 'танҳ.', ru: 'ед. ч.', en: 'sg.' },
+    plural: { tg: 'ҷамъ', ru: 'мн. ч.', en: 'pl.' },
+  },
+};
+
+/** Hints for an entry's form, in the order determiner, gender, number. */
+export function formHints(form: EntryForm | undefined, lang: UiLang): string[] {
+  if (!form) return [];
+  const out: string[] = [];
+  if (form.determiner) out.push(FORM_LABELS.determiner[form.determiner][lang]);
+  if (form.gender) out.push(FORM_LABELS.gender[form.gender][lang]);
+  if (form.number) out.push(FORM_LABELS.number[form.number][lang]);
+  return out;
+}
 
 const HTML_LEFTOVER = /<\/?[a-z!][^>]*>|&[a-z]+;|&#\d+;|\[sound:/i;
 
@@ -368,6 +422,76 @@ function checkTagDictionary(c: Collector, v: unknown): Set<string> {
   return codes;
 }
 
+/** `label` names the field in messages ("род", "form.gender"). */
+function checkGender(
+  c: Collector,
+  path: string,
+  where: string,
+  label: string,
+  v: unknown,
+  lang: LanguageSupport | undefined,
+): Gender | undefined {
+  if (v === undefined) return undefined;
+  if (!includes(GENDERS, v)) {
+    c.error(
+      path,
+      `${where}: ${label} ${q(String(v))} не подходит. Допустимо "m" (мужской), "f" (женский), "n" (средний); если рода нет, поле не пишите.`,
+    );
+    return undefined;
+  }
+  if (lang && !lang.genders.includes(v)) {
+    c.error(path, `${where}: в языке ${q(lang.code)} нет рода ${q(v)} (${GENDER_NAMES[v]}). Допустимо: ${list(lang.genders)}.`);
+    return undefined;
+  }
+  return v;
+}
+
+/** `form`: {"determiner": ..., "gender": ..., "number": ...}, at least one. Returns the valid part. */
+function checkForm(
+  c: Collector,
+  path: string,
+  where: string,
+  v: unknown,
+  lang: LanguageSupport | undefined,
+): EntryForm | undefined {
+  if (v === undefined) return undefined;
+  if (!isObject(v)) {
+    c.error(path, `${where}: form должно быть объектом, например {"determiner": "definite"}, а сейчас ${typeName(v)}.`);
+    return undefined;
+  }
+  if (Object.keys(v).length === 0) {
+    c.error(path, `${where}: form пустое — укажите determiner, gender или number, или уберите поле.`);
+    return undefined;
+  }
+  const form: EntryForm = {};
+  if (v.determiner !== undefined) {
+    if (includes(DETERMINERS, v.determiner)) form.determiner = v.determiner;
+    else {
+      c.error(
+        `${path}.determiner`,
+        `${where}: form.determiner ${q(String(v.determiner))} не подходит. Допустимо "definite" (определённая форма) или "indefinite" (неопределённая).`,
+      );
+    }
+  }
+  const gender = checkGender(c, `${path}.gender`, where, 'form.gender', v.gender, lang);
+  if (gender !== undefined) form.gender = gender;
+  if (v.number !== undefined) {
+    if (includes(NUMBERS, v.number)) form.number = v.number;
+    else {
+      c.error(
+        `${path}.number`,
+        `${where}: form.number ${q(String(v.number))} не подходит. Допустимо "singular" (единственное число) или "plural" (множественное).`,
+      );
+    }
+  }
+  for (const key of Object.keys(v)) {
+    if (!includes(FORM_KEYS, key)) {
+      c.warn(`${path}.${key}`, `${where}: неизвестное поле form.${key} — будет пропущено. Допустимы: ${list(FORM_KEYS)}.`);
+    }
+  }
+  return form;
+}
+
 interface EntrySummary {
   id?: string;
   text?: string;
@@ -403,33 +527,27 @@ function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport |
   checkLocalized(c, `${path}.note`, where, v.note, 'note', 'заметка после ответа', false);
   const audio = checkAudio(c, `${path}.audio`, where, v.audio);
 
-  if (v.gender !== undefined) {
-    if (!includes(GENDERS, v.gender)) {
-      c.error(
-        `${path}.gender`,
-        `${where}: род ${q(String(v.gender))} не подходит. Допустимо "m" (мужской), "f" (женский), "n" (средний); если рода нет, поле не пишите.`,
-      );
-    } else if (lang && !lang.genders.includes(v.gender)) {
-      c.error(
-        `${path}.gender`,
-        `${where}: в языке ${q(lang.code)} нет рода ${q(v.gender)} (${GENDER_NAMES[v.gender]}). Допустимо: ${list(lang.genders)}.`,
-      );
-    }
-  }
+  checkGender(c, `${path}.gender`, where, 'род', v.gender, lang);
   if (v.determiner !== undefined) {
-    if (!includes(DETERMINERS, v.determiner)) {
-      c.error(
-        `${path}.determiner`,
-        `${where}: determiner ${q(String(v.determiner))} не подходит. Допустимо "definite" (определённая форма) или "indefinite" (неопределённая).`,
-      );
-    } else if (v.gender === undefined) {
-      c.warn(`${path}.determiner`, `${where}: указан determiner, но нет gender — у существительного обычно есть род.`);
-    }
+    c.error(
+      `${path}.determiner`,
+      `${where}: поле determiner перенесено в form — напишите "form": {"determiner": ${JSON.stringify(v.determiner)}}.`,
+    );
+  }
+  const form = checkForm(c, `${path}.form`, where, v.form, lang);
+  if (form?.determiner !== undefined && v.gender === undefined) {
+    c.warn(`${path}.form.determiner`, `${where}: указан form.determiner, но нет gender — у существительного обычно есть род.`);
+  }
+  if (text !== undefined && PACKED_FORMS.test(text)) {
+    c.warn(
+      `${path}.text`,
+      `${where}: в text есть «(» или «/» (${q(text)}). У записи один правильный ответ: каждую форму дайте отдельной записью, а форму укажите в form. Пример: «ravi(e)» → «ravi» с "form": {"gender": "m"} и «ravie» с "form": {"gender": "f"}.`,
+    );
   }
   const tags = checkTags(c, `${path}.tags`, where, v.tags);
   checkSkills(c, `${path}.skills`, where, v.skills);
   for (const key of Object.keys(v)) {
-    if (!ENTRY_KEYS.has(key) && key !== 'fr') {
+    if (!ENTRY_KEYS.has(key) && !OLD_ENTRY_KEYS.has(key)) {
       c.warn(`${path}.${key}`, `${where}: неизвестное поле ${q(key)} — будет пропущено.`);
     }
   }

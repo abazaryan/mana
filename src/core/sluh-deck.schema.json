@@ -117,13 +117,35 @@
             "m",
             "f",
             "n"
-          ]
+          ],
+          "description": "Род самого слова; показывается только при знакомстве."
         },
-        "determiner": {
-          "enum": [
-            "definite",
-            "indefinite"
-          ]
+        "form": {
+          "description": "Какая форма нужна в ответе; подсказки до ответа.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "determiner": {
+              "enum": [
+                "definite",
+                "indefinite"
+              ]
+            },
+            "gender": {
+              "enum": [
+                "m",
+                "f",
+                "n"
+              ]
+            },
+            "number": {
+              "enum": [
+                "singular",
+                "plural"
+              ]
+            }
+          }
         },
         "tags": {
           "description": "Коды тегов из словаря tags колоды.",

@@ -3,13 +3,17 @@ import {
   AUDIO_EXTENSIONS,
   checkDeckArchive,
   DETERMINERS,
+  FORM_KEYS,
+  FORM_LABELS,
   GENDERS,
+  NUMBERS,
   ID_PATTERN,
   LANGUAGE_TAG_PATTERN,
   LARGE_ARCHIVE_BYTES,
   SKILLS,
   UI_LANGS,
   deckNameFromFileName,
+  formHints,
   pickLocalized,
   validateDeck,
   parseDeckJson,
@@ -72,10 +76,11 @@ describe('validateDeck: valid decks', () => {
             note: { ru: 'Не путать с le prénom.' },
             audio: 'audio/le-nom.wav',
             gender: 'm',
-            determiner: 'definite',
+            form: { determiner: 'definite', number: 'singular' },
             tags: ['word', 'form'],
           }),
-          entry({ id: 'un-nom', text: 'un nom', meaning: { tg: 'насаб', ru: 'фамилия' }, audio: undefined, gender: 'm', determiner: 'indefinite' }),
+          entry({ id: 'un-nom', text: 'un nom', meaning: { tg: 'насаб', ru: 'фамилия' }, audio: undefined, gender: 'm', form: { determiner: 'indefinite' } }),
+          entry({ id: 'ravie', text: 'ravie', meaning: { tg: 'хурсанд', ru: 'рада' }, audio: undefined, form: { gender: 'f' } }),
         ],
       }),
       withPacks,
@@ -243,11 +248,39 @@ describe('validateDeck: entry errors', () => {
     expect(validateDeck(deck({ language: 'de-DE', entries: [entry({ gender: 'n' })] })).errors).toEqual([]);
   });
 
-  it('checks determiner and warns when it comes without gender', () => {
-    expect(one({ gender: 'm', determiner: 'def' })[0]).toContain('"definite" (определённая форма)');
-    const r = validateDeck(deck({ entries: [entry({ determiner: 'definite' })] }), withPacks);
+  it('checks form.determiner and warns when it comes without gender', () => {
+    expect(one({ gender: 'm', form: { determiner: 'def' } })[0]).toContain('"definite" (определённая форма)');
+    const r = validateDeck(deck({ entries: [entry({ form: { determiner: 'definite' } })] }), withPacks);
     expect(r.errors).toEqual([]);
-    expect(messages(r.warnings)[0]).toContain('указан determiner, но нет gender');
+    expect(messages(r.warnings)[0]).toContain('указан form.determiner, но нет gender');
+  });
+
+  it('reports the old top-level determiner as moved into form', () => {
+    expect(one({ gender: 'm', determiner: 'definite' })).toEqual([
+      'Запись 1 (id «bonjour»): поле determiner перенесено в form — напишите "form": {"determiner": "definite"}.',
+    ]);
+    const r = validateDeck(deck({ entries: [entry({ gender: 'm', determiner: 'definite' })] }), withPacks);
+    expect(messages(r.warnings)).toEqual([]);
+  });
+
+  it('checks form: object, not empty, known values, genders of the language', () => {
+    expect(one({ form: 'definite' })[0]).toContain('form должно быть объектом');
+    expect(one({ form: {} })[0]).toContain('form пустое');
+    expect(one({ form: { number: 'pl' } })[0]).toContain('"singular" (единственное число)');
+    expect(one({ form: { gender: 'masc' } })[0]).toContain('form.gender «masc» не подходит');
+    expect(one({ form: { gender: 'n' } })[0]).toContain('в языке «fr» нет рода «n»');
+    expect(one({ form: { gender: 'f', number: 'plural' } })).toEqual([]);
+    const r = validateDeck(deck({ entries: [entry({ form: { gender: 'f', case: 'acc' } })] }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(messages(r.warnings)[0]).toContain('неизвестное поле form.case');
+  });
+
+  it('warns about a bracket or a slash left in text', () => {
+    for (const text of ['ravi(e)', 'le/la voisin', "Vous venez d'où ? / Tu viens d'où ?"]) {
+      const r = validateDeck(deck({ entries: [entry({ text })] }), withPacks);
+      expect(r.errors).toEqual([]);
+      expect(messages(r.warnings)[0]).toContain('в text есть «(» или «/»');
+    }
   });
 
   it('checks entry tags as codes', () => {
@@ -405,6 +438,25 @@ describe('pickLocalized', () => {
   });
 });
 
+describe('formHints', () => {
+  it('lists hints in the interface language: determiner, gender, number', () => {
+    const form = { number: 'plural', gender: 'f', determiner: 'indefinite' } as const;
+    expect(formHints(form, 'ru')).toEqual(['неопред.', 'ж. р.', 'мн. ч.']);
+    expect(formHints(form, 'en')).toEqual(['indef.', 'f.', 'pl.']);
+    expect(formHints(form, 'tg')).toEqual(['номуай.', 'муан.', 'ҷамъ']);
+    expect(formHints({ gender: 'm' }, 'tg')).toEqual(['музак.']);
+    expect(formHints({ gender: 'n' }, 'tg')).toEqual(['хунсо']);
+    expect(formHints({ determiner: 'definite' }, 'tg')).toEqual(['муай.']);
+    expect(formHints(undefined, 'ru')).toEqual([]);
+  });
+
+  it('has a label for every value in every interface language', () => {
+    for (const d of DETERMINERS) for (const l of UI_LANGS) expect(FORM_LABELS.determiner[d][l]).toBeTruthy();
+    for (const g of GENDERS) for (const l of UI_LANGS) expect(FORM_LABELS.gender[g][l]).toBeTruthy();
+    for (const n of NUMBERS) for (const l of UI_LANGS) expect(FORM_LABELS.number[n][l]).toBeTruthy();
+  });
+});
+
 describe('language packs', () => {
   it('finds the pack by the primary subtag', () => {
     expect(findLanguagePack('fr-FR')).toBe(FRENCH);
@@ -434,7 +486,10 @@ describe('JSON Schema stays in sync with the validator', () => {
     expect(entrySchema.properties.skills.items.enum).toEqual([...SKILLS]);
     expect(schema.$defs.localized.propertyNames.enum).toEqual([...UI_LANGS]);
     expect(entrySchema.properties.gender.enum).toEqual([...GENDERS]);
-    expect(entrySchema.properties.determiner.enum).toEqual([...DETERMINERS]);
+    expect(entrySchema.properties.form.properties.determiner.enum).toEqual([...DETERMINERS]);
+    expect(entrySchema.properties.form.properties.gender.enum).toEqual([...GENDERS]);
+    expect(entrySchema.properties.form.properties.number.enum).toEqual([...NUMBERS]);
+    expect(Object.keys(entrySchema.properties.form.properties)).toEqual([...FORM_KEYS]);
     expect(entrySchema.properties.audio.pattern).toContain(`(${AUDIO_EXTENSIONS.join('|')})`);
     expect(entrySchema.properties.tags.items.$ref).toBe('#/$defs/id');
     expect(schema.properties.tags.propertyNames.$ref).toBe('#/$defs/id');
@@ -454,7 +509,7 @@ describe('JSON Schema stays in sync with the validator', () => {
       ['format', 'version', 'id', 'revision', 'language', 'tags', 'entries'].sort(),
     );
     expect(Object.keys(entrySchema.properties).sort()).toEqual(
-      ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'determiner', 'tags', 'skills'].sort(),
+      ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills'].sort(),
     );
   });
 });

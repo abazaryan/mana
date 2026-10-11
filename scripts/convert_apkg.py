@@ -8,7 +8,7 @@ Expects the note type of lesson 1: fields Français, IPA, Маъно, Навиш
 Mapping (docs/DECK_FORMAT.md):
   Français -> text; IPA -> ipa (without [ ]); Маъно -> meaning.tg;
   Аудио [sound:x.wav] -> audio/<id>.wav; Навиштан = "y" -> skills include "write";
-  article le/la/l'/les -> determiner definite, un/une/des -> indefinite;
+  article le/la/l'/les -> form.determiner definite, un/une/des -> indefinite;
   le/un -> gender m, la/une -> f; Anki tags -> tag codes (TAGS; lesson tag U01 dropped).
 The deck name is the ZIP file name (docs/DECK_FORMAT.md).
 Entry ids are made from the French text once and must stay the same afterwards.
@@ -119,7 +119,7 @@ def main() -> int:
             if art in GENDER:
                 entry["gender"] = GENDER[art]
             if art:
-                entry["determiner"] = "definite" if art in DEFINITE else "indefinite"
+                entry["form"] = {"determiner": "definite" if art in DEFINITE else "indefinite"}
             tags = []
             for t in anki_tags.split():
                 if LESSON_TAG.fullmatch(t):
@@ -153,10 +153,10 @@ def main() -> int:
             z.writestr(info, data)
 
     writes = sum("write" in e["skills"] for e in entries)
-    dets = sum("determiner" in e for e in entries)
+    dets = sum("determiner" in e.get("form", {}) for e in entries)
     tags = sorted({t for e in entries for t in e.get("tags", [])})
     print(f"{args.out}: {len(entries)} entries, {len(files)} audio files, "
-          f"{writes} with 'write', {dets} with determiner, tags {tags}")
+          f"{writes} with 'write', {dets} with form.determiner, tags {tags}")
     return 0
 
 
