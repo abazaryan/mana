@@ -2,14 +2,41 @@
  * Language packs: everything that depends on the learning language (decision Р13).
  * A deck names its language with a BCP-47 tag ("fr-FR"); the pack is found by the primary subtag.
  *
- * Only French is implemented. Text normalization, sound-based comparison and numbers
- * move into the pack at stages 3–4; the custom keyboard row is used at stage 5.
+ * Only French is implemented. The written-answer rules (stage 3) live in `writing`;
+ * sound-based comparison and numbers join the pack at stage 4; the custom keyboard
+ * row is used at stage 5.
  * Before the first deck in a new language, check speech recognition and TTS for it
  * on the user's devices (especially lb-LU).
  *
  * Type-only imports: this file is also run directly by Node in scripts/validate-deck.ts.
  */
 import type { LanguageSupport, UiLang } from './deckFormat';
+
+/**
+ * Language rules of the written-answer cascade (src/core/evaluate.ts) and of print
+ * conventions (src/core/printConventions.ts). The algorithms are language-neutral;
+ * everything that depends on the language is here.
+ */
+export interface WritingRules {
+  /**
+   * Spaces that are typography rather than language, e.g. the French space before
+   * `? ! : ;`. Removed from both sides before comparing; must have the `g` flag.
+   */
+  typographicSpace: RegExp | null;
+  /**
+   * A leading article/determiner. An answer equal to the reference without it is
+   * "almost" with error type `article` (the article carries the gender).
+   */
+  leadingArticle: RegExp | null;
+  /** One typo edit allowed per this many characters of the reference. */
+  typoCharsPerEdit: number;
+  /** Upper bound on typo edits, however long the reference. */
+  typoMaxEdits: number;
+  /** Articles that may stand round a bare slash at the start: `le/la X(e)`. */
+  slashArticles: readonly string[];
+  /** Punctuation that takes no space before it in this language. */
+  noSpaceBefore: string;
+}
 
 export interface LanguagePack extends LanguageSupport {
   /** Locale for speech recognition and TTS when the deck tag has no region. */
@@ -18,6 +45,8 @@ export interface LanguagePack extends LanguageSupport {
   name: Record<UiLang, string>;
   /** Extra letters for the custom phone keyboard (Р6). */
   keyboardRow: readonly string[];
+  /** Rules for the written answer (skill `write`, Р5). */
+  writing: WritingRules;
 }
 
 export const FRENCH: LanguagePack = {
@@ -26,6 +55,20 @@ export const FRENCH: LanguagePack = {
   name: { tg: 'фаронсавӣ', ru: 'французский', en: 'French' },
   genders: ['m', 'f'],
   keyboardRow: ['é', 'è', 'ê', 'ë', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ü', 'œ', 'æ', "'", '-'],
+  writing: {
+    // French typography: a space before `? ! : ; »` and after `«`. Correct in print,
+    // invisible on screen, not something to test the learner on.
+    typographicSpace: /\s+(?=[?!:;»])|(?<=«)\s+/g,
+    // Elision first so it wins over the two-letter forms.
+    leadingArticle: /^(l'|le |la |les |un |une |des )/,
+    // Words of 5 characters or less get no typo tolerance: one edit on a short
+    // French word usually lands on another real word (mer/mur, sel/sol).
+    typoCharsPerEdit: 6,
+    typoMaxEdits: 3,
+    slashArticles: ['le', 'la', "l'", 'un', 'une', 'les'],
+    // `? ! : ;` keep their leading space in French; `.` and `,` do not.
+    noSpaceBefore: '.,',
+  },
 };
 
 export const LANGUAGE_PACKS: readonly LanguagePack[] = [FRENCH];
