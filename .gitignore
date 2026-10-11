@@ -12,3 +12,6 @@ apkg/
 
 # Closed LivreVivant code and transfer report (not published)
 reference/
+
+# Converted and generated decks (user content, not published)
+decks/

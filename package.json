@@ -8,9 +8,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deck:check": "node scripts/validate-deck.ts"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
