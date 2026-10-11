@@ -12,7 +12,8 @@ import { StartScreen } from './StartScreen';
 
 type Sheet = 'settings' | 'log' | null;
 
-export function App() {
+/** The stage 1 prototype screen: its own settings and journal in localStorage, Russian only. */
+export function PrototypeApp() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -55,7 +56,12 @@ export function App() {
     <>
       <main id="app">
         <header className="top">
-          <div className="brand">Слух</div>
+          <div className="brand">
+            <a className="ghost back" href="#/">
+              ← Колоды
+            </a>
+            Прототип
+          </div>
           <div className="top-actions">
             <button className="ghost" type="button" onClick={() => setSheet('log')}>
               Журнал

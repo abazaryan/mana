@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deck:check": "node scripts/validate-deck.ts"
+    "deck:check": "node scripts/validate-deck.ts",
+    "i18n:table": "node scripts/i18n-table.ts"
   },
   "dependencies": {
     "dexie": "^4.4.6",

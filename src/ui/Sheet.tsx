@@ -3,11 +3,12 @@ import { useId, type ReactNode } from 'react';
 interface Props {
   title: string;
   onClose(): void;
+  closeLabel?: string;
   children: ReactNode;
 }
 
 /** Bottom sheet dialog, as in the prototype. */
-export function Sheet({ title, onClose, children }: Props) {
+export function Sheet({ title, onClose, closeLabel = 'Закрыть', children }: Props) {
   const id = useId();
   return (
     <div className="sheet">
@@ -15,7 +16,7 @@ export function Sheet({ title, onClose, children }: Props) {
         <div className="sheet-head">
           <h2 id={id}>{title}</h2>
           <button className="ghost" type="button" onClick={onClose}>
-            Закрыть
+            {closeLabel}
           </button>
         </div>
         {children}
