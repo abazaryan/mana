@@ -2,15 +2,17 @@
 
 Not part of the app. Python 3.10+, standard library only.
 
-    python scripts/convert_apkg.py apkg/fr_lesson_01.apkg decks/fr-lesson-01.zip
+    python scripts/convert_apkg.py apkg/fr_lesson_01.apkg "decks/Фаронсавӣ · Дарси 01.zip"
 
 Expects the note type of lesson 1: fields Français, IPA, Маъно, Навиштан, Аудио.
 Mapping (docs/DECK_FORMAT.md):
-  Français -> fr; IPA -> ipa (without [ ]); Маъно -> meaning.tg;
+  Français -> text; IPA -> ipa (without [ ]); Маъно -> meaning.tg;
   Аудио [sound:x.wav] -> audio/<id>.wav; Навиштан = "y" -> skills include "write";
-  article le/la/un/une + noun -> gender m/f.
+  article le/la/l'/les -> determiner definite, un/une/des -> indefinite;
+  le/un -> gender m, la/une -> f; Anki tags -> tag codes (TAGS; lesson tag U01 dropped).
+The deck name is the ZIP file name (docs/DECK_FORMAT.md).
 Entry ids are made from the French text once and must stay the same afterwards.
-Check the result with: npm run deck:check -- decks/fr-lesson-01.zip
+Check the result with: npm run deck:check -- "decks/Фаронсавӣ · Дарси 01.zip"
 """
 
 from __future__ import annotations
@@ -28,6 +30,13 @@ from pathlib import Path
 
 FIELDS = ["Français", "IPA", "Маъно", "Навиштан", "Аудио"]
 FIXED_TIME = (1980, 1, 1, 0, 0, 0)  # reproducible archive
+LESSON_TAG = re.compile(r"U\d+")  # the whole deck is one lesson
+# Anki tag -> (code, name). "кор" has no agreed meaning, so it keeps its Tajik name only.
+TAGS = {
+    "вожа": ("word", {"tg": "вожа", "ru": "слово", "en": "word"}),
+    "адад": ("number", {"tg": "адад", "ru": "число", "en": "number"}),
+    "кор": ("kor", {"tg": "кор"}),
+}
 
 
 def plain(text: str) -> str:
@@ -45,11 +54,15 @@ def slug(fr: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")[:64]
 
 
-def gender(fr: str) -> str | None:
-    m = re.match(r"(le|la|un|une)\s+\S", fr, flags=re.I)
-    if not m:
-        return None
-    return "m" if m.group(1).lower() in ("le", "un") else "f"
+ARTICLE = re.compile(r"(le|la|les|un|une|des)\s+(?=\S)|l'(?=\S)", flags=re.I)
+DEFINITE = {"le", "la", "les", "l'"}
+GENDER = {"le": "m", "un": "m", "la": "f", "une": "f"}
+
+
+def article(fr: str) -> str | None:
+    """Leading article of a noun phrase ("le nom" -> "le"); a bare number "un" is not one."""
+    m = ARTICLE.match(fr)
+    return (m.group(1) or "l'").lower() if m else None
 
 
 def main() -> int:
@@ -57,7 +70,7 @@ def main() -> int:
     ap.add_argument("apkg", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--id", default="fr-lesson-01")
-    ap.add_argument("--title", default=None, help="default: Anki deck name")
+    ap.add_argument("--language", default="fr-FR")
     args = ap.parse_args()
 
     with zipfile.ZipFile(args.apkg) as src, tempfile.TemporaryDirectory() as tmp:
@@ -71,12 +84,9 @@ def main() -> int:
 
         db = sqlite3.connect(db_path)
         models = json.loads(db.execute("select models from col").fetchone()[0])
-        decks = json.loads(db.execute("select decks from col").fetchone()[0])
-        did = db.execute("select did from cards group by did order by count(*) desc").fetchone()[0]
-        title = args.title or decks[str(did)]["name"].replace("::", " · ")
 
         entries, files, seen = [], {}, set()
-        for mid, flds in db.execute("select mid, flds from notes order by id"):
+        for mid, flds, anki_tags in db.execute("select mid, flds, tags from notes order by id"):
             model = models[str(mid)]
             names_ = [f["name"] for f in model["flds"]]
             if names_ != FIELDS:
@@ -89,7 +99,7 @@ def main() -> int:
                 sys.exit(f"cannot make a unique id for {fr!r}")
             seen.add(entry_id)
 
-            entry: dict = {"id": entry_id, "fr": fr}
+            entry: dict = {"id": entry_id, "text": fr}
             ipa = plain(f["IPA"]).strip("[]/ ")
             if ipa:
                 entry["ipa"] = ipa
@@ -105,14 +115,33 @@ def main() -> int:
                 files[path] = src.read(by_name[name])
                 entry["audio"] = path
 
-            g = gender(fr)
-            if g:
-                entry["gender"] = g
+            art = article(fr)
+            if art in GENDER:
+                entry["gender"] = GENDER[art]
+            if art:
+                entry["determiner"] = "definite" if art in DEFINITE else "indefinite"
+            tags = []
+            for t in anki_tags.split():
+                if LESSON_TAG.fullmatch(t):
+                    continue
+                if t not in TAGS:
+                    sys.exit(f"unknown Anki tag {t!r} for {fr!r}: add it to TAGS")
+                tags.append(TAGS[t][0])
+            if tags:
+                entry["tags"] = tags
             entry["skills"] = ["listen", "speak"] + (["write"] if plain(f["Навиштан"]) else [])
             entries.append(entry)
         db.close()
 
-    deck = {"format": "sluh-deck", "version": 1, "id": args.id, "title": title, "entries": entries}
+    deck = {
+        "format": "sluh-deck",
+        "version": 1,
+        "id": args.id,
+        "revision": 1,
+        "language": args.language,
+        "tags": {code: name for code, name in TAGS.values() if any(code in e.get("tags", []) for e in entries)},
+        "entries": entries,
+    }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.out, "w", zipfile.ZIP_DEFLATED) as z:
         info = zipfile.ZipInfo("deck.json", FIXED_TIME)
@@ -124,9 +153,10 @@ def main() -> int:
             z.writestr(info, data)
 
     writes = sum("write" in e["skills"] for e in entries)
-    genders = sum("gender" in e for e in entries)
+    dets = sum("determiner" in e for e in entries)
+    tags = sorted({t for e in entries for t in e.get("tags", [])})
     print(f"{args.out}: {len(entries)} entries, {len(files)} audio files, "
-          f"{writes} with 'write', {genders} with gender")
+          f"{writes} with 'write', {dets} with determiner, tags {tags}")
     return 0
 
 

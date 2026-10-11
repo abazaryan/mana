@@ -4,7 +4,8 @@
  */
 import { readFile } from 'node:fs/promises';
 import JSZip from 'jszip';
-import { checkDeckArchive, DECK_JSON } from '../src/core/deckFormat.ts';
+import { checkDeckArchive, DECK_JSON, deckNameFromFileName } from '../src/core/deckFormat.ts';
+import { LANGUAGE_PACKS } from '../src/core/languages.ts';
 
 const file = process.argv[2];
 if (!file) {
@@ -13,8 +14,10 @@ if (!file) {
 }
 
 let zip: JSZip;
+let bytes: Buffer;
 try {
-  zip = await JSZip.loadAsync(await readFile(file));
+  bytes = await readFile(file);
+  zip = await JSZip.loadAsync(bytes);
 } catch (e) {
   console.error(`${file}: не удалось открыть как ZIP-архив (${e instanceof Error ? e.message : String(e)}).`);
   process.exit(1);
@@ -22,13 +25,17 @@ try {
 
 const paths = Object.keys(zip.files);
 const json = await zip.file(DECK_JSON)?.async('string');
-const r = checkDeckArchive(paths, json);
+const r = checkDeckArchive(paths, json, { languages: LANGUAGE_PACKS, archiveBytes: bytes.length });
 
 for (const e of r.errors) console.log(`ОШИБКА: ${e.message}`);
 for (const w of r.warnings) console.log(`Предупреждение: ${w.message}`);
 if (r.deck) {
   const audio = r.deck.entries.filter((e) => e.audio).length;
-  console.log(`OK: «${r.deck.title}» (id ${r.deck.id}), записей: ${r.deck.entries.length}, с аудио: ${audio}.`);
+  const title = deckNameFromFileName(file);
+  console.log(
+    `OK: «${title}» (id ${r.deck.id}, редакция ${r.deck.revision}, язык ${r.deck.language}), ` +
+      `записей: ${r.deck.entries.length}, с аудио: ${audio}, размер: ${(bytes.length / 1024 / 1024).toFixed(1)} МБ.`,
+  );
 } else {
   console.log(`Колода не прошла проверку: ошибок ${r.errors.length}.`);
 }
