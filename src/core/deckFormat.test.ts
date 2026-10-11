@@ -2,20 +2,26 @@ import { describe, expect, it } from 'vitest';
 import {
   AUDIO_EXTENSIONS,
   checkDeckArchive,
+  DETERMINERS,
   GENDERS,
   ID_PATTERN,
-  MEANING_LANGS,
-  parseDeckJson,
+  LANGUAGE_TAG_PATTERN,
+  LARGE_ARCHIVE_BYTES,
   SKILLS,
+  UI_LANGS,
+  deckNameFromFileName,
+  pickLocalized,
   validateDeck,
+  parseDeckJson,
   type DeckIssue,
 } from './deckFormat';
+import { FRENCH, findLanguagePack, LANGUAGE_PACKS, speechLocale } from './languages';
 import schema from './sluh-deck.schema.json';
 
 function entry(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'bonjour',
-    fr: 'bonjour',
+    text: 'bonjour',
     ipa: 'bɔ̃ʒuʁ',
     meaning: { tg: 'салом', ru: 'здравствуйте' },
     audio: 'audio/bonjour.mp3',
@@ -25,34 +31,57 @@ function entry(over: Record<string, unknown> = {}): Record<string, unknown> {
 }
 
 function deck(over: Record<string, unknown> = {}): Record<string, unknown> {
-  return { format: 'sluh-deck', version: 1, id: 'fr-lesson-01', title: 'Урок 1', entries: [entry()], ...over };
+  return {
+    format: 'sluh-deck',
+    version: 1,
+    id: 'fr-lesson-01',
+    revision: 1,
+    language: 'fr-FR',
+    entries: [entry()],
+    ...over,
+  };
 }
 
+const withPacks = { languages: LANGUAGE_PACKS };
 const messages = (issues: DeckIssue[]) => issues.map((i) => i.message);
 
 function errorsOf(value: unknown): string[] {
-  return messages(validateDeck(value).errors);
+  return messages(validateDeck(value, withPacks).errors);
 }
+
+const one = (over: Record<string, unknown>) => errorsOf(deck({ entries: [entry(over)] }));
 
 describe('validateDeck: valid decks', () => {
   it('accepts a minimal correct deck and returns it', () => {
-    const r = validateDeck(deck());
+    const r = validateDeck(deck(), withPacks);
     expect(r.errors).toEqual([]);
     expect(r.warnings).toEqual([]);
-    expect(r.deck?.entries[0]?.fr).toBe('bonjour');
+    expect(r.deck?.entries[0]?.text).toBe('bonjour');
   });
 
-  it('accepts optional fields missing (audio, gender) and gender m/f', () => {
+  it('accepts all optional fields', () => {
     const r = validateDeck(
       deck({
+        tags: { word: { tg: 'вожа', ru: 'слово', en: 'word' }, form: { ru: 'анкета' } },
         entries: [
-          entry({ id: 'oui', fr: 'oui', audio: undefined, meaning: { tg: 'ҳа', ru: 'да' } }),
-          entry({ id: 'le-nom', fr: 'le nom', gender: 'm', audio: 'audio/le-nom.wav', meaning: { tg: 'насаб', ru: 'фамилия' } }),
-          entry({ id: 'la-nationalite', fr: 'la nationalité', gender: 'f', audio: undefined, meaning: { tg: 'шаҳрвандӣ', ru: 'гражданство' } }),
+          entry({
+            id: 'le-nom',
+            text: 'le nom',
+            meaning: { tg: 'насаб', ru: 'фамилия' },
+            hint: { ru: 'в анкете' },
+            note: { ru: 'Не путать с le prénom.' },
+            audio: 'audio/le-nom.wav',
+            gender: 'm',
+            determiner: 'definite',
+            tags: ['word', 'form'],
+          }),
+          entry({ id: 'un-nom', text: 'un nom', meaning: { tg: 'насаб', ru: 'фамилия' }, audio: undefined, gender: 'm', determiner: 'indefinite' }),
         ],
       }),
+      withPacks,
     );
     expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
   });
 });
 
@@ -74,10 +103,52 @@ describe('validateDeck: deck-level errors', () => {
     expect(errorsOf(deck({ version: 0 }))[0]).toContain('не поддерживается');
   });
 
-  it('checks deck id and title', () => {
+  it('checks deck id', () => {
     expect(errorsOf(deck({ id: 'Урок 1' }))[0]).toContain('id «Урок 1» не подходит');
     expect(errorsOf(deck({ id: undefined }))[0]).toContain('нет обязательного поля id');
-    expect(errorsOf(deck({ title: '  ' }))[0]).toContain('пустая строка');
+  });
+
+  it('checks revision', () => {
+    expect(errorsOf(deck({ revision: undefined }))[0]).toContain('Нет поля revision');
+    expect(errorsOf(deck({ revision: 0 }))[0]).toContain('от 1');
+    expect(errorsOf(deck({ revision: 1.5 }))[0]).toContain('целым числом');
+    expect(errorsOf(deck({ revision: '2' }))[0]).toContain('целым числом');
+    expect(errorsOf(deck({ revision: 7 }))).toEqual([]);
+  });
+
+  it('checks language: missing, malformed, unsupported', () => {
+    expect(errorsOf(deck({ language: undefined }))[0]).toContain('Нет поля language');
+    expect(errorsOf(deck({ language: 'french' }))[0]).toContain('не код языка BCP-47');
+    expect(errorsOf(deck({ language: 'fr_FR' }))[0]).toContain('не код языка BCP-47');
+    expect(errorsOf(deck({ language: 'lb-LU' }))[0]).toBe(
+      'Язык «lb-LU» пока не поддерживается приложением. Поддерживаются: fr.',
+    );
+    expect(errorsOf(deck({ language: 'fr' }))).toEqual([]);
+    expect(errorsOf(deck({ language: 'fr-CA' }))).toEqual([]);
+  });
+
+  it('accepts any well-formed language when no packs are given', () => {
+    expect(validateDeck(deck({ language: 'de-DE' })).errors).toEqual([]);
+    expect(validateDeck(deck({ language: 'sr-Latn-RS' })).errors).toEqual([]);
+  });
+
+  it('has no title: the deck name is the file name; old title/description only warn', () => {
+    const r = validateDeck(deck({ title: { ru: 'Урок 1' }, description: 'x' }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(messages(r.warnings)).toEqual([
+      'Колода: поле «title» не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.',
+      'Колода: поле «description» не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.',
+    ]);
+  });
+
+  it('checks the tag dictionary', () => {
+    const tagged = (tags: unknown) => deck({ tags, entries: [entry({ tags: ['word'] })] });
+    expect(errorsOf(tagged(['word']))[0]).toContain('tags должно быть словарём тегов');
+    expect(errorsOf(tagged({ Word: { ru: 'слово' }, word: { ru: 'слово' } }))[0]).toContain('код тега «Word» не подходит');
+    expect(errorsOf(tagged({ word: 'слово' }))[0]).toContain('Тег «word»: tags.word должно быть объектом');
+    expect(errorsOf(tagged({ word: {} }))[0]).toContain('tags.word пустое');
+    expect(errorsOf(tagged({ word: { de: 'Wort' } }))[0]).toContain('в tags.word неизвестный язык «de»');
+    expect(errorsOf(tagged({ word: { tg: 'вожа' } }))).toEqual([]);
   });
 
   it('requires a non-empty entries list', () => {
@@ -87,21 +158,19 @@ describe('validateDeck: deck-level errors', () => {
   });
 
   it('warns about unknown deck fields', () => {
-    const r = validateDeck(deck({ author: 'x' }));
+    const r = validateDeck(deck({ author: 'x' }), withPacks);
     expect(r.errors).toEqual([]);
     expect(messages(r.warnings)[0]).toContain('неизвестное поле «author»');
   });
 
   it('returns no deck when there are errors', () => {
-    expect(validateDeck(deck({ version: 2 })).deck).toBeNull();
+    expect(validateDeck(deck({ version: 2 }), withPacks).deck).toBeNull();
   });
 });
 
 describe('validateDeck: entry errors', () => {
-  const one = (over: Record<string, unknown>) => errorsOf(deck({ entries: [entry(over)] }));
-
   it('names the entry by number and id', () => {
-    expect(one({ fr: '' })[0]).toMatch(/^Запись 1 \(id «bonjour»\), поле fr/);
+    expect(one({ text: '' })[0]).toMatch(/^Запись 1 \(id «bonjour»\), поле text/);
     expect(one({ id: undefined })[0]).toMatch(/^Запись 1 \(«bonjour»\): нет обязательного поля id/);
   });
 
@@ -113,53 +182,97 @@ describe('validateDeck: entry errors', () => {
     expect(one({ id: 'Bonjour' })[0]).toContain('не подходит');
     expect(one({ id: '-x' })[0]).toContain('не подходит');
     expect(one({ id: 'a'.repeat(65) })[0]).toContain('не подходит');
-    const dup = errorsOf(deck({ entries: [entry(), entry({ fr: 'salut' })] }));
+    const dup = errorsOf(deck({ entries: [entry(), entry({ text: 'salut' })] }));
     expect(dup).toEqual(['Запись 2: id «bonjour» уже есть у записи 1. id должны быть разными.']);
   });
 
-  it('requires fr as non-empty plain text', () => {
-    expect(one({ fr: undefined })[0]).toContain('нет обязательного поля');
-    expect(one({ fr: 5 })[0]).toContain('должна быть строка, а сейчас число');
-    expect(one({ fr: '<b>bonjour</b>' })[0]).toContain('HTML');
-    expect(one({ fr: 'bonjour&nbsp;!' })[0]).toContain('HTML');
-    expect(one({ audio: undefined, fr: 'bonjour [sound:x.wav]' })[0]).toContain('разметку Anki');
+  it('requires text as non-empty plain text', () => {
+    expect(one({ text: undefined })[0]).toContain('нет обязательного поля');
+    expect(one({ text: 5 })[0]).toContain('должна быть строка, а сейчас число');
+    expect(one({ text: '<b>bonjour</b>' })[0]).toContain('HTML');
+    expect(one({ text: 'bonjour&nbsp;!' })[0]).toContain('HTML');
+    expect(one({ audio: undefined, text: 'bonjour [sound:x.wav]' })[0]).toContain('разметку Anki');
+  });
+
+  it('explains the old field name fr', () => {
+    const r = validateDeck(deck({ entries: [entry({ text: undefined, fr: 'bonjour' })] }), withPacks);
+    expect(messages(r.errors)).toEqual(['Запись 1 (id «bonjour»): поле fr переименовано в text — переименуйте его.']);
+    expect(r.warnings).toEqual([]);
   });
 
   it('rejects IPA with brackets or slashes, warns when IPA is missing', () => {
     expect(one({ ipa: '[bɔ̃ʒuʁ]' })[0]).toContain('без скобок');
     expect(one({ ipa: '/bɔ̃ʒuʁ/' })[0]).toContain('без скобок');
-    const r = validateDeck(deck({ entries: [entry({ ipa: undefined })] }));
+    const r = validateDeck(deck({ entries: [entry({ ipa: undefined })] }), withPacks);
     expect(r.errors).toEqual([]);
     expect(messages(r.warnings)).toEqual(['Запись 1 (id «bonjour»): нет IPA (произношения).']);
   });
 
   it('checks meaning: object, known languages, non-empty texts', () => {
-    expect(one({ meaning: undefined })[0]).toContain('нет обязательного поля meaning');
-    expect(one({ meaning: 'салом' })[0]).toContain('должно быть объектом');
+    expect(one({ meaning: undefined })[0]).toContain('нет обязательного поля meaning (значение)');
+    expect(one({ meaning: 'салом' })[0]).toContain('meaning должно быть объектом');
     expect(one({ meaning: {} })[0]).toContain('хотя бы на одном языке');
-    expect(one({ meaning: { fa: 'سلام' } })[0]).toContain('неизвестный язык значения «fa»');
-    expect(one({ meaning: { tg: '' } })[0]).toContain('значение на tg: пустая строка');
+    expect(one({ meaning: { fa: 'سلام' } })[0]).toContain('в meaning неизвестный язык «fa»');
+    expect(one({ meaning: { tg: '' } })[0]).toContain('meaning на tg: пустая строка');
   });
 
   it('accepts a single meaning language', () => {
-    for (const lang of MEANING_LANGS) {
-      expect(one({ meaning: { [lang]: 'x' } })).toEqual([]);
-    }
+    for (const lang of UI_LANGS) expect(one({ meaning: { [lang]: 'x' } })).toEqual([]);
   });
 
-  it('checks audio paths', () => {
+  it('checks hint and note like meaning', () => {
+    expect(one({ hint: 'вежливо' })[0]).toContain('hint должно быть объектом');
+    expect(one({ note: { de: 'x' } })[0]).toContain('в note неизвестный язык «de»');
+    expect(one({ hint: {} })[0]).toContain('hint пустое');
+  });
+
+  it('checks audio paths: only mp3 and wav', () => {
     expect(one({ audio: 'bonjour.mp3' })[0]).toContain('в папке audio/');
     expect(one({ audio: 'audio\\bonjour.mp3' })[0]).toContain('обратная косая');
     expect(one({ audio: 'audio/../deck.json.mp3' })[0]).toContain('недопустимый путь');
-    expect(one({ audio: 'audio/bonjour.aiff' })[0]).toContain('неподдерживаемый тип');
+    expect(one({ audio: 'audio/bonjour.ogg' })[0]).toContain('неподдерживаемый тип');
     expect(one({ audio: 'audio/bonjour.MP3' })[0]).toContain('строчными');
     expect(one({ audio: '' })[0]).toContain('непустой строкой');
     for (const ext of AUDIO_EXTENSIONS) expect(one({ audio: `audio/a/b.${ext}` })).toEqual([]);
   });
 
-  it('checks gender', () => {
-    expect(one({ gender: 'masc' })[0]).toContain('Допустимо "m"');
+  it('checks gender, including genders of the deck language', () => {
+    expect(one({ gender: 'masc' })[0]).toContain('Допустимо "m" (мужской), "f" (женский), "n" (средний)');
     expect(one({ gender: null })[0]).toContain('не подходит');
+    expect(one({ gender: 'n' })[0]).toBe('Запись 1 (id «bonjour»): в языке «fr» нет рода «n» (средний). Допустимо: m, f.');
+    expect(validateDeck(deck({ language: 'de-DE', entries: [entry({ gender: 'n' })] })).errors).toEqual([]);
+  });
+
+  it('checks determiner and warns when it comes without gender', () => {
+    expect(one({ gender: 'm', determiner: 'def' })[0]).toContain('"definite" (определённая форма)');
+    const r = validateDeck(deck({ entries: [entry({ determiner: 'definite' })] }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(messages(r.warnings)[0]).toContain('указан determiner, но нет gender');
+  });
+
+  it('checks entry tags as codes', () => {
+    expect(one({ tags: 'word' })[0]).toContain('tags должно быть списком кодов тегов');
+    expect(one({ tags: [3] })[0]).toContain('код тега должен быть строкой');
+    expect(one({ tags: ['вожа'] })[0]).toContain('код тега «вожа» не подходит');
+    expect(one({ tags: [''] })[0]).toContain('не подходит');
+    expect(one({ tags: [] })).toEqual([]);
+    const r = validateDeck(deck({ tags: { word: { ru: 'слово' } }, entries: [entry({ tags: ['word', 'word'] })] }), withPacks);
+    expect(messages(r.warnings)).toEqual(['Запись 1 (id «bonjour»): тег «word» указан дважды.']);
+  });
+
+  it('warns about tags without a name and unused tag names', () => {
+    const r = validateDeck(
+      deck({
+        tags: { word: { ru: 'слово' }, verb: { ru: 'глагол' } },
+        entries: [entry({ tags: ['word', 'kor'] }), entry({ id: 'merci', text: 'merci', audio: undefined, tags: ['kor'] })],
+      }),
+      withPacks,
+    );
+    expect(r.errors).toEqual([]);
+    expect(messages(r.warnings)).toEqual([
+      'Тег «kor» не описан в словаре tags колоды (записи 1, 2) — приложение покажет код вместо названия.',
+      'Тег «verb» описан в словаре tags, но не используется ни одной записью.',
+    ]);
   });
 
   it('checks skills', () => {
@@ -172,28 +285,25 @@ describe('validateDeck: entry errors', () => {
   });
 
   it('collects several errors at once', () => {
-    expect(one({ fr: '', skills: [], gender: 'x' })).toHaveLength(3);
+    expect(one({ text: '', skills: [], gender: 'x' })).toHaveLength(3);
   });
 });
 
 describe('validateDeck: warnings', () => {
-  it('warns about unknown entry fields, duplicate fr and shared audio', () => {
-    const r = validateDeck(
-      deck({
-        entries: [entry({ note: 'x' }), entry({ id: 'bonjour-2', fr: 'Bonjour' })],
-      }),
-    );
+  it('warns about unknown entry fields, duplicate text and shared audio', () => {
+    const r = validateDeck(deck({ entries: [entry({ comment: 'x' }), entry({ id: 'bonjour-2', text: 'Bonjour' })] }), withPacks);
     expect(r.errors).toEqual([]);
     expect(messages(r.warnings)).toEqual([
-      'Запись 1 (id «bonjour»): неизвестное поле «note» — будет пропущено.',
-      'Запись 2: тот же французский текст «Bonjour», что у записи 1.',
+      'Запись 1 (id «bonjour»): неизвестное поле «comment» — будет пропущено.',
+      'Запись 2: тот же текст «Bonjour», что у записи 1.',
       'Запись 2: файл «audio/bonjour.mp3» уже используется в записи 1.',
     ]);
   });
 
   it('warns when a meaning language is missing for some entries', () => {
     const r = validateDeck(
-      deck({ entries: [entry(), entry({ id: 'merci', fr: 'merci', audio: undefined, meaning: { tg: 'ташаккур' } })] }),
+      deck({ entries: [entry(), entry({ id: 'merci', text: 'merci', audio: undefined, meaning: { tg: 'ташаккур' } })] }),
+      withPacks,
     );
     expect(messages(r.warnings)).toEqual([
       'Значение на ru есть не у всех записей: не хватает у 1 из 2. Для них приложение покажет другой язык.',
@@ -201,7 +311,7 @@ describe('validateDeck: warnings', () => {
   });
 
   it('warns about surrounding spaces', () => {
-    const r = validateDeck(deck({ entries: [entry({ fr: ' bonjour' })] }));
+    const r = validateDeck(deck({ entries: [entry({ text: ' bonjour' })] }), withPacks);
     expect(messages(r.warnings)[0]).toContain('пробелы в начале или в конце');
   });
 });
@@ -222,7 +332,7 @@ describe('checkDeckArchive', () => {
   const json = JSON.stringify(deck());
 
   it('accepts a correct archive and ignores folders and system files', () => {
-    const r = checkDeckArchive(['deck.json', 'audio/', 'audio/bonjour.mp3', '__MACOSX/._deck.json', 'audio/.DS_Store'], json);
+    const r = checkDeckArchive(['deck.json', 'audio/', 'audio/bonjour.mp3', '__MACOSX/._deck.json', 'audio/.DS_Store'], json, withPacks);
     expect(r.errors).toEqual([]);
     expect(r.warnings).toEqual([]);
     expect(r.deck).not.toBeNull();
@@ -237,10 +347,13 @@ describe('checkDeckArchive', () => {
     expect(messages(checkDeckArchive(['deck.json'], '{').errors)[0]).toContain('не правильный JSON');
   });
 
+  it('passes language packs to the deck check', () => {
+    const lb = JSON.stringify(deck({ language: 'lb-LU' }));
+    expect(messages(checkDeckArchive(['deck.json', 'audio/bonjour.mp3'], lb, withPacks).errors)[0]).toContain('пока не поддерживается');
+  });
+
   it('reports missing audio files, with a hint about letter case', () => {
-    expect(messages(checkDeckArchive(['deck.json'], json).errors)).toEqual([
-      'Запись 1: файла «audio/bonjour.mp3» нет в архиве.',
-    ]);
+    expect(messages(checkDeckArchive(['deck.json'], json).errors)).toEqual(['Запись 1: файла «audio/bonjour.mp3» нет в архиве.']);
     const r = checkDeckArchive(['deck.json', 'audio/Bonjour.mp3'], json);
     expect(messages(r.errors)[0]).toContain('есть «audio/Bonjour.mp3» — регистр букв');
     expect(r.deck).toBeNull();
@@ -259,6 +372,59 @@ describe('checkDeckArchive', () => {
       'Лишний файл «notes.txt» — будет пропущен (нужны только deck.json и папка audio/).',
     ]);
   });
+
+  it('warns about a large archive and suggests MP3 when WAV is used', () => {
+    const files = ['deck.json', 'audio/bonjour.mp3'];
+    expect(checkDeckArchive(files, json, { archiveBytes: LARGE_ARCHIVE_BYTES }).warnings).toEqual([]);
+    const mp3 = checkDeckArchive(files, json, { archiveBytes: LARGE_ARCHIVE_BYTES + 1 });
+    expect(messages(mp3.warnings)[0]).toMatch(/^Архив большой: 20,0 МБ \(порог 20,0 МБ\)/);
+    expect(messages(mp3.warnings)[0]).not.toContain('WAV');
+    const wavJson = JSON.stringify(deck({ entries: [entry({ audio: 'audio/bonjour.wav' })] }));
+    const wav = checkDeckArchive(['deck.json', 'audio/bonjour.wav'], wavJson, { archiveBytes: 31 * 1024 * 1024 });
+    expect(wav.errors).toEqual([]);
+    expect(messages(wav.warnings)[0]).toContain('31,0 МБ');
+    expect(messages(wav.warnings)[0]).toContain('WAV-файлов: 1');
+  });
+});
+
+describe('deckNameFromFileName', () => {
+  it('uses the ZIP file name without extension, in any language', () => {
+    expect(deckNameFromFileName('Фаронсавӣ · Дарси 01.zip')).toBe('Фаронсавӣ · Дарси 01');
+    expect(deckNameFromFileName('C:\\Downloads\\Урок 2.ZIP')).toBe('Урок 2');
+    expect(deckNameFromFileName('/sdcard/Download/lesson.v2.zip')).toBe('lesson.v2');
+    expect(deckNameFromFileName('deck')).toBe('deck');
+  });
+});
+
+describe('pickLocalized', () => {
+  it('prefers the interface language, else any available one', () => {
+    expect(pickLocalized({ tg: 'вожа', ru: 'слово' }, 'ru')).toBe('слово');
+    expect(pickLocalized({ tg: 'кор' }, 'en')).toBe('кор');
+    expect(pickLocalized({ en: 'word', ru: 'слово' }, 'tg')).toBe('слово');
+    expect(pickLocalized(undefined, 'ru')).toBeUndefined();
+  });
+});
+
+describe('language packs', () => {
+  it('finds the pack by the primary subtag', () => {
+    expect(findLanguagePack('fr-FR')).toBe(FRENCH);
+    expect(findLanguagePack('fr')).toBe(FRENCH);
+    expect(findLanguagePack('FR-ca')).toBe(FRENCH);
+    expect(findLanguagePack('lb-LU')).toBeUndefined();
+  });
+
+  it('chooses the speech locale', () => {
+    expect(speechLocale('fr-CA')).toBe('fr-CA');
+    expect(speechLocale('fr')).toBe('fr-FR');
+    expect(speechLocale('de-DE')).toBeUndefined();
+  });
+
+  it('French: genders m/f and the keyboard row from Р6', () => {
+    expect(FRENCH.genders).toEqual(['m', 'f']);
+    expect(FRENCH.keyboardRow.join(' ')).toBe("é è ê ë à â ç î ï ô û ù ü œ æ ' -");
+    for (const g of FRENCH.genders) expect(GENDERS).toContain(g);
+    expect(LANGUAGE_TAG_PATTERN.test(FRENCH.defaultLocale)).toBe(true);
+  });
 });
 
 describe('JSON Schema stays in sync with the validator', () => {
@@ -266,16 +432,29 @@ describe('JSON Schema stays in sync with the validator', () => {
 
   it('uses the same enums', () => {
     expect(entrySchema.properties.skills.items.enum).toEqual([...SKILLS]);
-    expect(entrySchema.properties.meaning.propertyNames.enum).toEqual([...MEANING_LANGS]);
+    expect(schema.$defs.localized.propertyNames.enum).toEqual([...UI_LANGS]);
     expect(entrySchema.properties.gender.enum).toEqual([...GENDERS]);
+    expect(entrySchema.properties.determiner.enum).toEqual([...DETERMINERS]);
     expect(entrySchema.properties.audio.pattern).toContain(`(${AUDIO_EXTENSIONS.join('|')})`);
+    expect(entrySchema.properties.tags.items.$ref).toBe('#/$defs/id');
+    expect(schema.properties.tags.propertyNames.$ref).toBe('#/$defs/id');
   });
 
-  it('uses the same id pattern, format and version', () => {
+  it('uses the same patterns, format, version and required fields', () => {
     expect(schema.$defs.id.pattern).toBe(ID_PATTERN.source);
+    expect(schema.properties.language.pattern).toBe(LANGUAGE_TAG_PATTERN.source);
     expect(schema.properties.format.const).toBe('sluh-deck');
     expect(schema.properties.version.const).toBe(1);
-    expect(schema.required).toEqual(['format', 'version', 'id', 'title', 'entries']);
-    expect(entrySchema.required).toEqual(['id', 'fr', 'meaning', 'skills']);
+    expect(schema.required).toEqual(['format', 'version', 'id', 'revision', 'language', 'entries']);
+    expect(entrySchema.required).toEqual(['id', 'text', 'meaning', 'skills']);
+  });
+
+  it('lists every field the validator knows', () => {
+    expect(Object.keys(schema.properties).sort()).toEqual(
+      ['format', 'version', 'id', 'revision', 'language', 'tags', 'entries'].sort(),
+    );
+    expect(Object.keys(entrySchema.properties).sort()).toEqual(
+      ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'determiner', 'tags', 'skills'].sort(),
+    );
   });
 });

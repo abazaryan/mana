@@ -2,18 +2,53 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://abazaryan.github.io/sluh/sluh-deck.schema.json",
   "title": "Колода «Слуха» (deck.json), формат sluh-deck, версия 1",
-  "description": "Описание: docs/DECK_FORMAT.md. Схема проверяет строение файла; проверки между записями (одинаковые id, наличие аудиофайлов в архиве) делает валидатор src/core/deckFormat.ts.",
+  "description": "Описание: docs/DECK_FORMAT.md. Название колоды — имя ZIP-файла без расширения, в deck.json его нет. Схема проверяет строение файла; проверки между записями (одинаковые id, теги без описания, наличие аудиофайлов, поддержка языка, род по языку, размер архива) делает валидатор src/core/deckFormat.ts.",
   "type": "object",
-  "required": ["format", "version", "id", "title", "entries"],
+  "required": [
+    "format",
+    "version",
+    "id",
+    "revision",
+    "language",
+    "entries"
+  ],
   "properties": {
-    "format": { "const": "sluh-deck" },
-    "version": { "const": 1 },
-    "id": { "$ref": "#/$defs/id" },
-    "title": { "$ref": "#/$defs/text" },
+    "format": {
+      "const": "sluh-deck"
+    },
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "revision": {
+      "description": "Номер редакции колоды; растёт при каждом изменении.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "language": {
+      "description": "Изучаемый язык, код BCP-47: fr-FR, en-GB, de-DE, lb-LU.",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$"
+    },
+    "tags": {
+      "description": "Словарь тегов: код → название на языках интерфейса.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/localized"
+      }
+    },
     "entries": {
+      "description": "Порядок записей — порядок знакомства с новыми записями.",
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/entry" }
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
     }
   },
   "$defs": {
@@ -27,29 +62,88 @@
       "minLength": 1,
       "pattern": "\\S"
     },
+    "localized": {
+      "description": "Текст на языках интерфейса, хотя бы на одном.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "tg",
+          "ru",
+          "en"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/text"
+      }
+    },
     "entry": {
       "type": "object",
-      "required": ["id", "fr", "meaning", "skills"],
+      "required": [
+        "id",
+        "text",
+        "meaning",
+        "skills"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "fr": { "$ref": "#/$defs/text", "description": "Французский текст — единственный правильный ответ." },
-        "ipa": { "$ref": "#/$defs/text", "description": "Произношение в IPA, без скобок [ ] и / /." },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "text": {
+          "$ref": "#/$defs/text",
+          "description": "Текст на изучаемом языке — единственный правильный ответ."
+        },
+        "ipa": {
+          "$ref": "#/$defs/text",
+          "description": "Произношение в IPA, без скобок [ ] и / /."
+        },
         "meaning": {
-          "type": "object",
-          "minProperties": 1,
-          "propertyNames": { "enum": ["tg", "ru", "en"] },
-          "additionalProperties": { "$ref": "#/$defs/text" }
+          "$ref": "#/$defs/localized"
+        },
+        "hint": {
+          "$ref": "#/$defs/localized",
+          "description": "Подсказка, видна до ответа."
+        },
+        "note": {
+          "$ref": "#/$defs/localized",
+          "description": "Заметка, видна после ответа."
         },
         "audio": {
           "type": "string",
-          "pattern": "^audio/[^\\\\]+\\.(mp3|wav|ogg|opus|m4a|webm)$"
+          "pattern": "^audio/[^\\\\]+\\.(mp3|wav)$"
         },
-        "gender": { "enum": ["m", "f"] },
+        "gender": {
+          "enum": [
+            "m",
+            "f",
+            "n"
+          ]
+        },
+        "determiner": {
+          "enum": [
+            "definite",
+            "indefinite"
+          ]
+        },
+        "tags": {
+          "description": "Коды тегов из словаря tags колоды.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
         "skills": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "enum": ["listen", "speak", "write"] }
+          "items": {
+            "enum": [
+              "listen",
+              "speak",
+              "write"
+            ]
+          }
         }
       }
     }

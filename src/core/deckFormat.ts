@@ -2,7 +2,8 @@
  * Sluh deck format ("sluh-deck", version 1): types and validation.
  * Spec: docs/DECK_FORMAT.md. JSON Schema: ./sluh-deck.schema.json.
  *
- * Pure logic, no imports: also run directly by Node in scripts/validate-deck.ts.
+ * Pure logic with no runtime imports: also run directly by Node in scripts/validate-deck.ts.
+ * Language-specific rules come from language packs (./languages.ts) via options.
  * Messages are in Russian — they are shown to the deck author.
  */
 
@@ -14,26 +15,41 @@ export const AUDIO_DIR = 'audio/';
 export const SKILLS = ['listen', 'speak', 'write'] as const;
 export type Skill = (typeof SKILLS)[number];
 
-export const MEANING_LANGS = ['tg', 'ru', 'en'] as const;
-export type MeaningLang = (typeof MEANING_LANGS)[number];
+/** Interface languages; meanings, hints, notes and tag names are given in them. */
+export const UI_LANGS = ['tg', 'ru', 'en'] as const;
+export type UiLang = (typeof UI_LANGS)[number];
 
-export const GENDERS = ['m', 'f'] as const;
+export const GENDERS = ['m', 'f', 'n'] as const;
 export type Gender = (typeof GENDERS)[number];
 
-export const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'opus', 'm4a', 'webm'] as const;
+export const DETERMINERS = ['definite', 'indefinite'] as const;
+export type Determiner = (typeof DETERMINERS)[number];
+
+export const AUDIO_EXTENSIONS = ['mp3', 'wav'] as const;
+
+/** Above this archive size the validator warns (mobile download, shared library, offline). */
+export const LARGE_ARCHIVE_BYTES = 20 * 1024 * 1024;
 
 /** Stable ids of decks and entries: lowercase latin letters, digits, "-", "_", ".". */
 export const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
-export type Meaning = Partial<Record<MeaningLang, string>>;
+/** Simplified BCP-47: language[-Script][-REGION], e.g. "fr-FR", "lb-LU", "de", "sr-Latn-RS". */
+export const LANGUAGE_TAG_PATTERN = /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/;
+
+export type Localized = Partial<Record<UiLang, string>>;
 
 export interface DeckEntry {
   id: string;
-  fr: string;
+  text: string;
   ipa?: string;
-  meaning: Meaning;
+  meaning: Localized;
+  hint?: Localized;
+  note?: Localized;
   audio?: string;
   gender?: Gender;
+  determiner?: Determiner;
+  /** Tag codes, described in Deck.tags. */
+  tags?: string[];
   skills: Skill[];
 }
 
@@ -41,8 +57,25 @@ export interface Deck {
   format: typeof DECK_FORMAT;
   version: typeof DECK_VERSION;
   id: string;
-  title: string;
+  revision: number;
+  language: string;
+  /** Tag code → tag name in interface languages. The deck name is the ZIP file name, not a field. */
+  tags?: Record<string, Localized>;
   entries: DeckEntry[];
+}
+
+/** What the validator needs to know about a supported learning language. */
+export interface LanguageSupport {
+  /** Primary BCP-47 subtag, e.g. "fr". */
+  code: string;
+  genders: readonly Gender[];
+}
+
+export interface DeckCheckOptions {
+  /** Supported learning languages. If omitted, any well-formed language tag is accepted. */
+  languages?: readonly LanguageSupport[];
+  /** Size of the ZIP file, for the "large archive" warning. */
+  archiveBytes?: number;
 }
 
 export interface DeckIssue {
@@ -60,8 +93,12 @@ export interface DeckCheck {
   warnings: DeckIssue[];
 }
 
-const DECK_KEYS = new Set(['format', 'version', 'id', 'title', 'entries']);
-const ENTRY_KEYS = new Set(['id', 'fr', 'ipa', 'meaning', 'audio', 'gender', 'skills']);
+const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'entries']);
+const ENTRY_KEYS = new Set([
+  'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'determiner', 'tags', 'skills',
+]);
+
+const GENDER_NAMES: Record<Gender, string> = { m: 'мужской', f: 'женский', n: 'средний' };
 
 const HTML_LEFTOVER = /<\/?[a-z!][^>]*>|&[a-z]+;|&#\d+;|\[sound:/i;
 
@@ -94,6 +131,30 @@ function q(s: string): string {
 
 function list(items: readonly string[]): string {
   return items.join(', ');
+}
+
+function includes<T extends string>(items: readonly T[], v: unknown): v is T {
+  return (items as readonly unknown[]).includes(v);
+}
+
+/** Primary language subtag: "fr-FR" → "fr". */
+export function primaryLanguage(tag: string): string {
+  return tag.split('-')[0]!.toLowerCase();
+}
+
+/**
+ * Deck name shown to the user: the imported ZIP file name without extension (decision Р15).
+ * "C:\Downloads\Дарси 01.zip" → "Дарси 01".
+ */
+export function deckNameFromFileName(fileName: string): string {
+  const base = fileName.split(/[\\/]/).pop() ?? '';
+  return base.replace(/\.zip$/i, '').trim();
+}
+
+/** Text in the interface language, or any available one (in UI_LANGS order). */
+export function pickLocalized(value: Localized | undefined, lang: UiLang): string | undefined {
+  if (!value) return undefined;
+  return value[lang] ?? UI_LANGS.map((l) => value[l]).find((t) => t !== undefined);
 }
 
 class Collector {
@@ -173,27 +234,39 @@ function checkId(c: Collector, path: string, where: string, v: unknown): string 
   return v;
 }
 
-function checkMeaning(c: Collector, path: string, where: string, v: unknown): void {
+/**
+ * Text in interface languages: {"tg": "...", "ru": "...", "en": "..."}, at least one.
+ * `field` is the JSON key, `label` its Russian name for messages.
+ */
+function checkLocalized(
+  c: Collector,
+  path: string,
+  where: string,
+  v: unknown,
+  field: string,
+  label: string,
+  required: boolean,
+): void {
   if (v === undefined) {
-    c.error(path, `${where}: нет обязательного поля meaning (значение).`);
+    if (required) c.error(path, `${where}: нет обязательного поля ${field} (${label}).`);
     return;
   }
   if (!isObject(v)) {
     c.error(
       path,
-      `${where}: meaning должно быть объектом с языками, например {"tg": "салом", "ru": "привет"}, а сейчас ${typeName(v)}.`,
+      `${where}: ${field} должно быть объектом с языками, например {"tg": "салом", "ru": "привет"}, а сейчас ${typeName(v)}.`,
     );
     return;
   }
   for (const [lang, text] of Object.entries(v)) {
-    if (!(MEANING_LANGS as readonly string[]).includes(lang)) {
-      c.error(`${path}.${lang}`, `${where}: неизвестный язык значения ${q(lang)}. Допустимы: ${list(MEANING_LANGS)}.`);
+    if (!includes(UI_LANGS, lang)) {
+      c.error(`${path}.${lang}`, `${where}: в ${field} неизвестный язык ${q(lang)}. Допустимы: ${list(UI_LANGS)}.`);
       continue;
     }
-    checkText(c, `${path}.${lang}`, `${where}, значение на ${lang}`, text, true);
+    checkText(c, `${path}.${lang}`, `${where}, ${field} на ${lang}`, text, true);
   }
   if (Object.keys(v).length === 0) {
-    c.error(path, `${where}: meaning пустое — нужно значение хотя бы на одном языке (${list(MEANING_LANGS)}).`);
+    c.error(path, `${where}: ${field} пустое — нужен текст хотя бы на одном языке (${list(UI_LANGS)}).`);
   }
 }
 
@@ -216,7 +289,7 @@ function checkAudio(c: Collector, path: string, where: string, v: unknown): stri
     return undefined;
   }
   const ext = /\.([^./]+)$/.exec(v)?.[1];
-  if (!ext || !(AUDIO_EXTENSIONS as readonly string[]).includes(ext)) {
+  if (!includes(AUDIO_EXTENSIONS, ext)) {
     c.error(path, `${where}: неподдерживаемый тип аудио ${q(v)}. Допустимы (строчными буквами): ${list(AUDIO_EXTENSIONS)}.`);
     return undefined;
   }
@@ -238,7 +311,7 @@ function checkSkills(c: Collector, path: string, where: string, v: unknown): voi
   }
   const seen = new Set<string>();
   v.forEach((s, k) => {
-    if (typeof s !== 'string' || !(SKILLS as readonly string[]).includes(s)) {
+    if (!includes(SKILLS, s)) {
       c.error(`${path}[${k}]`, `${where}: неизвестный навык ${q(String(s))}. Допустимы: ${list(SKILLS)}.`);
     } else if (seen.has(s)) {
       c.error(`${path}[${k}]`, `${where}: навык ${q(s)} указан дважды.`);
@@ -248,41 +321,147 @@ function checkSkills(c: Collector, path: string, where: string, v: unknown): voi
   });
 }
 
-function checkEntry(c: Collector, i: number, v: unknown): { id?: string; fr?: string; audio?: string; langs: string[] } {
+const TAG_CODE_RULE = 'строчные латинские буквы, цифры и знаки - _ . (до 64 символов), например «word»';
+
+/** Entry tags: a list of tag codes. Returns the valid codes. */
+function checkTags(c: Collector, path: string, where: string, v: unknown): string[] {
+  if (v === undefined) return [];
+  if (!Array.isArray(v)) {
+    c.error(path, `${where}: tags должно быть списком кодов тегов, например ["word"], а сейчас ${typeName(v)}.`);
+    return [];
+  }
+  const seen = new Set<string>();
+  v.forEach((t, k) => {
+    const p = `${path}[${k}]`;
+    if (typeof t !== 'string') {
+      c.error(p, `${where}: код тега должен быть строкой, а сейчас ${typeName(t)}.`);
+    } else if (!ID_PATTERN.test(t)) {
+      c.error(p, `${where}: код тега ${q(t)} не подходит: ${TAG_CODE_RULE}. Название тега пишется в словаре tags колоды.`);
+    } else if (seen.has(t)) {
+      c.warn(p, `${where}: тег ${q(t)} указан дважды.`);
+    } else {
+      seen.add(t);
+    }
+  });
+  return [...seen];
+}
+
+/** Deck tag dictionary: {"word": {"tg": "вожа", "ru": "слово"}}. Returns the valid codes. */
+function checkTagDictionary(c: Collector, v: unknown): Set<string> {
+  const codes = new Set<string>();
+  if (v === undefined) return codes;
+  if (!isObject(v)) {
+    c.error(
+      'tags',
+      `Колода: tags должно быть словарём тегов, например {"word": {"tg": "вожа", "ru": "слово", "en": "word"}}, а сейчас ${typeName(v)}.`,
+    );
+    return codes;
+  }
+  for (const [code, name] of Object.entries(v)) {
+    if (!ID_PATTERN.test(code)) {
+      c.error(`tags.${code}`, `Колода, словарь tags: код тега ${q(code)} не подходит: ${TAG_CODE_RULE}.`);
+      continue;
+    }
+    codes.add(code);
+    checkLocalized(c, `tags.${code}`, `Тег ${q(code)}`, name, `tags.${code}`, 'название тега', true);
+  }
+  return codes;
+}
+
+interface EntrySummary {
+  id?: string;
+  text?: string;
+  audio?: string;
+  tags: string[];
+  langs: string[];
+}
+
+function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport | undefined): EntrySummary {
   const path = `entries[${i}]`;
   let where = `Запись ${i + 1}`;
   if (!isObject(v)) {
     c.error(path, `${where}: должна быть объектом { ... }, а сейчас ${typeName(v)}.`);
-    return { langs: [] };
+    return { tags: [], langs: [] };
   }
   if (typeof v.id === 'string' && v.id !== '') where += ` (id ${q(v.id)})`;
-  else if (typeof v.fr === 'string' && v.fr.trim() !== '') where += ` (${q(v.fr)})`;
+  else if (typeof v.text === 'string' && v.text.trim() !== '') where += ` (${q(v.text)})`;
 
   const id = checkId(c, `${path}.id`, where, v.id);
-  const fr = checkText(c, `${path}.fr`, `${where}, поле fr (французский текст)`, v.fr, true);
+  let text: string | undefined;
+  if (v.text === undefined && v.fr !== undefined) {
+    c.error(`${path}.text`, `${where}: поле fr переименовано в text — переименуйте его.`);
+  } else {
+    text = checkText(c, `${path}.text`, `${where}, поле text (текст на изучаемом языке)`, v.text, true);
+  }
   const ipa = checkText(c, `${path}.ipa`, `${where}, поле ipa`, v.ipa, false);
   if (ipa !== undefined && /^\s*[[/]|[\]/]\s*$/.test(ipa)) {
     c.error(`${path}.ipa`, `${where}: IPA пишется без скобок [ ] и косых / / — приложение добавит их само. Сейчас: ${q(ipa)}.`);
   }
   if (v.ipa === undefined) c.warn(`${path}.ipa`, `${where}: нет IPA (произношения).`);
-  checkMeaning(c, `${path}.meaning`, where, v.meaning);
+  checkLocalized(c, `${path}.meaning`, where, v.meaning, 'meaning', 'значение', true);
+  checkLocalized(c, `${path}.hint`, where, v.hint, 'hint', 'подсказка до ответа', false);
+  checkLocalized(c, `${path}.note`, where, v.note, 'note', 'заметка после ответа', false);
   const audio = checkAudio(c, `${path}.audio`, where, v.audio);
-  if (v.gender !== undefined && !(GENDERS as readonly unknown[]).includes(v.gender)) {
-    c.error(
-      `${path}.gender`,
-      `${where}: род ${q(String(v.gender))} не подходит. Допустимо "m" (мужской) или "f" (женский); если рода нет, поле не пишите.`,
-    );
+
+  if (v.gender !== undefined) {
+    if (!includes(GENDERS, v.gender)) {
+      c.error(
+        `${path}.gender`,
+        `${where}: род ${q(String(v.gender))} не подходит. Допустимо "m" (мужской), "f" (женский), "n" (средний); если рода нет, поле не пишите.`,
+      );
+    } else if (lang && !lang.genders.includes(v.gender)) {
+      c.error(
+        `${path}.gender`,
+        `${where}: в языке ${q(lang.code)} нет рода ${q(v.gender)} (${GENDER_NAMES[v.gender]}). Допустимо: ${list(lang.genders)}.`,
+      );
+    }
   }
+  if (v.determiner !== undefined) {
+    if (!includes(DETERMINERS, v.determiner)) {
+      c.error(
+        `${path}.determiner`,
+        `${where}: determiner ${q(String(v.determiner))} не подходит. Допустимо "definite" (определённая форма) или "indefinite" (неопределённая).`,
+      );
+    } else if (v.gender === undefined) {
+      c.warn(`${path}.determiner`, `${where}: указан determiner, но нет gender — у существительного обычно есть род.`);
+    }
+  }
+  const tags = checkTags(c, `${path}.tags`, where, v.tags);
   checkSkills(c, `${path}.skills`, where, v.skills);
   for (const key of Object.keys(v)) {
-    if (!ENTRY_KEYS.has(key)) c.warn(`${path}.${key}`, `${where}: неизвестное поле ${q(key)} — будет пропущено.`);
+    if (!ENTRY_KEYS.has(key) && key !== 'fr') {
+      c.warn(`${path}.${key}`, `${where}: неизвестное поле ${q(key)} — будет пропущено.`);
+    }
   }
-  const langs = isObject(v.meaning) ? Object.keys(v.meaning).filter((l) => (MEANING_LANGS as readonly string[]).includes(l)) : [];
-  return { id, fr, audio, langs };
+  const langs = isObject(v.meaning) ? Object.keys(v.meaning).filter((l) => includes(UI_LANGS, l)) : [];
+  return { id, text, audio, tags, langs };
+}
+
+function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): LanguageSupport | undefined {
+  if (v === undefined) {
+    c.error('language', 'Нет поля language (изучаемый язык), например "language": "fr-FR".');
+    return undefined;
+  }
+  if (typeof v !== 'string' || !LANGUAGE_TAG_PATTERN.test(v)) {
+    c.error(
+      'language',
+      `Поле language: ${q(String(v))} — не код языка BCP-47. Примеры: "fr-FR", "en-GB", "de-DE", "lb-LU".`,
+    );
+    return undefined;
+  }
+  if (!options.languages) return undefined;
+  const pack = options.languages.find((l) => l.code === primaryLanguage(v));
+  if (!pack) {
+    c.error(
+      'language',
+      `Язык ${q(v)} пока не поддерживается приложением. Поддерживаются: ${list(options.languages.map((l) => l.code))}.`,
+    );
+  }
+  return pack;
 }
 
 /** Validates parsed deck.json content. */
-export function validateDeck(value: unknown): DeckCheck {
+export function validateDeck(value: unknown, options: DeckCheckOptions = {}): DeckCheck {
   const c = new Collector();
   if (!isObject(value)) {
     c.error('', `${DECK_JSON}: в начале файла должен быть объект { ... }, а сейчас ${typeName(value)}.`);
@@ -310,9 +489,19 @@ export function validateDeck(value: unknown): DeckCheck {
     );
   }
   checkId(c, 'id', 'Колода', value.id);
-  checkText(c, 'title', 'Колода, поле title (название)', value.title, true);
+  if (value.revision === undefined) {
+    c.error('revision', 'Нет поля revision (номер редакции колоды). У первой редакции "revision": 1.');
+  } else if (typeof value.revision !== 'number' || !Number.isInteger(value.revision) || value.revision < 1) {
+    c.error('revision', `Поле revision должно быть целым числом от 1, а сейчас ${q(String(value.revision))}.`);
+  }
+  const lang = checkLanguage(c, value.language, options);
+  const tagCodes = checkTagDictionary(c, value.tags);
   for (const key of Object.keys(value)) {
-    if (!DECK_KEYS.has(key)) c.warn(key, `Колода: неизвестное поле ${q(key)} — будет пропущено.`);
+    if (key === 'title' || key === 'description') {
+      c.warn(key, `Колода: поле ${q(key)} не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.`);
+    } else if (!DECK_KEYS.has(key)) {
+      c.warn(key, `Колода: неизвестное поле ${q(key)} — будет пропущено.`);
+    }
   }
 
   const entries = value.entries;
@@ -324,23 +513,24 @@ export function validateDeck(value: unknown): DeckCheck {
     c.error('entries', 'Список entries пуст — в колоде нет ни одной записи.');
   } else {
     const ids = new Map<string, number>();
-    const frs = new Map<string, number>();
+    const texts = new Map<string, number>();
     const audios = new Map<string, number>();
     const langCount = new Map<string, number>();
+    const tagUse = new Map<string, number[]>();
     entries.forEach((raw, i) => {
-      const e = checkEntry(c, i, raw);
+      const e = checkEntry(c, i, raw, lang);
       if (e.id !== undefined) {
         const first = ids.get(e.id);
         if (first !== undefined) {
           c.error(`entries[${i}].id`, `Запись ${i + 1}: id ${q(e.id)} уже есть у записи ${first + 1}. id должны быть разными.`);
         } else ids.set(e.id, i);
       }
-      if (e.fr !== undefined) {
-        const key = e.fr.trim().toLowerCase();
-        const first = frs.get(key);
+      if (e.text !== undefined) {
+        const key = e.text.trim().toLowerCase();
+        const first = texts.get(key);
         if (first !== undefined) {
-          c.warn(`entries[${i}].fr`, `Запись ${i + 1}: тот же французский текст ${q(e.fr.trim())}, что у записи ${first + 1}.`);
-        } else frs.set(key, i);
+          c.warn(`entries[${i}].text`, `Запись ${i + 1}: тот же текст ${q(e.text.trim())}, что у записи ${first + 1}.`);
+        } else texts.set(key, i);
       }
       if (e.audio !== undefined) {
         const first = audios.get(e.audio);
@@ -349,13 +539,25 @@ export function validateDeck(value: unknown): DeckCheck {
         } else audios.set(e.audio, i);
       }
       for (const l of e.langs) langCount.set(l, (langCount.get(l) ?? 0) + 1);
+      for (const t of e.tags) tagUse.set(t, [...(tagUse.get(t) ?? []), i + 1]);
     });
-    for (const [lang, n] of langCount) {
+    for (const [t, nums] of tagUse) {
+      if (tagCodes.has(t)) continue;
+      const shown = nums.slice(0, 5).join(', ') + (nums.length > 5 ? '…' : '');
+      c.warn(
+        'tags',
+        `Тег ${q(t)} не описан в словаре tags колоды (записи ${shown}) — приложение покажет код вместо названия.`,
+      );
+    }
+    for (const t of tagCodes) {
+      if (!tagUse.has(t)) c.warn(`tags.${t}`, `Тег ${q(t)} описан в словаре tags, но не используется ни одной записью.`);
+    }
+    for (const [l, n] of langCount) {
       const missing = entries.length - n;
       if (missing > 0) {
         c.warn(
           'entries',
-          `Значение на ${lang} есть не у всех записей: не хватает у ${missing} из ${entries.length}. Для них приложение покажет другой язык.`,
+          `Значение на ${l} есть не у всех записей: не хватает у ${missing} из ${entries.length}. Для них приложение покажет другой язык.`,
         );
       }
     }
@@ -373,11 +575,19 @@ function isJunk(path: string): boolean {
   return path.endsWith('/') || path.startsWith('__MACOSX/') || /(^|\/)(\.DS_Store|Thumbs\.db|desktop\.ini)$/i.test(path);
 }
 
+function megabytes(bytes: number): string {
+  return (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
+}
+
 /**
  * Validates a whole deck archive: `paths` are all file paths inside the ZIP,
  * `deckJsonText` is the content of deck.json (undefined if it is missing).
  */
-export function checkDeckArchive(paths: readonly string[], deckJsonText: string | undefined): DeckCheck {
+export function checkDeckArchive(
+  paths: readonly string[],
+  deckJsonText: string | undefined,
+  options: DeckCheckOptions = {},
+): DeckCheck {
   const files = paths.filter((p) => !isJunk(p));
   if (deckJsonText === undefined) {
     const nested = files.find((p) => p.endsWith('/' + DECK_JSON));
@@ -389,7 +599,7 @@ export function checkDeckArchive(paths: readonly string[], deckJsonText: string 
 
   const parsed = parseDeckJson(deckJsonText);
   if (parsed.error) return { deck: null, errors: [parsed.error], warnings: [] };
-  const result = validateDeck(parsed.value);
+  const result = validateDeck(parsed.value, options);
 
   const present = new Set(files);
   const byLower = new Map(files.map((p) => [p.toLowerCase(), p]));
@@ -418,6 +628,17 @@ export function checkDeckArchive(paths: readonly string[], deckJsonText: string 
       message: p.startsWith(AUDIO_DIR)
         ? `Файл ${q(p)} не используется ни одной записью.`
         : `Лишний файл ${q(p)} — будет пропущен (нужны только ${DECK_JSON} и папка audio/).`,
+    });
+  }
+  if (options.archiveBytes !== undefined && options.archiveBytes > LARGE_ARCHIVE_BYTES) {
+    const wav = [...used].filter((p) => p.endsWith('.wav')).length;
+    result.warnings.push({
+      level: 'warning',
+      path: '',
+      message:
+        `Архив большой: ${megabytes(options.archiveBytes)} (порог ${megabytes(LARGE_ARCHIVE_BYTES)}). ` +
+        `Он долго скачивается на телефон и занимает место.` +
+        (wav > 0 ? ` WAV-файлов: ${wav} — в MP3 они станут в 5–10 раз меньше.` : ''),
     });
   }
   if (result.errors.length > 0) result.deck = null;
