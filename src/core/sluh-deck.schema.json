@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abazaryan.github.io/sluh/sluh-deck.schema.json",
+  "title": "Колода «Слуха» (deck.json), формат sluh-deck, версия 1",
+  "description": "Описание: docs/DECK_FORMAT.md. Схема проверяет строение файла; проверки между записями (одинаковые id, наличие аудиофайлов в архиве) делает валидатор src/core/deckFormat.ts.",
+  "type": "object",
+  "required": ["format", "version", "id", "title", "entries"],
+  "properties": {
+    "format": { "const": "sluh-deck" },
+    "version": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "title": { "$ref": "#/$defs/text" },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "description": "Устойчивый идентификатор: не меняется при исправлении колоды.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "entry": {
+      "type": "object",
+      "required": ["id", "fr", "meaning", "skills"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "fr": { "$ref": "#/$defs/text", "description": "Французский текст — единственный правильный ответ." },
+        "ipa": { "$ref": "#/$defs/text", "description": "Произношение в IPA, без скобок [ ] и / /." },
+        "meaning": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "enum": ["tg", "ru", "en"] },
+          "additionalProperties": { "$ref": "#/$defs/text" }
+        },
+        "audio": {
+          "type": "string",
+          "pattern": "^audio/[^\\\\]+\\.(mp3|wav|ogg|opus|m4a|webm)$"
+        },
+        "gender": { "enum": ["m", "f"] },
+        "skills": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["listen", "speak", "write"] }
+        }
+      }
+    }
+  }
+}
