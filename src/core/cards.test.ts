@@ -1,0 +1,133 @@
+import { fsrs, Rating, type Grade } from 'ts-fsrs';
+import { describe, expect, it } from 'vitest';
+import { rebuildCards, stepCard } from './cards';
+import { cardKey, type IntroRecord, type LogRecord, type ReviewRecord } from './model';
+import { createScheduler, type CardState } from './scheduler';
+
+const USER = 'user-1';
+const H = 3600_000;
+const D = 24 * H;
+const T0 = Date.parse('2026-10-01T08:00:00Z');
+
+function review(id: string, entryId: string, skill: ReviewRecord['skill'], at: number, final: Grade): Omit<ReviewRecord, 'fsrs'> {
+  return {
+    id,
+    type: 'review',
+    userId: USER,
+    deviceId: 'dev-1',
+    at: new Date(at),
+    deckId: 'd',
+    entryId,
+    deckRevision: 1,
+    sessionId: 's',
+    skill,
+    expected: entryId,
+    mode: 'voice',
+    answer: entryId,
+    alternatives: [],
+    verdict: final === Rating.Again ? 'incorrect' : 'correct',
+    errorType: null,
+    latencyMs: 1500,
+    totalMs: 2500,
+    micDelayMs: null,
+    retries: 0,
+    recognitionLang: 'fr-FR',
+    suggested: final,
+    reason: 'correct',
+    final,
+    correction: null,
+  };
+}
+
+/** Records the way the app writes them: each answer stepped from the card as it stood. */
+function recordIncrementally(scheduler = createScheduler()) {
+  const answers: Omit<ReviewRecord, 'fsrs'>[] = [
+    review('r01', 'a', 'speak', T0, Rating.Good),
+    review('r02', 'a', 'listen', T0 + 1000, Rating.Good),
+    review('r03', 'b', 'speak', T0 + 2000, Rating.Again),
+    review('r04', 'b', 'speak', T0 + 10 * 60_000, Rating.Hard),
+    review('r05', 'a', 'speak', T0 + D, Rating.Good),
+    review('r06', 'b', 'speak', T0 + D + H, Rating.Good),
+    review('r07', 'a', 'speak', T0 + 4 * D, Rating.Easy),
+    review('r08', 'b', 'speak', T0 + 5 * D, Rating.Again),
+    review('r09', 'b', 'speak', T0 + 5 * D + 15 * 60_000, Rating.Good),
+    review('r10', 'a', 'speak', T0 + 20 * D, Rating.Good),
+    review('r11', 'a', 'listen', T0 + 21 * D, Rating.Hard),
+  ];
+  const cards = new Map<string, CardState>();
+  const log: ReviewRecord[] = [];
+  for (const a of answers) {
+    const key = cardKey(a);
+    const step = stepCard(scheduler, cards.get(key) ?? null, a.final, a.at);
+    cards.set(key, step.card);
+    log.push({ ...a, fsrs: step.fsrs });
+  }
+  return { cards, log };
+}
+
+describe('rebuildCards', () => {
+  it('replaying the journal gives the same states as recording answer by answer', () => {
+    const { cards, log } = recordIncrementally();
+    const rebuilt = rebuildCards(createScheduler(), log, USER);
+    expect(rebuilt).toHaveLength(cards.size);
+    for (const c of rebuilt) {
+      const { userId, deckId, entryId, skill, lastLogId, ...state } = c;
+      expect(userId).toBe(USER);
+      expect(state).toEqual(cards.get(cardKey({ deckId, entryId, skill })));
+      expect(lastLogId).toBe([...log].reverse().find((r) => cardKey(r) === cardKey(c))!.id);
+    }
+  });
+
+  it('replaying reproduces every stored next due date, in any storage order', () => {
+    const { log } = recordIncrementally();
+    const shuffled = [...log].reverse();
+    const seen: Date[] = [];
+    // Rebuild prefix by prefix: after each answer the card's due equals the stored nextDue.
+    for (const r of log) {
+      const prefix = shuffled.filter((x) => x.at.getTime() <= r.at.getTime());
+      const card = rebuildCards(createScheduler(), prefix, USER).find((c) => c.lastLogId === r.id)!;
+      expect(card.due).toEqual(r.fsrs.nextDue);
+      expect(card.state).toBe(r.fsrs.nextState);
+      seen.push(card.due);
+    }
+    expect(seen.length).toBe(log.length);
+  });
+
+  it('is deterministic even with fuzz on (ts-fsrs seeds fuzz from the review)', () => {
+    const fuzzy = () => fsrs({ enable_fuzz: true });
+    const { log } = recordIncrementally(fuzzy());
+    const a = rebuildCards(fuzzy(), log, USER);
+    const b = rebuildCards(fuzzy(), log, USER);
+    expect(a).toEqual(b);
+    for (const c of a) expect(c.due).toEqual(log.find((r) => r.id === c.lastLogId)!.fsrs.nextDue);
+  });
+
+  it('ties at the same moment are ordered by id', () => {
+    const s = createScheduler();
+    const x = review('x2', 'a', 'speak', T0, Rating.Again);
+    const y = review('x1', 'a', 'speak', T0, Rating.Good);
+    const withFsrs = (r: Omit<ReviewRecord, 'fsrs'>): ReviewRecord => ({ ...r, fsrs: stepCard(s, null, r.final, r.at).fsrs });
+    const one = rebuildCards(s, [withFsrs(x), withFsrs(y)], USER);
+    const two = rebuildCards(s, [withFsrs(y), withFsrs(x)], USER);
+    expect(one).toEqual(two);
+    expect(one[0]!.lastLogId).toBe('x2');
+  });
+
+  it('ignores introductions and other users', () => {
+    const { log } = recordIncrementally();
+    const intro: IntroRecord = {
+      id: 'i1',
+      type: 'intro',
+      skill: null,
+      userId: USER,
+      deviceId: 'dev-1',
+      at: new Date(T0),
+      deckId: 'd',
+      entryId: 'a',
+      deckRevision: 1,
+      sessionId: 's',
+    };
+    const other: LogRecord = { ...log[0]!, id: 'o1', userId: 'user-2' };
+    expect(rebuildCards(createScheduler(), [intro, other], USER)).toEqual([]);
+  });
+});
