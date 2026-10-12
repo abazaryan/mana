@@ -328,14 +328,19 @@ function checkLocalized(
     );
     return;
   }
+  let known = 0;
   for (const [lang, text] of Object.entries(v)) {
     if (!includes(UI_LANGS, lang)) {
-      c.error(`${path}.${lang}`, `${where}: в ${field} неизвестный язык ${q(lang)}. Допустимы: ${list(UI_LANGS)}.`);
+      c.warn(
+        `${path}.${lang}`,
+        `${where}: в ${field} язык ${q(lang)} не поддерживается — этот текст приложение не покажет. Язык интерфейса и значений — только ${list(UI_LANGS)} (ISO 639-1; не «tj», «tgk», «tg-TJ»).`,
+      );
       continue;
     }
+    known++;
     checkText(c, `${path}.${lang}`, `${where}, ${field} на ${lang}`, text, true);
   }
-  if (Object.keys(v).length === 0) {
+  if (known === 0) {
     c.error(path, `${where}: ${field} пустое — нужен текст хотя бы на одном языке (${list(UI_LANGS)}).`);
   }
 }

@@ -159,7 +159,7 @@ describe('validateDeck: deck-level errors', () => {
     expect(errorsOf(tagged({ Word: { ru: 'слово' }, word: { ru: 'слово' } }))[0]).toContain('код тега «Word» не подходит');
     expect(errorsOf(tagged({ word: 'слово' }))[0]).toContain('Тег «word»: tags.word должно быть объектом');
     expect(errorsOf(tagged({ word: {} }))[0]).toContain('tags.word пустое');
-    expect(errorsOf(tagged({ word: { de: 'Wort' } }))[0]).toContain('в tags.word неизвестный язык «de»');
+    expect(errorsOf(tagged({ word: { de: 'Wort' } }))[0]).toContain('tags.word пустое');
     expect(errorsOf(tagged({ word: { tg: 'вожа' } }))).toEqual([]);
   });
 
@@ -224,8 +224,28 @@ describe('validateDeck: entry errors', () => {
     expect(one({ meaning: undefined })[0]).toContain('нет обязательного поля meaning (значение)');
     expect(one({ meaning: 'салом' })[0]).toContain('meaning должно быть объектом');
     expect(one({ meaning: {} })[0]).toContain('хотя бы на одном языке');
-    expect(one({ meaning: { fa: 'سلام' } })[0]).toContain('в meaning неизвестный язык «fa»');
+    expect(one({ meaning: { fa: 'سلام' } })[0]).toContain('хотя бы на одном языке');
     expect(one({ meaning: { tg: '' } })[0]).toContain('meaning на tg: пустая строка');
+  });
+
+  it('warns (not errors) about meaning and tag-name keys outside tg/ru/en', () => {
+    for (const bad of ['tj', 'tgk', 'tg-TJ', 'fa']) {
+      const r = validateDeck(
+        deck({
+          tags: { word: { ru: 'слово', [bad]: 'x' } },
+          entries: [entry({ tags: ['word'], meaning: { ru: 'привет', [bad]: 'x' }, note: { ru: 'n', [bad]: 'x' } })],
+        }),
+        withPacks,
+      );
+      expect(r.errors, bad).toEqual([]);
+      const w = r.warnings.map((x) => x.message);
+      expect(w.filter((m) => m.includes(`язык «${bad}» не поддерживается`)), bad).toHaveLength(3);
+      expect(w.join(' ')).toContain('не покажет');
+    }
+  });
+
+  it('still needs at least one of tg/ru/en in meaning', () => {
+    expect(one({ meaning: { tj: 'x' } })[0]).toContain('хотя бы на одном языке');
   });
 
   it('accepts a single meaning language', () => {
@@ -234,7 +254,6 @@ describe('validateDeck: entry errors', () => {
 
   it('checks hint and note like meaning', () => {
     expect(one({ hint: 'вежливо' })[0]).toContain('hint должно быть объектом');
-    expect(one({ note: { de: 'x' } })[0]).toContain('в note неизвестный язык «de»');
     expect(one({ hint: {} })[0]).toContain('hint пустое');
   });
 
@@ -491,7 +510,7 @@ describe('JSON Schema stays in sync with the validator', () => {
 
   it('uses the same enums', () => {
     expect(entrySchema.properties.skills.items.enum).toEqual([...SKILLS]);
-    expect(schema.$defs.localized.propertyNames.enum).toEqual([...UI_LANGS]);
+    expect(Object.keys(schema.$defs.localized.properties)).toEqual([...UI_LANGS]);
     expect(entrySchema.properties.gender.enum).toEqual([...GENDERS]);
     expect(entrySchema.properties.form.properties.determiner.enum).toEqual([...DETERMINERS]);
     expect(entrySchema.properties.form.properties.gender.enum).toEqual([...GENDERS]);

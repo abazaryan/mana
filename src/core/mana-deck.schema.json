@@ -63,19 +63,18 @@
       "pattern": "\\S"
     },
     "localized": {
-      "description": "Текст на языках интерфейса, хотя бы на одном.",
+      "description": "Текст на языках интерфейса (ISO 639-1: tg, ru, en), хотя бы на одном. Другие ключи валидатор принимает с предупреждением, приложение их не показывает.",
       "type": "object",
-      "minProperties": 1,
-      "propertyNames": {
-        "enum": [
-          "tg",
-          "ru",
-          "en"
-        ]
+      "properties": {
+        "tg": { "$ref": "#/$defs/text" },
+        "ru": { "$ref": "#/$defs/text" },
+        "en": { "$ref": "#/$defs/text" }
       },
-      "additionalProperties": {
-        "$ref": "#/$defs/text"
-      }
+      "anyOf": [
+        { "required": ["tg"] },
+        { "required": ["ru"] },
+        { "required": ["en"] }
+      ]
     },
     "entry": {
       "type": "object",
