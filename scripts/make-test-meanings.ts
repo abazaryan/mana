@@ -11,7 +11,7 @@ const deck = {
   id: 'fr-test-meanings-01',
   revision: 1,
   language: 'fr-FR',
-  tags: { word: { tg: 'калима', ru: 'слово', en: 'word' } },
+  tags: { word: { tg: 'вожа', ru: 'слово', en: 'word' } },
   entries: [
     {
       id: 'chat',
