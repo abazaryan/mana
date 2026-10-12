@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { backupFileName } from '../core/backup';
 import type { MetaRow, SettingsRow } from '../core/model';
 import { createScheduler } from '../core/scheduler';
-import type { SluhDb } from '../platform/db';
+import type { ManaDb } from '../platform/db';
 import { downloadText } from '../platform/files';
 import { requestPersistence, storagePersistence, type Persistence } from '../platform/persist';
 import { exportJournal, restoreJournal } from '../platform/repo';
@@ -10,7 +10,7 @@ import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
 
 interface Props {
-  db: SluhDb;
+  db: ManaDb;
   meta: MetaRow;
   onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang'>>): void;
   /** The restore adopted another user: reload meta and settings. */

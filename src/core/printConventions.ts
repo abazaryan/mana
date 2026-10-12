@@ -7,7 +7,7 @@
  * @ 503f4af) without the curated annotation-synonym list; language rules come
  * from the language pack (Р13).
  *
- * Note (Р3, Р16): Sluh decks do not use print conventions — every form is its
+ * Note (Р3, Р16): Mana decks do not use print conventions — every form is its
  * own entry with a `form` hint, and the validator warns about `(` or `/` left in
  * `text`. The app does not use this module today; it is kept, with its tests,
  * for one-off converters of printed word lists and for `lexemeKey`.

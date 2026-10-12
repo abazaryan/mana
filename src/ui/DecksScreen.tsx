@@ -3,7 +3,7 @@ import { readDeckArchive, type DeckArchive } from '../core/deckArchive';
 import type { ImportPlan } from '../core/deckImport';
 import { findLanguagePack } from '../core/languages';
 import type { DeckRow } from '../core/model';
-import type { SluhDb } from '../platform/db';
+import type { ManaDb } from '../platform/db';
 import { requestPersistence } from '../platform/persist';
 import { applyImport, listDecks, prepareImport } from '../platform/repo';
 import { useI18n } from './i18n';
@@ -20,7 +20,7 @@ export function languageName(tag: string, lang: 'tg' | 'ru' | 'en'): string {
   return findLanguagePack(tag)?.name[lang] ?? tag;
 }
 
-export function DecksScreen({ db }: { db: SluhDb }) {
+export function DecksScreen({ db }: { db: ManaDb }) {
   const { t, lang } = useI18n();
   const [decks, setDecks] = useState<DeckRow[] | null>(null);
   const [imp, setImp] = useState<ImportState | null>(null);

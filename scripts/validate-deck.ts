@@ -1,5 +1,5 @@
 /**
- * Checks a Sluh deck ZIP before upload: npm run deck:check -- path/to/deck.zip
+ * Checks a Mana deck ZIP before upload: npm run deck:check -- path/to/deck.zip
  * Uses the same validator as the app (src/core/deckFormat.ts). Node 24+ (runs .ts directly).
  */
 import { readFile } from 'node:fs/promises';

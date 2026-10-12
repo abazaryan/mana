@@ -1,6 +1,6 @@
 /**
  * ts-fsrs adapter. FSRS state lives per (entry × skill) pair. Scheduling itself
- * is never reimplemented; this module only maps between Sluh's record shape
+ * is never reimplemented; this module only maps between Mana's record shape
  * (camelCase, `lastReview: null`) and the ts-fsrs `Card` (snake_case,
  * `last_review?: Date`), and turns one review into the new state plus a review
  * log snapshot. Ported from LivreVivant (src/lib/learning/fsrs.ts @ 503f4af);

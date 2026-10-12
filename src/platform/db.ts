@@ -5,9 +5,9 @@
 import Dexie, { type DexieOptions, type Table } from 'dexie';
 import type { CardRow, DeckRow, EntryRow, LogRecord, MediaRow, MetaRow, SettingsRow } from '../core/model';
 
-export const DB_NAME = 'sluh';
+export const DB_NAME = 'mana';
 
-export class SluhDb extends Dexie {
+export class ManaDb extends Dexie {
   meta!: Table<MetaRow, string>;
   settings!: Table<SettingsRow, string>;
   decks!: Table<DeckRow, string>;
@@ -30,10 +30,10 @@ export class SluhDb extends Dexie {
   }
 }
 
-let shared: SluhDb | null = null;
+let shared: ManaDb | null = null;
 
 /** The app's database (one per page). */
-export function getDb(): SluhDb {
-  shared ??= new SluhDb();
+export function getDb(): ManaDb {
+  shared ??= new ManaDb();
   return shared;
 }

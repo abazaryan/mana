@@ -7,7 +7,7 @@
  * 2.5 s + 0.3 s per word beyond four. Initial thresholds, calibrated by the log.
  *
  * Ported from LivreVivant (`ratingForVerdict`, src/lib/learning/fsrs.ts @ 503f4af);
- * the Easy rule is Sluh's own — LivreVivant never awards Easy.
+ * the Easy rule is Mana's own — LivreVivant never awards Easy.
  */
 import { Rating, type Grade } from 'ts-fsrs';
 import type { Verdict } from './evaluate';

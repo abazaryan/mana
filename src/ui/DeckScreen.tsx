@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { DeckRow, EntryRow } from '../core/model';
 import { playAudio, stopAudio } from '../platform/audio';
-import type { SluhDb } from '../platform/db';
+import type { ManaDb } from '../platform/db';
 import { getDeck, getMedia, listEntries } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
@@ -10,7 +10,7 @@ import { LANG_NAMES } from './strings';
 
 type Loaded = { deck: DeckRow; entries: EntryRow[] } | 'missing' | null;
 
-export function DeckScreen({ db, deckId }: { db: SluhDb; deckId: string }) {
+export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
   const { t, lang, meaningLang } = useI18n();
   const [data, setData] = useState<Loaded>(null);
   const [audioError, setAudioError] = useState(false);

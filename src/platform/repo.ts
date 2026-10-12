@@ -20,7 +20,7 @@ import type {
   ReviewRecord,
   SettingsRow,
 } from '../core/model';
-import type { SluhDb } from './db';
+import type { ManaDb } from './db';
 
 export type NewId = () => string;
 export const randomId: NewId = () => crypto.randomUUID();
@@ -36,7 +36,7 @@ function who(a: Actor): Actor {
 }
 
 /** The local user and device; created on first run, unchanged afterwards. */
-export async function ensureDevice(db: SluhDb, now = new Date(), newId: NewId = randomId): Promise<MetaRow> {
+export async function ensureDevice(db: ManaDb, now = new Date(), newId: NewId = randomId): Promise<MetaRow> {
   return db.transaction('rw', db.meta, async () => {
     const found = await db.meta.get('device');
     if (found) return found;
@@ -46,27 +46,27 @@ export async function ensureDevice(db: SluhDb, now = new Date(), newId: NewId = 
   });
 }
 
-export function getSettings(db: SluhDb, userId: string): Promise<SettingsRow | undefined> {
+export function getSettings(db: ManaDb, userId: string): Promise<SettingsRow | undefined> {
   return db.settings.get(userId);
 }
 
-export async function putSettings(db: SluhDb, row: SettingsRow): Promise<void> {
+export async function putSettings(db: ManaDb, row: SettingsRow): Promise<void> {
   await db.settings.put(row);
 }
 
 // ---------- Decks ----------
 
-export async function listDecks(db: SluhDb): Promise<DeckRow[]> {
+export async function listDecks(db: ManaDb): Promise<DeckRow[]> {
   const decks = await db.decks.toArray();
   return decks.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function getDeck(db: SluhDb, deckId: string): Promise<DeckRow | undefined> {
+export function getDeck(db: ManaDb, deckId: string): Promise<DeckRow | undefined> {
   return db.decks.get(deckId);
 }
 
 /** Entries in deck order; hidden ones only if asked. */
-export async function listEntries(db: SluhDb, deckId: string, includeHidden = false): Promise<EntryRow[]> {
+export async function listEntries(db: ManaDb, deckId: string, includeHidden = false): Promise<EntryRow[]> {
   const rows = await db.entries
     .where('[deckId+position]')
     .between([deckId, Dexie.minKey], [deckId, Dexie.maxKey])
@@ -74,11 +74,11 @@ export async function listEntries(db: SluhDb, deckId: string, includeHidden = fa
   return includeHidden ? rows : rows.filter((r) => !r.hidden);
 }
 
-export function getMedia(db: SluhDb, deckId: string, path: string): Promise<MediaRow | undefined> {
+export function getMedia(db: ManaDb, deckId: string, path: string): Promise<MediaRow | undefined> {
   return db.media.get([deckId, path]);
 }
 
-async function loadInstalled(db: SluhDb, deckId: string): Promise<InstalledDeck | null> {
+async function loadInstalled(db: ManaDb, deckId: string): Promise<InstalledDeck | null> {
   const deck = await db.decks.get(deckId);
   if (!deck) return null;
   const entries = await db.entries.where('deckId').equals(deckId).toArray();
@@ -86,7 +86,7 @@ async function loadInstalled(db: SluhDb, deckId: string): Promise<InstalledDeck 
 }
 
 /** The import plan for a checked archive (no errors). Nothing is written. */
-export async function prepareImport(db: SluhDb, archive: DeckArchive, now = new Date()): Promise<ImportPlan> {
+export async function prepareImport(db: ManaDb, archive: DeckArchive, now = new Date()): Promise<ImportPlan> {
   const deck = archive.check.deck;
   if (!deck) throw new Error('prepareImport: the archive has errors');
   const audioBytes = archive.audio.reduce((n, a) => n + a.data.byteLength, 0);
@@ -94,7 +94,7 @@ export async function prepareImport(db: SluhDb, archive: DeckArchive, now = new 
 }
 
 /** Writes an import plan in one transaction. The journal and the cards are not touched. */
-export async function applyImport(db: SluhDb, plan: ImportPlan, audio: readonly DeckAudio[]): Promise<void> {
+export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly DeckAudio[]): Promise<void> {
   const deckId = plan.deck.id;
   const media: MediaRow[] = audio.map((a) => ({
     deckId,
@@ -118,7 +118,7 @@ export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRe
 export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs'>;
 
 export async function recordIntro(
-  db: SluhDb,
+  db: ManaDb,
   actor: Actor,
   input: IntroInput,
   newId: NewId = randomId,
@@ -130,7 +130,7 @@ export async function recordIntro(
 
 /** Appends an answer and updates its card in one transaction. */
 export async function recordReview(
-  db: SluhDb,
+  db: ManaDb,
   scheduler: FSRS,
   actor: Actor,
   input: ReviewInput,
@@ -155,14 +155,14 @@ export async function recordReview(
   });
 }
 
-export async function userLog(db: SluhDb, userId: string): Promise<LogRecord[]> {
+export async function userLog(db: ManaDb, userId: string): Promise<LogRecord[]> {
   return db.log
     .where('[userId+at]')
     .between([userId, Dexie.minKey], [userId, Dexie.maxKey])
     .toArray();
 }
 
-async function replaceUserCards(db: SluhDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
+async function replaceUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
   const cards = rebuildCards(scheduler, await userLog(db, userId), userId);
   await db.cards
     .where('[userId+deckId]')
@@ -173,13 +173,13 @@ async function replaceUserCards(db: SluhDb, scheduler: FSRS, userId: string): Pr
 }
 
 /** Throws away the stored cards of `userId` and rebuilds them from the journal. */
-export async function rebuildUserCards(db: SluhDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
+export async function rebuildUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
   return db.transaction('rw', db.log, db.cards, () => replaceUserCards(db, scheduler, userId));
 }
 
 // ---------- Backup ----------
 
-export async function exportJournal(db: SluhDb, actor: Actor, now = new Date()): Promise<{ json: string; count: number }> {
+export async function exportJournal(db: ManaDb, actor: Actor, now = new Date()): Promise<{ json: string; count: number }> {
   const records = await userLog(db, actor.userId);
   return { json: serializeBackup({ exportedAt: now, ...who(actor), records }), count: records.length };
 }
@@ -192,7 +192,7 @@ export type RestoreResult =
  * Adds the records of a backup file, skipping UUIDs already present, and rebuilds
  * the cards. An installation with an empty journal adopts the backup's user.
  */
-export async function restoreJournal(db: SluhDb, scheduler: FSRS, text: string): Promise<RestoreResult> {
+export async function restoreJournal(db: ManaDb, scheduler: FSRS, text: string): Promise<RestoreResult> {
   const parsed = parseBackup(text);
   if (!parsed.ok) return parsed;
   const backup = parsed.backup;

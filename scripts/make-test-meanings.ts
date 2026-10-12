@@ -6,7 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import JSZip from 'jszip';
 
 const deck = {
-  format: 'sluh-deck',
+  format: 'mana-deck',
   version: 1,
   id: 'fr-test-meanings-01',
   revision: 1,

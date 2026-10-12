@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://abazaryan.github.io/sluh/sluh-deck.schema.json",
-  "title": "Колода «Слуха» (deck.json), формат sluh-deck, версия 1",
+  "$id": "https://abazaryan.github.io/mana/mana-deck.schema.json",
+  "title": "Колода «Маны» (deck.json), формат mana-deck, версия 1",
   "description": "Описание: docs/DECK_FORMAT.md. Название колоды — имя ZIP-файла без расширения, в deck.json его нет. Схема проверяет строение файла; проверки между записями (одинаковые id, теги без описания, наличие аудиофайлов, поддержка языка, род по языку, размер архива) делает валидатор src/core/deckFormat.ts.",
   "type": "object",
   "required": [
@@ -14,7 +14,7 @@
   ],
   "properties": {
     "format": {
-      "const": "sluh-deck"
+      "const": "mana-deck"
     },
     "version": {
       "const": 1

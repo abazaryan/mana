@@ -1,6 +1,6 @@
-# Формат колоды «Слуха» (`sluh-deck`, версия 1)
+# Формат колоды «Маны» (`mana-deck`, версия 1)
 
-Основано на решениях Р2, Р3, Р13–Р16 (`docs/DECISIONS.md`). Машинная схема: [`src/core/sluh-deck.schema.json`](../src/core/sluh-deck.schema.json) (JSON Schema 2020-12). Валидатор: [`src/core/deckFormat.ts`](../src/core/deckFormat.ts), языковые пакеты: [`src/core/languages.ts`](../src/core/languages.ts). При расхождении этого описания и валидатора прав валидатор — он же работает в приложении.
+Основано на решениях Р2, Р3, Р13–Р16 (`docs/DECISIONS.md`). Машинная схема: [`src/core/mana-deck.schema.json`](../src/core/mana-deck.schema.json) (JSON Schema 2020-12). Валидатор: [`src/core/deckFormat.ts`](../src/core/deckFormat.ts), языковые пакеты: [`src/core/languages.ts`](../src/core/languages.ts). При расхождении этого описания и валидатора прав валидатор — он же работает в приложении.
 
 ## Архив
 
@@ -25,7 +25,7 @@
 
 ```json
 {
-  "format": "sluh-deck",
+  "format": "mana-deck",
   "version": 1,
   "id": "fr-lesson-01",
   "revision": 1,
@@ -87,7 +87,7 @@
 
 | Поле | Обязательно | Что это |
 |---|---|---|
-| `format` | да | Всегда `"sluh-deck"`. |
+| `format` | да | Всегда `"mana-deck"`. Прежний `"sluh-deck"` (рабочее название «Слух») валидатор принимает с предупреждением. |
 | `version` | да | Версия формата, сейчас `1`. Колоду с версией новее приложение не примет и попросит обновиться. |
 | `id` | да | Устойчивый идентификатор колоды (правила — ниже). |
 | `revision` | да | Номер редакции колоды: целое от 1, увеличивается при каждом изменении колоды (см. «Обновление колоды»). |

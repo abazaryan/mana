@@ -1,13 +1,15 @@
 /**
- * Sluh deck format ("sluh-deck", version 1): types and validation.
- * Spec: docs/DECK_FORMAT.md. JSON Schema: ./sluh-deck.schema.json.
+ * Mana deck format ("mana-deck", version 1): types and validation.
+ * Spec: docs/DECK_FORMAT.md. JSON Schema: ./mana-deck.schema.json.
  *
  * Pure logic with no runtime imports: also run directly by Node in scripts/validate-deck.ts.
  * Language-specific rules come from language packs (./languages.ts) via options.
  * Messages are in Russian — they are shown to the deck author.
  */
 
-export const DECK_FORMAT = 'sluh-deck';
+export const DECK_FORMAT = 'mana-deck';
+/** Former identifier (working name "Sluh", Р20): still accepted, with a warning. */
+export const LEGACY_DECK_FORMAT = 'sluh-deck';
 export const DECK_VERSION = 1;
 export const DECK_JSON = 'deck.json';
 export const AUDIO_DIR = 'audio/';
@@ -600,12 +602,14 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
     return { deck: null, errors: c.errors, warnings: c.warnings };
   }
 
-  if (value.format !== DECK_FORMAT) {
+  if (value.format === LEGACY_DECK_FORMAT) {
+    c.warn('format', `Поле format: ${q(LEGACY_DECK_FORMAT)} — прежний идентификатор. Замените на ${q(DECK_FORMAT)}; пока колода принимается.`);
+  } else if (value.format !== DECK_FORMAT) {
     c.error(
       'format',
       value.format === undefined
         ? `Нет поля format. Нужно "format": "${DECK_FORMAT}".`
-        : `Поле format: ожидается ${q(DECK_FORMAT)}, а указано ${q(String(value.format))}. Это не колода «Слуха».`,
+        : `Поле format: ожидается ${q(DECK_FORMAT)}, а указано ${q(String(value.format))}. Это не колода «Маны».`,
     );
   }
   if (value.version === undefined) {

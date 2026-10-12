@@ -7,7 +7,7 @@ export function FirstRun({ onChoose }: { onChoose(lang: Lang): void }) {
   return (
     <main id="app">
       <header className="top">
-        <div className="brand">Слух</div>
+        <div className="brand">Mana</div>
       </header>
       <h1 className="first-run">{FIRST_RUN_TITLE}</h1>
       <div className="stack">

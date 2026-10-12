@@ -7,7 +7,7 @@ import { readDeckArchive } from '../core/deckArchive';
 import type { ReviewRecord } from '../core/model';
 import { createScheduler } from '../core/scheduler';
 import { deck, deckZip, fakeAudio } from '../test/decks';
-import { SluhDb } from './db';
+import { ManaDb } from './db';
 import {
   applyImport,
   ensureDevice,
@@ -26,9 +26,9 @@ import {
 } from './repo';
 
 let n = 0;
-const open: SluhDb[] = [];
-function freshDb(): SluhDb {
-  const db = new SluhDb(`test-${++n}-${Date.now()}`);
+const open: ManaDb[] = [];
+function freshDb(): ManaDb {
+  const db = new ManaDb(`test-${++n}-${Date.now()}`);
   open.push(db);
   return db;
 }
@@ -48,7 +48,7 @@ function ids(prefix: string) {
 const T0 = Date.parse('2026-10-01T08:00:00Z');
 const D = 86_400_000;
 
-async function importDeck(db: SluhDb, d = deck(1, ['a', 'b', 'c']), fileName = 'Урок 1.zip', now = new Date(T0)) {
+async function importDeck(db: ManaDb, d = deck(1, ['a', 'b', 'c']), fileName = 'Урок 1.zip', now = new Date(T0)) {
   const archive = await readDeckArchive(await deckZip(d), fileName);
   expect(archive.check.errors).toEqual([]);
   const plan = await prepareImport(db, archive, now);
@@ -82,7 +82,7 @@ function answer(entryId: string, at: number, final: Grade, skill: ReviewInput['s
   };
 }
 
-async function someProgress(db: SluhDb, actor: Actor) {
+async function someProgress(db: ManaDb, actor: Actor) {
   const scheduler = createScheduler();
   const newId = ids('log');
   await recordIntro(db, actor, { at: new Date(T0), deckId: 'fr-test-01', entryId: 'a', deckRevision: 1, sessionId: 's1' }, newId);
@@ -309,10 +309,10 @@ describe('backup', () => {
     const s = createScheduler();
     expect(await restoreJournal(db, s, '{oops')).toEqual({ ok: false, error: 'json' });
     expect(await restoreJournal(db, s, '{"format":"other"}')).toEqual({ ok: false, error: 'format' });
-    const v2 = JSON.stringify({ format: 'sluh-journal', version: 2 });
+    const v2 = JSON.stringify({ format: 'mana-journal', version: 2 });
     expect(await restoreJournal(db, s, v2)).toEqual({ ok: false, error: 'version' });
     const bad = JSON.stringify({
-      format: 'sluh-journal',
+      format: 'mana-journal',
       version: 1,
       exportedAt: new Date(T0).toISOString(),
       userId: 'u',

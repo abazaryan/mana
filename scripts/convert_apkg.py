@@ -1,4 +1,4 @@
-"""One-off converter: Anki lesson (apkg/fr_lesson_01.apkg) -> Sluh deck ZIP.
+"""One-off converter: Anki lesson (apkg/fr_lesson_01.apkg) -> Mana deck ZIP.
 
 Not part of the app. Python 3.10+, standard library only.
 
@@ -134,7 +134,7 @@ def main() -> int:
         db.close()
 
     deck = {
-        "format": "sluh-deck",
+        "format": "mana-deck",
         "version": 1,
         "id": args.id,
         "revision": 1,

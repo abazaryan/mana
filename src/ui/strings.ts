@@ -12,6 +12,7 @@ type Tr = Record<Lang, string>;
 
 export const STRINGS = {
   // Common
+  'app.name': { tg: 'Моно', ru: 'Мана', en: 'Mana' },
   'common.loading': { tg: 'Боргузорӣ…', ru: 'Загрузка…', en: 'Loading…' },
   'common.close': { tg: 'Бастан', ru: 'Закрыть', en: 'Close' },
   'common.cancel': { tg: 'Лағв', ru: 'Отмена', en: 'Cancel' },
@@ -133,9 +134,9 @@ export const STRINGS = {
     en: 'Added: {added} · already present: {skipped}',
   },
   'backup.error.json': {
-    tg: 'Ин файли таърихчаи «Слух» нест.',
-    ru: 'Это не файл журнала «Слуха».',
-    en: 'This is not a Sluh journal file.',
+    tg: 'Ин файли таърихчаи «Моно» нест.',
+    ru: 'Это не файл журнала «Маны».',
+    en: 'This is not a Mana journal file.',
   },
   'backup.error.version': {
     tg: 'Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед.',

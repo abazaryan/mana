@@ -16,7 +16,7 @@ export function entry(id: string, extra: Partial<DeckEntry> = {}): DeckEntry {
 
 export function deck(revision: number, ids: string[], extra: Partial<Deck> = {}): Deck {
   return {
-    format: 'sluh-deck',
+    format: 'mana-deck',
     version: 1,
     id: 'fr-test-01',
     revision,

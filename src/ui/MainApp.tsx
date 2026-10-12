@@ -82,7 +82,7 @@ function Shell({ route, children }: { route: Route; children: ReactNode }) {
     <main id="app">
       <header className="top">
         <a className="brand" href="#/">
-          Слух
+          {t('app.name')}
         </a>
         <nav className="top-actions">
           <a className="ghost" href="#/" aria-current={current(route.name === 'decks' || route.name === 'deck')}>

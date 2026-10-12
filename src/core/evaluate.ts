@@ -110,7 +110,7 @@ const VERDICT_RANK: Record<Verdict, number> = { correct: 0, almost: 1, incorrect
  * accepting it here would mean that form is never asked for. The best verdict
  * wins; the reference breaks ties.
  *
- * Note (Р3, Р16): a Sluh deck entry has exactly one correct answer, so the app
+ * Note (Р3, Р16): a Mana deck entry has exactly one correct answer, so the app
  * passes no alternates; the parameter is kept from the ported module.
  */
 export function evaluate(

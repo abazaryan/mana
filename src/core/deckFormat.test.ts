@@ -21,7 +21,7 @@ import {
   type DeckIssue,
 } from './deckFormat';
 import { FRENCH, findLanguagePack, LANGUAGE_PACKS, speechLocale } from './languages';
-import schema from './sluh-deck.schema.json';
+import schema from './mana-deck.schema.json';
 
 function entry(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -37,7 +37,7 @@ function entry(over: Record<string, unknown> = {}): Record<string, unknown> {
 
 function deck(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    format: 'sluh-deck',
+    format: 'mana-deck',
     version: 1,
     id: 'fr-lesson-01',
     revision: 1,
@@ -97,9 +97,15 @@ describe('validateDeck: deck-level errors', () => {
     expect(errorsOf(null)[0]).toContain('null');
   });
 
-  it('requires format sluh-deck', () => {
+  it('requires format mana-deck', () => {
     expect(errorsOf(deck({ format: undefined }))[0]).toContain('Нет поля format');
-    expect(errorsOf(deck({ format: 'anki' }))[0]).toContain('Это не колода «Слуха»');
+    expect(errorsOf(deck({ format: 'anki' }))[0]).toContain('Это не колода «Маны»');
+  });
+
+  it('accepts the old identifier sluh-deck with a warning', () => {
+    const r = validateDeck(deck({ format: 'sluh-deck' }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.map((w) => w.message).join(' ')).toContain('прежний идентификатор');
   });
 
   it('checks version: missing, not integer, newer, older', () => {
@@ -499,7 +505,7 @@ describe('JSON Schema stays in sync with the validator', () => {
   it('uses the same patterns, format, version and required fields', () => {
     expect(schema.$defs.id.pattern).toBe(ID_PATTERN.source);
     expect(schema.properties.language.pattern).toBe(LANGUAGE_TAG_PATTERN.source);
-    expect(schema.properties.format.const).toBe('sluh-deck');
+    expect(schema.properties.format.const).toBe('mana-deck');
     expect(schema.properties.version.const).toBe(1);
     expect(schema.required).toEqual(['format', 'version', 'id', 'revision', 'language', 'entries']);
     expect(entrySchema.required).toEqual(['id', 'text', 'meaning', 'skills']);

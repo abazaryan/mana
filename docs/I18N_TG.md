@@ -10,6 +10,7 @@
 
 | Ключ | Русский | English | Тоҷикӣ |
 |---|---|---|---|
+| `app.name` | Мана | Mana | Моно |
 | `common.loading` | Загрузка… | Loading… | Боргузорӣ… |
 | `common.close` | Закрыть | Close | Бастан |
 | `common.cancel` | Отмена | Cancel | Лағв |
@@ -56,7 +57,7 @@
 | `backup.restore` | Восстановить из файла | Restore from a file | Бозёбӣ аз файл |
 | `backup.saved` | В файле записей: {n} | Records in the file: {n} | Дар файл сабтҳо: {n} |
 | `backup.restored` | Добавлено: {added} · уже было: {skipped} | Added: {added} · already present: {skipped} | Илова шуд: {added} · қаблан буд: {skipped} |
-| `backup.error.json` | Это не файл журнала «Слуха». | This is not a Sluh journal file. | Ин файли таърихчаи «Слух» нест. |
+| `backup.error.json` | Это не файл журнала «Маны». | This is not a Mana journal file. | Ин файли таърихчаи «Моно» нест. |
 | `backup.error.version` | Файл из более новой версии приложения. Обновите приложение. | The file comes from a newer version of the app. Update the app. | Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед. |
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |

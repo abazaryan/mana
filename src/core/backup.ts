@@ -9,7 +9,7 @@
 import { SKILLS, type Skill } from './deckFormat';
 import type { FinalRating, LogRecord } from './model';
 
-export const BACKUP_FORMAT = 'sluh-journal';
+export const BACKUP_FORMAT = 'mana-journal';
 export const BACKUP_VERSION = 1;
 
 export interface JournalBackup {
@@ -26,7 +26,7 @@ export function serializeBackup(b: Omit<JournalBackup, 'format' | 'version'>): s
   return JSON.stringify(out, null, 1);
 }
 
-/** Backup file name, e.g. "sluh-journal-2026-10-11.json" (local date). */
+/** Backup file name, e.g. "mana-journal-2026-10-11.json" (local date). */
 export function backupFileName(now: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${BACKUP_FORMAT}-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}.json`;
