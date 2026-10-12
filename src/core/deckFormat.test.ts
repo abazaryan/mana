@@ -15,6 +15,7 @@ import {
   deckNameFromFileName,
   formHints,
   pickLocalized,
+  pickLocalizedWithLang,
   validateDeck,
   parseDeckJson,
   type DeckIssue,
@@ -511,5 +512,14 @@ describe('JSON Schema stays in sync with the validator', () => {
     expect(Object.keys(entrySchema.properties).sort()).toEqual(
       ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills'].sort(),
     );
+  });
+});
+
+describe('pickLocalizedWithLang', () => {
+  it('reports the language actually used', () => {
+    expect(pickLocalizedWithLang({ tg: 'a', ru: 'б' }, 'ru')).toEqual({ text: 'б', lang: 'ru' });
+    expect(pickLocalizedWithLang({ tg: 'a' }, 'en')).toEqual({ text: 'a', lang: 'tg' });
+    expect(pickLocalizedWithLang({ en: 'w', ru: 'б' }, 'tg')).toEqual({ text: 'б', lang: 'ru' });
+    expect(pickLocalizedWithLang(undefined, 'ru')).toBeUndefined();
   });
 });

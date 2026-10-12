@@ -18,7 +18,7 @@ describe('interface strings', () => {
 
   it('fills placeholders and leaves unknown ones visible', () => {
     expect(translate('ru', 'decks.entries', { n: 30 })).toBe('Записей: 30');
-    expect(translate('tg', 'decks.entries', { n: 30 })).toBe('Сабтҳо: 30');
+    expect(translate('tg', 'decks.entries', { n: 30 })).toBe('Омӯзбаргҳо: 30');
     expect(translate('en', 'decks.entries')).toBe('Entries: {n}');
   });
 

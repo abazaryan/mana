@@ -211,6 +211,20 @@ export function pickLocalized(value: Localized | undefined, lang: UiLang): strin
   return value[lang] ?? UI_LANGS.map((l) => value[l]).find((t) => t !== undefined);
 }
 
+/** Like pickLocalized, but also says which language the text is in (it may not be the one asked for). */
+export function pickLocalizedWithLang(
+  value: Localized | undefined,
+  lang: UiLang,
+): { text: string; lang: UiLang } | undefined {
+  if (!value) return undefined;
+  const order = [lang, ...UI_LANGS.filter((l) => l !== lang)];
+  for (const l of order) {
+    const text = value[l];
+    if (text !== undefined) return { text, lang: l };
+  }
+  return undefined;
+}
+
 class Collector {
   readonly errors: DeckIssue[] = [];
   readonly warnings: DeckIssue[] = [];

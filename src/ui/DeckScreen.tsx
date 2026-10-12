@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { formHints, pickLocalized } from '../core/deckFormat';
+import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { DeckRow, EntryRow } from '../core/model';
 import { playAudio, stopAudio } from '../platform/audio';
 import type { SluhDb } from '../platform/db';
 import { getDeck, getMedia, listEntries } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
+import { LANG_NAMES } from './strings';
 
 type Loaded = { deck: DeckRow; entries: EntryRow[] } | 'missing' | null;
 
@@ -70,6 +71,7 @@ export function DeckScreen({ db, deckId }: { db: SluhDb; deckId: string }) {
       <ul className="entries">
         {entries.map((e) => {
           const hints = formHints(e.form, lang);
+          const meaning = pickLocalizedWithLang(e.meaning, meaningLang);
           return (
             <li key={e.entryId} className="entry">
               <div className="entry-main">
@@ -77,8 +79,13 @@ export function DeckScreen({ db, deckId }: { db: SluhDb; deckId: string }) {
                   {e.text}
                 </div>
                 {e.ipa && <div className="m ipa">[{e.ipa}]</div>}
-                <div lang={meaningLang}>
-                  {pickLocalized(e.meaning, meaningLang)}
+                <div lang={meaning?.lang}>
+                  {meaning?.text}
+                  {meaning && meaning.lang !== meaningLang && (
+                    <span className="chip lang-mark" title={LANG_NAMES[meaning.lang]}>
+                      {meaning.lang}
+                    </span>
+                  )}
                   {hints.length > 0 && <span className="m"> · {hints.join(', ')}</span>}
                 </div>
                 <div className="chips">
