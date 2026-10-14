@@ -2,15 +2,17 @@
  * Language packs: everything that depends on the learning language (decision Р13).
  * A deck names its language with a BCP-47 tag ("fr-FR"); the pack is found by the primary subtag.
  *
- * Only French is implemented. The written-answer rules (stage 3) live in `writing`;
- * sound-based comparison and numbers join the pack at stage 4; the custom keyboard
- * row is used at stage 5.
+ * Only French is implemented. The written-answer rules (stage 3) live in `writing`,
+ * the sound-based check of a spoken answer and numbers (stage 4.2, Р22) in `spoken`;
+ * the custom keyboard row is used at stage 5.
  * Before the first deck in a new language, check speech recognition and TTS for it
  * on the user's devices (especially lb-LU).
  *
- * Type-only imports: this file is also run directly by Node in scripts/validate-deck.ts.
+ * Type-only imports, or `.ts` imports: this file is also run directly by Node in
+ * scripts/validate-deck.ts.
  */
 import type { LanguageSupport, UiLang } from './deckFormat';
+import { FRENCH_SPOKEN } from './frenchSpoken.ts';
 
 /**
  * Language rules of the written-answer cascade (src/core/evaluate.ts) and of print
@@ -38,6 +40,59 @@ export interface WritingRules {
   noSpaceBefore: string;
 }
 
+/**
+ * Two spellings that sound the same when they differ only in the ending:
+ * `stem + one ending` vs `stem + another ending` from the same list.
+ */
+export interface EndingRule {
+  /** Rule id written to the journal (`soundRules`). */
+  id: string;
+  endings: readonly string[];
+  /** Shortest stem the rule applies to (le ≠ les: stem "l" is too short). */
+  minStem: number;
+  /** The stem must match (e.g. end in a vowel). */
+  stemPattern?: RegExp;
+  /** Closed list: if either word is here, the rule does not apply. */
+  exceptions?: readonly string[];
+  /** The word with this ending must follow a plural subject (ils parlent). */
+  pluralSubject?: string;
+}
+
+/** Whole words that sound the same (a = à, ces = ses). */
+export interface WordClass {
+  id: string;
+  words: readonly string[];
+}
+
+/**
+ * Rules of the sound-based check of a spoken (or typed in `speak`) answer
+ * (src/core/spoken.ts, Р5, Р22). Keys are lower case, œ → oe, æ → ae, one kind of
+ * apostrophe; an elided word keeps its apostrophe (`l'`).
+ */
+export interface SpokenRules {
+  /** Articles: a missing one alone is "almost"; with a `determiner` hint a wrong one is "incorrect". */
+  articles: readonly string[];
+  /** Hesitation sounds the recognizer may write; ignored. */
+  fillers: readonly string[];
+  /** Abbreviation (lower case, with its dot if it has one) → word. */
+  abbreviations: Readonly<Record<string, string>>;
+  /** Number → words; null if out of range. */
+  cardinal(n: number): string | null;
+  ordinal(n: number, feminine: boolean): string | null;
+  /** Digits + ordinal suffix; group 1 = the number, group 2 = the suffix. */
+  ordinalSuffix: RegExp;
+  feminineOrdinalSuffixes: readonly string[];
+  endingRules: readonly EndingRule[];
+  wordClasses: readonly WordClass[];
+  /** Silent-ending rules do not apply when one word ends like this… */
+  liaisonFinal: RegExp;
+  /** …and the next word starts like this (the final consonant may be heard). */
+  liaisonNext: RegExp;
+  pluralSubjects: readonly string[];
+  /** Words allowed between the plural subject and the verb (ils ne le parlent). */
+  subjectClitics: readonly string[];
+}
+
 export interface LanguagePack extends LanguageSupport {
   /** Locale for speech recognition and TTS when the deck tag has no region. */
   defaultLocale: string;
@@ -47,6 +102,8 @@ export interface LanguagePack extends LanguageSupport {
   keyboardRow: readonly string[];
   /** Rules for the written answer (skill `write`, Р5). */
   writing: WritingRules;
+  /** Rules for the spoken answer (skill `speak`, Р5, Р22). */
+  spoken: SpokenRules;
 }
 
 export const FRENCH: LanguagePack = {
@@ -69,6 +126,7 @@ export const FRENCH: LanguagePack = {
     // `? ! : ;` keep their leading space in French; `.` and `,` do not.
     noSpaceBefore: '.,',
   },
+  spoken: FRENCH_SPOKEN,
 };
 
 export const LANGUAGE_PACKS: readonly LanguagePack[] = [FRENCH];
