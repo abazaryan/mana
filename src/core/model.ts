@@ -87,11 +87,38 @@ interface LogBase {
   sessionId: string;
 }
 
+/** "Say it aloud" during an introduction (Р22.5): recognised, never rated. */
+export interface IntroEcho {
+  /** Chosen recognizer alternative; '' if nothing was heard or the step was skipped. */
+  answer: string;
+  alternatives: string[];
+  verdict: Verdict | null;
+  skipped: boolean;
+}
+
+/** "Copy it out" during an introduction, entries with `write` only (Р22.5): checked, never rated. */
+export interface IntroCopy {
+  typed: string;
+  verdict: Verdict;
+  errorType: string | null;
+}
+
 /** Introduction of an entry (Р3): once per entry, no rating. */
 export interface IntroRecord extends LogBase {
   type: 'intro';
   skill: null;
+  /** Added at stage 4.2; absent in older records. */
+  echo?: IntroEcho | null;
+  copy?: IntroCopy | null;
 }
+
+/** A recognizer error, a watchdog timeout or "nothing recognised", with its time from the card shown. */
+export interface RecognitionErrorEntry {
+  code: string;
+  atMs: number;
+}
+
+export type LatencySource = 'speechstart' | 'result' | 'key';
 
 export type AnswerMode = 'voice' | 'typed' | 'skip';
 export type Correction = 'lowered' | 'raised' | 'misrecognized';
@@ -128,6 +155,21 @@ export interface ReviewRecord extends LogBase {
   micDelayMs: number | null;
   retries: number;
   recognitionLang: string | null;
+  /** Added at stage 4.2 (Р22.7); absent in older records. Recognizer confidence per alternative. */
+  confidences?: (number | null)[];
+  /** Which alternative was checked (the best one). */
+  altIndex?: number | null;
+  /** What marked the start of the answer: speechstart, the first result, the first key. */
+  latencySource?: LatencySource | null;
+  recognitionErrors?: RecognitionErrorEntry[];
+  /** N: words in the reference (Р22.2). */
+  wordCount?: number | null;
+  /** E: reference words not heard. */
+  unsaid?: number | null;
+  /** Extra words heard. */
+  extraWords?: number | null;
+  /** Sound rules that made a word match (З1…З8, Ч). */
+  soundRules?: string[];
   suggested: FinalRating;
   reason: RatingReason;
   /** Goes to FSRS (Р4). */

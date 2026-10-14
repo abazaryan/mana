@@ -8,6 +8,7 @@ import type { FSRS } from 'ts-fsrs';
 import { parseBackup, planRestore, serializeBackup, type BackupError } from '../core/backup';
 import { rebuildCards, stepCard } from '../core/cards';
 import type { DeckArchive, DeckAudio } from '../core/deckArchive';
+import type { Skill } from '../core/deckFormat';
 import { planImport, type ImportPlan, type InstalledDeck } from '../core/deckImport';
 import type {
   CardRow,
@@ -114,7 +115,8 @@ export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly 
 
 // ---------- Journal ----------
 
-export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRevision' | 'sessionId'>;
+export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRevision' | 'sessionId'> &
+  Partial<Pick<IntroRecord, 'echo' | 'copy'>>;
 export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs'>;
 
 export async function recordIntro(
@@ -160,6 +162,35 @@ export async function userLog(db: ManaDb, userId: string): Promise<LogRecord[]> 
     .where('[userId+at]')
     .between([userId, Dexie.minKey], [userId, Dexie.maxKey])
     .toArray();
+}
+
+/** The last answer on one card (entry × skill), for the Easy rule (Р4); null if none. */
+export async function lastReview(
+  db: ManaDb,
+  userId: string,
+  deckId: string,
+  entryId: string,
+  skill: Skill,
+): Promise<ReviewRecord | null> {
+  const last = await db.log
+    .where('[userId+deckId+entryId+skill+at]')
+    .between([userId, deckId, entryId, skill, Dexie.minKey], [userId, deckId, entryId, skill, Dexie.maxKey])
+    .last();
+  return last && last.type === 'review' ? last : null;
+}
+
+/** What buildSession needs for one deck: its entries (hidden included), the user's cards in it, the user's journal. */
+export async function loadSessionData(
+  db: ManaDb,
+  userId: string,
+  deckId: string,
+): Promise<{ entries: EntryRow[]; cards: CardRow[]; log: LogRecord[] }> {
+  const [entries, cards, log] = await Promise.all([
+    listEntries(db, deckId, true),
+    db.cards.where('[userId+deckId]').equals([userId, deckId]).toArray(),
+    userLog(db, userId),
+  ]);
+  return { entries, cards, log };
 }
 
 async function replaceUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {

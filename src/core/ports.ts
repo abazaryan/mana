@@ -6,14 +6,22 @@
 export interface RecognitionUpdate {
   /** Alternatives of a final result in this event, if any. */
   finalAlts: string[] | null;
+  /** Recognizer confidence of each final alternative (null where the browser gives none). */
+  finalConfidences?: (number | null)[];
   /** Concatenated interim transcript in this event. */
   interim: string;
+  /** Everything recognised so far in this session, final and interim (live highlight). */
+  transcript?: string;
 }
 
 export interface RecognitionHandlers {
   onStart(): void;
+  /** The microphone really captures sound (`audiostart`). */
+  onAudioStart?(): void;
   onSpeechStart(): void;
   onResult(update: RecognitionUpdate): void;
+  /** Speech was heard but nothing recognised (`nomatch`). */
+  onNoMatch?(): void;
   onError(code: string): void;
   onEnd(): void;
 }

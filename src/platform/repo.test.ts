@@ -13,7 +13,9 @@ import {
   ensureDevice,
   exportJournal,
   getMedia,
+  lastReview,
   listDecks,
+  loadSessionData,
   listEntries,
   prepareImport,
   rebuildUserCards,
@@ -248,6 +250,40 @@ describe('journal and cards', () => {
       const card = rebuildCards(createScheduler(), upTo, actor.userId).find((c) => c.lastLogId === r.id);
       expect(card?.due).toEqual(r.fsrs.nextDue);
     }
+  });
+});
+
+describe('session data (stage 4.2)', () => {
+  it('lastReview: the latest answer on that card only', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await someProgress(db, actor);
+    const a = await lastReview(db, actor.userId, 'fr-test-01', 'a', 'speak');
+    expect(a).toMatchObject({ entryId: 'a', skill: 'speak', final: Rating.Hard });
+    expect((await lastReview(db, actor.userId, 'fr-test-01', 'a', 'listen'))?.final).toBe(Rating.Good);
+    expect(await lastReview(db, actor.userId, 'fr-test-01', 'c', 'speak')).toBeNull();
+    expect(await lastReview(db, 'someone-else', 'fr-test-01', 'a', 'speak')).toBeNull();
+  });
+
+  it('loadSessionData: entries with hidden ones, the deck cards, the whole journal', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await importDeck(db);
+    await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip');
+    await someProgress(db, actor);
+    const data = await loadSessionData(db, actor.userId, 'fr-test-01');
+    expect(data.entries.map((e) => [e.entryId, e.hidden])).toEqual([['a', 0], ['b', 0], ['c', 1]]);
+    expect(data.cards).toHaveLength(3);
+    expect(data.log).toHaveLength(6);
+  });
+
+  it('an introduction keeps its "say it aloud" and "copy it out" results', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    const echo = { answer: 'le nom', alternatives: ['le nom'], verdict: 'correct' as const, skipped: false };
+    const copy = { typed: 'le non', verdict: 'almost' as const, errorType: 'typo' };
+    const r = await recordIntro(db, actor, { at: new Date(T0), deckId: 'd', entryId: 'a', deckRevision: 1, sessionId: 's', echo, copy });
+    expect(await db.log.get(r.id)).toMatchObject({ type: 'intro', echo, copy });
   });
 });
 

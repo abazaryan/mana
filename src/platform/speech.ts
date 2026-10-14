@@ -9,6 +9,7 @@ import {
 // Minimal typings for the Web Speech API (not in lib.dom for all TS versions).
 interface SRAlternative {
   transcript: string;
+  confidence?: number;
 }
 interface SRResult {
   readonly isFinal: boolean;
@@ -25,7 +26,9 @@ interface SRInstance {
   maxAlternatives: number;
   continuous: boolean;
   onstart: (() => void) | null;
+  onaudiostart: (() => void) | null;
   onspeechstart: (() => void) | null;
+  onnomatch: (() => void) | null;
   onresult: ((e: SREvent) => void) | null;
   onerror: ((e: { error?: string }) => void) | null;
   onend: (() => void) | null;
@@ -61,29 +64,43 @@ export function createBrowserRecognizer(): SpeechRecognizer {
       r.continuous = false;
       r.onstart = () => h.onStart();
       r.onspeechstart = () => h.onSpeechStart();
+      r.onaudiostart = () => h.onAudioStart?.();
+      r.onnomatch = () => h.onNoMatch?.();
       r.onresult = (e) => {
         let finalAlts: string[] | null = null;
+        let finalConfidences: (number | null)[] | undefined;
         let interim = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const res = e.results[i];
           if (!res) continue;
           if (res.isFinal) {
             const alts: string[] = [];
+            const conf: (number | null)[] = [];
             for (let k = 0; k < res.length; k++) {
               const t = (res[k]?.transcript ?? '').trim();
-              if (t) alts.push(t);
+              if (!t) continue;
+              alts.push(t);
+              const c = res[k]?.confidence;
+              // Chrome reports 0 when it has no estimate.
+              conf.push(typeof c === 'number' && c > 0 ? c : null);
             }
-            if (alts.length) finalAlts = alts;
+            if (alts.length) {
+              finalAlts = alts;
+              finalConfidences = conf;
+            }
           } else {
             interim += res[0]?.transcript ?? '';
           }
         }
-        h.onResult({ finalAlts, interim });
+        let transcript = '';
+        for (let i = 0; i < e.results.length; i++) transcript += ' ' + (e.results[i]?.[0]?.transcript ?? '');
+        transcript = transcript.replace(/\s+/g, ' ').trim();
+        h.onResult({ finalAlts, ...(finalConfidences ? { finalConfidences } : {}), interim, transcript });
       };
       r.onerror = (e) => h.onError(e.error ?? 'unknown');
       r.onend = () => h.onEnd();
       const detach = () => {
-        r.onstart = r.onspeechstart = r.onresult = r.onerror = r.onend = null;
+        r.onstart = r.onaudiostart = r.onspeechstart = r.onnomatch = r.onresult = r.onerror = r.onend = null;
       };
       try {
         r.start();
