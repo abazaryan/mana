@@ -8,6 +8,7 @@ import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
 import type { Route } from './Root';
 import { SettingsScreen } from './SettingsScreen';
+import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
 
 type Boot =
@@ -56,7 +57,7 @@ export function MainApp({ route }: { route: Route }) {
     return <FirstRun onChoose={(l) => void choose(l)} />;
   }
 
-  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang'>>) => {
+  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay'>>) => {
     const s = { ...settings, ...patch, updatedAt: new Date() };
     await putSettings(db, s);
     setBoot({ phase: 'ready', meta, settings: s });
@@ -66,8 +67,11 @@ export function MainApp({ route }: { route: Route }) {
     <I18nProvider lang={settings.uiLang} meaningLang={settings.meaningLang}>
       <Shell route={route}>
         {route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} />}
+        {route.name === 'study' && (
+          <StudyScreen key={route.deckId} db={db} deckId={route.deckId} actor={meta} newPerDay={settings.newPerDay} />
+        )}
         {route.name === 'settings' && (
-          <SettingsScreen db={db} meta={meta} onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
+          <SettingsScreen db={db} meta={meta} newPerDay={settings.newPerDay} onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
         )}
         {route.name === 'decks' && <DecksScreen db={db} />}
       </Shell>
@@ -85,7 +89,7 @@ function Shell({ route, children }: { route: Route; children: ReactNode }) {
           {t('app.name')}
         </a>
         <nav className="top-actions">
-          <a className="ghost" href="#/" aria-current={current(route.name === 'decks' || route.name === 'deck')}>
+          <a className="ghost" href="#/" aria-current={current(route.name === 'decks' || route.name === 'deck' || route.name === 'study')}>
             {t('nav.decks')}
           </a>
           <a className="ghost" href="#/settings" aria-current={current(route.name === 'settings')}>

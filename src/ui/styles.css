@@ -145,3 +145,63 @@ a.ghost[aria-current="page"]{color:var(--ink);font-weight:600;background:var(--w
 details summary{cursor:pointer;color:var(--muted);}
 details .issues li{border-left-color:var(--hard);}
 .lang-mark{margin-left:6px;text-transform:uppercase;vertical-align:middle;}
+
+/* Stage 4.2: study (intro, speak), answer marks (Р22.9) */
+a.primary,a.secondary{text-decoration:none;}
+.center{display:flex;align-items:center;justify-content:center;}
+.study-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:6px;}
+.kicker{text-transform:uppercase;font-size:.75rem;letter-spacing:.08em;color:var(--muted);margin:0 0 6px;}
+.intro-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;}
+.intro-text{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.9rem;line-height:1.2;overflow-wrap:anywhere;}
+.intro-head .answer{margin:0;}
+.meaning{font-size:1.15rem;margin:8px 0 4px;}
+.form-hints{color:var(--accent);font-weight:600;margin:0 0 6px;}
+.ipa{margin:2px 0 6px;}
+.note-text{font-style:italic;}
+.step{border-top:1px solid var(--line);margin-top:16px;padding-top:12px;}
+.h3{font-size:1.05rem;margin:0 0 8px;}
+.status{margin:6px 0;}
+.status.listening{color:var(--accent);}
+.status .pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:4px;animation:blink 1.2s ease-in-out infinite;}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.status .pulse{animation:none;}}
+.grade:disabled{opacity:.38;cursor:not-allowed;}
+.grade{position:relative;}
+.grade .sug{position:absolute;top:2px;right:6px;color:var(--muted);}
+.secondary.on{border-color:var(--good);color:var(--good);background:var(--wash);}
+.sum div[data-g="1"] strong{color:var(--again);} .sum div[data-g="2"] strong{color:var(--hard);}
+.sum div[data-g="3"] strong{color:var(--good);} .sum div[data-g="4"] strong{color:var(--easy);}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+/* Live highlight while saying it aloud: heard words get colour and an underline. */
+.live-words{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.35rem;line-height:1.5;margin:6px 0;}
+.live-words .lw{color:var(--muted);}
+.live-words .lw.on{color:var(--ok);text-decoration:underline 2px;text-underline-offset:4px;}
+
+/* Marks: a block = one word on either side; answer on top, reference below. */
+.marks{margin:14px 0 8px;}
+.blocks{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;}
+.blocks.words{font-size:1.15rem;}
+.blocks.chars{gap:8px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.15rem;}
+.blk{display:inline-flex;white-space:pre;}
+.blocks.words .cell+.cell{margin-left:.2em;}
+.cell{display:inline-flex;flex-direction:column;align-items:center;}
+.cell .top,.cell .bot{display:block;min-height:1.6em;line-height:1.6em;padding:0 1px;text-align:center;}
+.cell .bot{border-top:1px solid var(--line);}
+.cell .gap{min-width:1.1em;border:1.5px dashed var(--muted);border-radius:5px;margin:1px 0;min-height:calc(1.6em - 2px);}
+.blocks.words .cell .gap{min-width:2.4em;}
+.cell .sign{font-style:normal;font-weight:700;margin-right:2px;}
+.st-ok .top,.st-sound .top{color:var(--ok);}
+.st-other .top,.st-wrong .top{color:var(--bad);text-decoration:underline wavy var(--bad);text-underline-offset:4px;}
+.st-other .bot,.st-wrong .bot{font-weight:700;}
+.st-missing .bot{color:var(--bad);font-weight:700;text-decoration:underline dashed;text-underline-offset:4px;}
+.st-extra .top{color:var(--bad);text-decoration:line-through 2px;}
+.st-diacritic .top{color:var(--hard);text-decoration:underline dotted 2px;text-underline-offset:4px;}
+.st-diacritic .bot{color:var(--hard);font-weight:700;}
+.marks figcaption{margin-top:8px;}
+.legend{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted);}
+.legend li{display:flex;align-items:center;gap:6px;}
+.legend .cell{font-size:.95rem;}
+.legend .cell .top{min-height:1.5em;line-height:1.5em;}
+.legend .cell .gap{min-width:1.8em;}
+.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed;}

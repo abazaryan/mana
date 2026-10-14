@@ -6,6 +6,7 @@ import type { ManaDb } from '../platform/db';
 import { getDeck, getMedia, listEntries } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
+import { studyHref } from './Root';
 import { LANG_NAMES } from './strings';
 
 type Loaded = { deck: DeckRow; entries: EntryRow[] } | 'missing' | null;
@@ -62,6 +63,9 @@ export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
         {t('decks.revision', { n: deck.revision })} · {t('decks.audio', { mb: formatMb(deck.audioBytes, lang) })}
       </p>
       {deck.hiddenCount > 0 && <p className="hint">{t('deck.hidden', { n: deck.hiddenCount })}</p>}
+      <a className="primary big center" href={studyHref(deck.id)}>
+        {t('study.start')}
+      </a>
       {audioError && (
         <p className="hint err" role="alert">
           {t('deck.audioError')}

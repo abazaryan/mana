@@ -12,12 +12,15 @@ import { LANG_NAMES, type Lang, type StringKey } from './strings';
 interface Props {
   db: ManaDb;
   meta: MetaRow;
-  onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang'>>): void;
+  newPerDay: number;
+  onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay'>>): void;
   /** The restore adopted another user: reload meta and settings. */
   onDataReplaced(): void;
 }
 
 const LANGS: Lang[] = ['tg', 'ru', 'en'];
+/** New entries per day (Р7): 5 by default, 10 the alternative; the user may go higher. */
+const NEW_PER_DAY = [5, 10, 15, 20];
 
 const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
   persisted: 'storage.persisted',
@@ -27,7 +30,7 @@ const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
 
 type Msg = { text: string; err: boolean } | null;
 
-export function SettingsScreen({ db, meta, onChange, onDataReplaced }: Props) {
+export function SettingsScreen({ db, meta, newPerDay, onChange, onDataReplaced }: Props) {
   const { t, lang, meaningLang } = useI18n();
   const [persist, setPersist] = useState<Persistence | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -88,6 +91,16 @@ export function SettingsScreen({ db, meta, onChange, onDataReplaced }: Props) {
         </select>
       </label>
       <p className="hint">{t('settings.meaningHint')}</p>
+      <label className="field">
+        <span>{t('settings.newPerDay')}</span>
+        <select value={newPerDay} onChange={(e) => onChange({ newPerDay: Number(e.target.value) })}>
+          {[...new Set([...NEW_PER_DAY, newPerDay])].sort((a, b) => a - b).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <h2 className="h2">{t('backup.title')}</h2>
       <p className="hint">{t('backup.hint')}</p>

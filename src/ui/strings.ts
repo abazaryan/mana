@@ -59,6 +59,148 @@ export const STRINGS = {
   'skill.speak': { tg: 'гуфтан', ru: 'говорить', en: 'speak' },
   'skill.write': { tg: 'навиштан', ru: 'писать', en: 'write' },
 
+  // Study (stage 4.2, Р22; Tajik terms — docs/GLOSSARY_TG.md, section «Занятия»)
+  'common.next': { tg: 'Баъдӣ', ru: 'Дальше', en: 'Next' },
+  'study.start': { tg: 'Тамрин', ru: 'Заниматься', en: 'Study' },
+  'study.progress': { tg: '{i} аз {n}', ru: '{i} из {n}', en: '{i} of {n}' },
+  'study.nothing': {
+    tg: 'Ҳоло чизе барои такрор нест ва омӯзбарги нав ҳам нест.',
+    ru: 'Сейчас нечего повторять, и новых записей нет.',
+    en: 'Nothing to review and no new entries right now.',
+  },
+  'study.noNew.noMaterial': {
+    tg: 'Дар ин маҷмӯа омӯзбарги нав намонд.',
+    ru: 'Новых записей в колоде не осталось.',
+    en: 'No new entries left in this deck.',
+  },
+  'study.noNew.dailyLimit': {
+    tg: 'Омӯзбаргҳои нави имрӯз тамом шуданд: ҳадди рӯзона — {n}.',
+    ru: 'Новые записи на сегодня закончились: лимит — {n} в день.',
+    en: 'No more new entries today: the limit is {n} a day.',
+  },
+  'study.noNew.portionFull': {
+    tg: 'Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар.',
+    ru: 'Эту порцию заняли повторения; новые записи — в следующей.',
+    en: 'Reviews filled this round; new entries come in the next one.',
+  },
+  'study.done': { tg: 'Давр тамом шуд', ru: 'Порция пройдена', en: 'Round done' },
+  'study.more': { tg: 'Даври дигар', ru: 'Ещё порция', en: 'Another round' },
+  'study.introduced': { tg: 'Ошноӣ: {n}', ru: 'Знакомств: {n}', en: 'Introductions: {n}' },
+  'study.noLanguage': {
+    tg: 'Барнома ҳанӯз бо забони {lang} кор намекунад.',
+    ru: 'Язык {lang} пока не поддерживается.',
+    en: 'The language {lang} is not supported yet.',
+  },
+  'study.saveError': {
+    tg: 'Ҷавоб захира нашуд: {error}',
+    ru: 'Ответ не сохранён: {error}',
+    en: 'The answer was not saved: {error}',
+  },
+
+  // Introduction (Р3, Р22.5)
+  'intro.label': { tg: 'Ошноӣ', ru: 'Знакомство', en: 'Introduction' },
+  'intro.echo': { tg: 'Бо садои баланд такрор кунед', ru: 'Повторите вслух', en: 'Say it aloud' },
+  'intro.copy': { tg: 'Аз рӯи намуна нависед', ru: 'Напишите по образцу', en: 'Copy it out' },
+  'intro.again': { tg: 'Боз як бор', ru: 'Ещё раз', en: 'Once more' },
+  'intro.skip': { tg: 'Гузаштан', ru: 'Пропустить', en: 'Skip' },
+
+  // Speak (Р22.6)
+  'speak.prompt': { tg: 'Ҷавобро гӯед', ru: 'Скажите ответ', en: 'Say the answer' },
+  'speak.type': { tg: 'Навиштан', ru: 'Написать', en: 'Type' },
+  'speak.typePlaceholder': { tg: 'Ҷавобро нависед', ru: 'Напишите ответ', en: 'Type the answer' },
+  'speak.check': { tg: 'Санҷиш', ru: 'Проверить', en: 'Check' },
+  'speak.dontKnow': { tg: 'Намедонам', ru: 'Не знаю', en: "I don't know" },
+
+  // Microphone
+  'mic.start': { tg: 'Гуфтан', ru: 'Говорить', en: 'Speak' },
+  'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
+  'mic.listening': { tg: 'Гӯш медиҳам…', ru: 'Слушаю…', en: 'Listening…' },
+  'mic.retry': { tg: 'Талоши дубора', ru: 'Повторить', en: 'Try again' },
+  'mic.unsupported': {
+    tg: 'Ин мурургар шинохти гуфторро надорад — ҷавобро нависед.',
+    ru: 'Этот браузер не распознаёт речь — напишите ответ.',
+    en: 'This browser has no speech recognition — type the answer.',
+  },
+  'mic.err.not-allowed': {
+    tg: 'Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед.',
+    ru: 'Нет доступа к микрофону. Разрешите его для этого сайта.',
+    en: 'No access to the microphone. Allow it for this site.',
+  },
+  'mic.err.service-not-allowed': {
+    tg: 'Мурургар шинохти гуфторро иҷозат надод.',
+    ru: 'Браузер не разрешил распознавание речи.',
+    en: 'The browser did not allow speech recognition.',
+  },
+  'mic.err.audio-capture': {
+    tg: 'Микрофон ёфт нашуд ё барномаи дигар онро истифода мебарад.',
+    ru: 'Микрофон не найден или занят другим приложением.',
+    en: 'No microphone found, or another app is using it.',
+  },
+  'mic.err.network': {
+    tg: 'Барои шинохти гуфтор интернет лозим аст.',
+    ru: 'Для распознавания речи нужен интернет.',
+    en: 'Speech recognition needs the internet.',
+  },
+  'mic.err.no-speech': { tg: 'Гуфтор шунида нашуд.', ru: 'Речь не услышана.', en: 'No speech heard.' },
+  'mic.err.no-result': { tg: 'Чизе шинохта нашуд.', ru: 'Ничего не распознано.', en: 'Nothing recognised.' },
+  'mic.err.language-not-supported': {
+    tg: 'Ин мурургар ин забонро намешиносад.',
+    ru: 'Этот браузер не распознаёт этот язык.',
+    en: 'This browser cannot recognise this language.',
+  },
+  'mic.err.watchdog': { tg: 'Микрофон фаъол нашуд.', ru: 'Микрофон не включился.', en: 'The microphone did not start.' },
+  'mic.err.other': { tg: 'Хатои шинохти гуфтор: {code}', ru: 'Ошибка распознавания: {code}', en: 'Recognition error: {code}' },
+
+  // Answer marks (Р22.9): the labels never promise to judge pronunciation
+  'answer.heard': { tg: 'Шунида шуд:', ru: 'Услышано:', en: 'Heard:' },
+  'answer.typed': { tg: 'Навишта шуд:', ru: 'Набрано:', en: 'Typed:' },
+  'answer.nothing': { tg: '(ҳеҷ чиз)', ru: '(ничего)', en: '(nothing)' },
+  'marks.rows.voice': {
+    tg: 'Боло — шунидашуда, поён — ҷавоби дуруст',
+    ru: 'Сверху — услышанное, снизу — правильный ответ',
+    en: 'Top: what was heard; bottom: the right answer',
+  },
+  'marks.rows.typed': {
+    tg: 'Боло — навиштаи шумо, поён — намуна',
+    ru: 'Сверху — ваш ответ, снизу — образец',
+    en: 'Top: what you typed; bottom: the model',
+  },
+  'mark.sound': { tg: 'аз рӯи талаффуз қабул шуд', ru: 'засчитано по звучанию', en: 'accepted by sound' },
+  'mark.other': { tg: 'вожаи дигар шунида шуд', ru: 'распознано другое слово', en: 'recognised as another word' },
+  'mark.otherTyped': { tg: 'вожаи дигар', ru: 'другое слово', en: 'another word' },
+  'mark.unsaid': { tg: 'гуфта нашуд', ru: 'не сказано', en: 'not said' },
+  'mark.extra': { tg: 'изофӣ', ru: 'лишнее', en: 'extra' },
+  'mark.wrong': { tg: 'хато', ru: 'ошибка', en: 'wrong' },
+  'mark.missing': { tg: 'ҷо монд', ru: 'пропущено', en: 'missing' },
+  'mark.diacritic': { tg: 'танҳо аломат (é/e)', ru: 'только диакритика (é/e)', en: 'accent only (é/e)' },
+
+  // Rating (Р4)
+  'rating.1': { tg: 'Дубора', ru: 'Снова', en: 'Again' },
+  'rating.2': { tg: 'Сахт', ru: 'Трудно', en: 'Hard' },
+  'rating.3': { tg: 'Хуб', ru: 'Хорошо', en: 'Good' },
+  'rating.4': { tg: 'Осон', ru: 'Легко', en: 'Easy' },
+  'rating.suggested': { tg: 'Пешниҳод: {rating}', ru: 'Предложено: {rating}', en: 'Suggested: {rating}' },
+  'rating.misrecognized': { tg: 'Нодуруст шунид', ru: 'Меня неправильно распознали', en: 'I was misrecognised' },
+  'rating.lockedVoice': {
+    tg: '«Дубора»-ро танҳо бо «Нодуруст шунид» метавон баланд кард.',
+    ru: '«Снова» можно повысить только кнопкой «Меня неправильно распознали».',
+    en: '"Again" can be raised only with "I was misrecognised".',
+  },
+  'rating.lockedTyped': {
+    tg: 'Дар ҷавоби навиштаӣ «Дубора»-ро баланд кардан мумкин нест.',
+    ru: 'При ответе текстом «Снова» повысить нельзя.',
+    en: 'A typed answer rated "Again" cannot be raised.',
+  },
+  'reason.incorrect': { tg: 'Нодуруст', ru: 'Неверно', en: 'Incorrect' },
+  'reason.almost': { tg: 'Тақрибан дуруст', ru: 'Почти', en: 'Almost' },
+  'reason.correct': { tg: 'Дуруст', ru: 'Верно', en: 'Correct' },
+  'reason.correct-fast': { tg: 'Дуруст ва босуръат', ru: 'Верно и быстро', en: 'Correct and fast' },
+  'reason.correct-fast-twice': {
+    tg: 'Дуруст ва босуръат, ду бор паёпай',
+    ru: 'Верно и быстро второй раз подряд',
+    en: 'Correct and fast twice in a row',
+  },
+
   // Import
   'import.reading': { tg: 'Файл хонда мешавад…', ru: 'Читаю файл…', en: 'Reading the file…' },
   'import.rejected': { tg: 'Маҷмӯа қабул нашуд', ru: 'Колода не принята', en: 'Deck not accepted' },
@@ -112,6 +254,7 @@ export const STRINGS = {
     ru: 'Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся.',
     en: 'Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one.',
   },
+  'settings.newPerDay': { tg: 'Омӯзбаргҳои нав дар як рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
   'settings.prototype': {
     tg: 'Саҳифаи пешнамуна (бо таърихчаи қаблӣ)',
     ru: 'Экран прототипа (со старым журналом)',

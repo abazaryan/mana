@@ -32,6 +32,68 @@
 | `skill.listen` | слушать | listen | шунидан |
 | `skill.speak` | говорить | speak | гуфтан |
 | `skill.write` | писать | write | навиштан |
+| `common.next` | Дальше | Next | Баъдӣ |
+| `study.start` | Заниматься | Study | Тамрин |
+| `study.progress` | {i} из {n} | {i} of {n} | {i} аз {n} |
+| `study.nothing` | Сейчас нечего повторять, и новых записей нет. | Nothing to review and no new entries right now. | Ҳоло чизе барои такрор нест ва омӯзбарги нав ҳам нест. |
+| `study.noNew.noMaterial` | Новых записей в колоде не осталось. | No new entries left in this deck. | Дар ин маҷмӯа омӯзбарги нав намонд. |
+| `study.noNew.dailyLimit` | Новые записи на сегодня закончились: лимит — {n} в день. | No more new entries today: the limit is {n} a day. | Омӯзбаргҳои нави имрӯз тамом шуданд: ҳадди рӯзона — {n}. |
+| `study.noNew.portionFull` | Эту порцию заняли повторения; новые записи — в следующей. | Reviews filled this round; new entries come in the next one. | Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар. |
+| `study.done` | Порция пройдена | Round done | Давр тамом шуд |
+| `study.more` | Ещё порция | Another round | Даври дигар |
+| `study.introduced` | Знакомств: {n} | Introductions: {n} | Ошноӣ: {n} |
+| `study.noLanguage` | Язык {lang} пока не поддерживается. | The language {lang} is not supported yet. | Барнома ҳанӯз бо забони {lang} кор намекунад. |
+| `study.saveError` | Ответ не сохранён: {error} | The answer was not saved: {error} | Ҷавоб захира нашуд: {error} |
+| `intro.label` | Знакомство | Introduction | Ошноӣ |
+| `intro.echo` | Повторите вслух | Say it aloud | Бо садои баланд такрор кунед |
+| `intro.copy` | Напишите по образцу | Copy it out | Аз рӯи намуна нависед |
+| `intro.again` | Ещё раз | Once more | Боз як бор |
+| `intro.skip` | Пропустить | Skip | Гузаштан |
+| `speak.prompt` | Скажите ответ | Say the answer | Ҷавобро гӯед |
+| `speak.type` | Написать | Type | Навиштан |
+| `speak.typePlaceholder` | Напишите ответ | Type the answer | Ҷавобро нависед |
+| `speak.check` | Проверить | Check | Санҷиш |
+| `speak.dontKnow` | Не знаю | I don't know | Намедонам |
+| `mic.start` | Говорить | Speak | Гуфтан |
+| `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
+| `mic.listening` | Слушаю… | Listening… | Гӯш медиҳам… |
+| `mic.retry` | Повторить | Try again | Талоши дубора |
+| `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар шинохти гуфторро надорад — ҷавобро нависед. |
+| `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед. |
+| `mic.err.service-not-allowed` | Браузер не разрешил распознавание речи. | The browser did not allow speech recognition. | Мурургар шинохти гуфторро иҷозат надод. |
+| `mic.err.audio-capture` | Микрофон не найден или занят другим приложением. | No microphone found, or another app is using it. | Микрофон ёфт нашуд ё барномаи дигар онро истифода мебарад. |
+| `mic.err.network` | Для распознавания речи нужен интернет. | Speech recognition needs the internet. | Барои шинохти гуфтор интернет лозим аст. |
+| `mic.err.no-speech` | Речь не услышана. | No speech heard. | Гуфтор шунида нашуд. |
+| `mic.err.no-result` | Ничего не распознано. | Nothing recognised. | Чизе шинохта нашуд. |
+| `mic.err.language-not-supported` | Этот браузер не распознаёт этот язык. | This browser cannot recognise this language. | Ин мурургар ин забонро намешиносад. |
+| `mic.err.watchdog` | Микрофон не включился. | The microphone did not start. | Микрофон фаъол нашуд. |
+| `mic.err.other` | Ошибка распознавания: {code} | Recognition error: {code} | Хатои шинохти гуфтор: {code} |
+| `answer.heard` | Услышано: | Heard: | Шунида шуд: |
+| `answer.typed` | Набрано: | Typed: | Навишта шуд: |
+| `answer.nothing` | (ничего) | (nothing) | (ҳеҷ чиз) |
+| `marks.rows.voice` | Сверху — услышанное, снизу — правильный ответ | Top: what was heard; bottom: the right answer | Боло — шунидашуда, поён — ҷавоби дуруст |
+| `marks.rows.typed` | Сверху — ваш ответ, снизу — образец | Top: what you typed; bottom: the model | Боло — навиштаи шумо, поён — намуна |
+| `mark.sound` | засчитано по звучанию | accepted by sound | аз рӯи талаффуз қабул шуд |
+| `mark.other` | распознано другое слово | recognised as another word | вожаи дигар шунида шуд |
+| `mark.otherTyped` | другое слово | another word | вожаи дигар |
+| `mark.unsaid` | не сказано | not said | гуфта нашуд |
+| `mark.extra` | лишнее | extra | изофӣ |
+| `mark.wrong` | ошибка | wrong | хато |
+| `mark.missing` | пропущено | missing | ҷо монд |
+| `mark.diacritic` | только диакритика (é/e) | accent only (é/e) | танҳо аломат (é/e) |
+| `rating.1` | Снова | Again | Дубора |
+| `rating.2` | Трудно | Hard | Сахт |
+| `rating.3` | Хорошо | Good | Хуб |
+| `rating.4` | Легко | Easy | Осон |
+| `rating.suggested` | Предложено: {rating} | Suggested: {rating} | Пешниҳод: {rating} |
+| `rating.misrecognized` | Меня неправильно распознали | I was misrecognised | Нодуруст шунид |
+| `rating.lockedVoice` | «Снова» можно повысить только кнопкой «Меня неправильно распознали». | "Again" can be raised only with "I was misrecognised". | «Дубора»-ро танҳо бо «Нодуруст шунид» метавон баланд кард. |
+| `rating.lockedTyped` | При ответе текстом «Снова» повысить нельзя. | A typed answer rated "Again" cannot be raised. | Дар ҷавоби навиштаӣ «Дубора»-ро баланд кардан мумкин нест. |
+| `reason.incorrect` | Неверно | Incorrect | Нодуруст |
+| `reason.almost` | Почти | Almost | Тақрибан дуруст |
+| `reason.correct` | Верно | Correct | Дуруст |
+| `reason.correct-fast` | Верно и быстро | Correct and fast | Дуруст ва босуръат |
+| `reason.correct-fast-twice` | Верно и быстро второй раз подряд | Correct and fast twice in a row | Дуруст ва босуръат, ду бор паёпай |
 | `import.reading` | Читаю файл… | Reading the file… | Файл хонда мешавад… |
 | `import.rejected` | Колода не принята | Deck not accepted | Маҷмӯа қабул нашуд |
 | `import.authorNote` | Сообщения адресованы автору колоды. | The messages are in Russian — they are meant for the deck author. | Паёмҳо ба забони русӣ — онҳо барои муаллифи маҷмӯа навишта шудаанд. |
@@ -50,6 +112,7 @@
 | `settings.uiLang` | Язык интерфейса | Interface language | Забони барнома |
 | `settings.meaningLang` | Язык значений | Meaning language | Забони маъноҳо |
 | `settings.meaningHint` | Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся. | Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one. | Маъно, роҳнамо ва ёддошти омӯзбаргҳо бо ин забон нишон дода мешаванд; агар бо ин забон набошад — бо забони дигари мавҷуда. |
+| `settings.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар як рӯз |
 | `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old journal) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
 | `backup.title` | Резервная копия | Backup | Нусхаи пуштибон |
 | `backup.hint` | Журнал ответов (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл. | The answer journal (all your progress) lives only in this browser. Save it to a file from time to time. | Таърихчаи ҷавобҳо (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед. |
