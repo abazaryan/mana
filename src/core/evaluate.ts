@@ -163,3 +163,181 @@ function evaluateAgainst(expected: string, actual: string, rules: WritingRules):
 
   return { verdict: 'incorrect' };
 }
+
+// ---------- Character marks (Р22.9а) ----------
+
+export type CharStatus = 'ok' | 'wrong' | 'missing' | 'extra' | 'diacritic';
+
+/** One column: the typed character (top) over the reference character (bottom). */
+export interface CharCell {
+  status: CharStatus;
+  /** Typed character as typed (case kept); null = empty cell (missing). */
+  top: string | null;
+  /** Reference character; null = empty cell (extra). */
+  bottom: string | null;
+}
+
+export interface TypedCheck {
+  evaluation: Evaluation;
+  cells: CharCell[];
+}
+
+/** A folded character: `c` is compared, `d` is displayed (original case). */
+interface FoldedChar {
+  c: string;
+  d: string;
+}
+
+/** Applies `re` (global) to the compared text: each match is removed or becomes one space. */
+function replaceFolded(chars: FoldedChar[], re: RegExp, rep: '' | ' '): FoldedChar[] {
+  const text = chars.map((x) => x.c).join('');
+  const out: FoldedChar[] = [];
+  let last = 0;
+  for (const m of text.matchAll(new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'))) {
+    out.push(...chars.slice(last, m.index));
+    if (rep === ' ') out.push({ c: ' ', d: ' ' });
+    last = m.index + m[0].length;
+  }
+  out.push(...chars.slice(last));
+  return out;
+}
+
+/**
+ * `normalize` with every kept character traced back to what was typed. The steps
+ * mirror foldBasic + stripTypographicSpaces one for one; a test checks the compared
+ * text always equals `normalize`.
+ */
+export function foldTraced(s: string, rules: WritingRules): FoldedChar[] {
+  let chars: FoldedChar[] = s
+    .normalize('NFC')
+    .split('')
+    .map((ch) => {
+      const space = /[  ]/.test(ch);
+      return { c: space ? ' ' : ch, d: space ? ' ' : ch };
+    });
+  chars = replaceFolded(chars, /\s*,\s*/g, ' ');
+  chars = replaceFolded(chars, /^\s+|\s+$/g, '');
+  chars = chars.map((x) => {
+    const low = x.c.toLowerCase();
+    return { c: low.length === 1 ? low : x.c, d: x.d };
+  });
+  chars = chars.map((x) => (/[’ʼ]/.test(x.c) ? { c: "'", d: x.d } : x));
+  chars = replaceFolded(chars, /\s+/g, ' ');
+  chars = replaceFolded(chars, TRAILING_STOP, '');
+  if (rules.typographicSpace) chars = replaceFolded(chars, rules.typographicSpace, '');
+  return chars;
+}
+
+function baseOf(c: string): string {
+  return stripDiacritics(c);
+}
+
+function pairCell(a: FoldedChar, e: FoldedChar): CharCell {
+  if (a.c === e.c) return { status: 'ok', top: a.d, bottom: e.d };
+  return { status: baseOf(a.c) === baseOf(e.c) ? 'diacritic' : 'wrong', top: a.d, bottom: e.d };
+}
+
+/**
+ * Character alignment over the same Damerau (optimal string alignment) distance the
+ * verdict uses, so the number of marked edits equals `editDistance`. Done on reversed
+ * strings, traced from their end (= the start of the originals): on a tie characters
+ * are matched as early as possible and a gap goes as late as possible
+ * ("apelle" for "appelle" marks the second p missing).
+ */
+function alignChars(e: FoldedChar[], a: FoldedChar[]): CharCell[] {
+  const er = [...e].reverse();
+  const ar = [...a].reverse();
+  const n = er.length;
+  const m = ar.length;
+  const d: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = 0; i <= n; i++) d[i]![0] = i;
+  for (let j = 0; j <= m; j++) d[0]![j] = j;
+  const same = (i: number, j: number) => er[i]!.c === ar[j]!.c;
+  const swap = (i: number, j: number) =>
+    i > 1 && j > 1 && er[i - 1]!.c === ar[j - 2]!.c && er[i - 2]!.c === ar[j - 1]!.c && !same(i - 1, j - 1);
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      let v = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + (same(i - 1, j - 1) ? 0 : 1));
+      if (swap(i, j)) v = Math.min(v, d[i - 2]![j - 2]! + 1);
+      d[i]![j] = v;
+    }
+  }
+  const cells: CharCell[] = [];
+  let i = n;
+  let j = m;
+  while (i > 0 || j > 0) {
+    const here = d[i]![j]!;
+    if (i > 0 && j > 0 && same(i - 1, j - 1) && here === d[i - 1]![j - 1]!) {
+      cells.push(pairCell(ar[j - 1]!, er[i - 1]!));
+      i--;
+      j--;
+    } else if (i > 0 && j > 0 && here === d[i - 1]![j - 1]! + 1) {
+      cells.push(pairCell(ar[j - 1]!, er[i - 1]!));
+      i--;
+      j--;
+    } else if (swap(i, j) && here === d[i - 2]![j - 2]! + 1) {
+      // A transposition is one edit; both characters are shown wrong.
+      cells.push({ status: 'wrong', top: ar[j - 1]!.d, bottom: er[i - 1]!.d });
+      cells.push({ status: 'wrong', top: ar[j - 2]!.d, bottom: er[i - 2]!.d });
+      i -= 2;
+      j -= 2;
+    } else if (i > 0 && here === d[i - 1]![j]! + 1) {
+      cells.push({ status: 'missing', top: null, bottom: er[i - 1]!.d });
+      i--;
+    } else {
+      cells.push({ status: 'extra', top: ar[j - 1]!.d, bottom: null });
+      j--;
+    }
+  }
+  return cells;
+}
+
+/**
+ * The written-answer verdict together with its character marks (Р22.9а). The marks
+ * are built from the step of the cascade that decided the verdict, on the same
+ * folded text, so the colours cannot disagree with it:
+ * correct → all ok; article → the article missing, the rest ok; diacritic → only
+ * diacritic cells; typo / incorrect → the alignment of the edit distance.
+ * Characters the folding ignores (comma, closing stop, typographic space) are not shown.
+ */
+export function checkTyped(expected: string, actual: string, rules: WritingRules): TypedCheck {
+  const evaluation = evaluate(expected, actual, rules);
+  const e = foldTraced(expected, rules);
+  const a = foldTraced(actual, rules);
+  const positional = () => e.map((x, k) => pairCell(a[k]!, x));
+
+  if (evaluation.verdict === 'correct') return { evaluation, cells: positional() };
+  if (evaluation.errorType === 'article') {
+    const k = e.length - a.length;
+    const cells: CharCell[] = e.slice(0, k).map((x) => ({ status: 'missing', top: null, bottom: x.d }));
+    e.slice(k).forEach((x, idx) => cells.push(pairCell(a[idx]!, x)));
+    return { evaluation, cells };
+  }
+  if (evaluation.errorType === 'diacritic' && e.length === a.length) return { evaluation, cells: positional() };
+  return { evaluation, cells: alignChars(e, a) };
+}
+
+/**
+ * Display blocks (Р22.9г): cells grouped by word so a block wraps as a whole and the
+ * typed text stays over the reference. A block ends where either line has a space;
+ * a space that is itself an error (missing, extra, or against a letter) is kept as
+ * a block of its own so it stays visible.
+ */
+export function charBlocks(cells: readonly CharCell[]): CharCell[][] {
+  const blocks: CharCell[][] = [];
+  let cur: CharCell[] = [];
+  const flush = () => {
+    if (cur.length > 0) blocks.push(cur);
+    cur = [];
+  };
+  for (const cell of cells) {
+    if (cell.top === ' ' || cell.bottom === ' ') {
+      flush();
+      if (cell.status !== 'ok') blocks.push([cell]);
+    } else {
+      cur.push(cell);
+    }
+  }
+  flush();
+  return blocks;
+}
