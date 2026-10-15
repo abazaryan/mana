@@ -16,7 +16,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 1,
+  revision: 2,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -120,6 +120,23 @@ const deck = {
       ipa: 'tʁɛ tʁɛ bjɛ̃',
       meaning: { tg: 'хеле-хеле хуб', ru: 'очень-очень хорошо', en: 'very very well' },
       tags: ['phrase'],
+      skills: ['speak'],
+    },
+    {
+      id: 'elle-est-seule',
+      text: 'elle est seule',
+      ipa: 'ɛl ɛ sœl',
+      meaning: { tg: 'ӯ танҳост (зан)', ru: 'она одна', en: 'she is alone' },
+      note: { tg: '«seul» ва «seule» ҳамон тавр садо медиҳанд', ru: '«seul» и «seule» звучат одинаково', en: '"seul" and "seule" sound the same' },
+      tags: ['phrase'],
+      skills: ['speak'],
+    },
+    {
+      id: 'deux',
+      text: 'deux',
+      ipa: 'dø',
+      meaning: { tg: 'ду (2)', ru: 'два (2)', en: 'two (2)' },
+      tags: ['number'],
       skills: ['speak'],
     },
     {
