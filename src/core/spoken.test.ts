@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ER_READ_AS_AIR, FINAL_S_PRONOUNCED, frenchCardinal, frenchOrdinal } from './frenchSpoken';
+import { ER_READ_AS_AIR, FINAL_S_PRONOUNCED, frenchCardinal, frenchOrdinal, PRONOUNCED_FINAL_EXCEPTIONS } from './frenchSpoken';
 import { FRENCH } from './languages';
 import {
   ALMOST_UNSAID_SHARE,
+  allMatched,
+  biasPhrases,
   alignSpoken,
   checkSpoken,
   countSpokenWords,
@@ -109,6 +111,16 @@ describe('sound rules: accepted', () => {
     ['vu', 'vue', 'З6'],
     ['joli', 'jolies', 'З6'],
     ['cruel', 'cruelle', 'З7'],
+    ['ranger', 'rangez', 'З1'],
+    ['poster', 'posté', 'З1'],
+    ['tadjik', 'tadjike', 'З9'],
+    ['seul', 'seule', 'З9'],
+    ['seul', 'seules', 'З9'],
+    ['noir', 'noire', 'З9'],
+    ['normal', 'normale', 'З9'],
+    ['espagnol', 'espagnole', 'З9'],
+    ['dur', 'dure', 'З9'],
+    ['meilleur', 'meilleure', 'З9'],
     ['quel', 'quelles', 'З7'],
     ['a', 'à', 'З8'],
     ['ou', 'où', 'З8'],
@@ -157,6 +169,14 @@ describe('sound rules: rejected (no false "correct")', () => {
     ['mais', 'mes'],
     ['vert', 'verre'],
     ['un', 'une'],
+    ['fin', 'fine'],
+    ['brun', 'brune'],
+    ['gentil', 'gentille'],
+    ['gentil', 'gentile'],
+    ['actif', 'active'],
+    ['léger', 'légère'],
+    ['léger', 'légere'],
+    ['premier', 'premiere'],
   ])('%s ≠ %s', (a, b) => {
     expect(rule(a, b)).toBeNull();
     expect(rule(b, a)).toBeNull();
@@ -178,6 +198,13 @@ describe('sound rules: rejected (no false "correct")', () => {
   it.each(ER_READ_AS_AIR.map((w) => [w]))('З1 exception: %s', (w) => {
     const stem = w.slice(0, -2);
     for (const other of [`${stem}é`, `${stem}ez`, `${stem}ée`, `${stem}és`]) {
+      expect(rule(w, other), `${w} / ${other}`).toBeNull();
+      expect(rule(other, w), `${other} / ${w}`).toBeNull();
+    }
+  });
+
+  it.each(PRONOUNCED_FINAL_EXCEPTIONS.map((w) => [w]))('З9 exception: %s', (w) => {
+    for (const other of [`${w}e`, `${w}es`, `${w}le`]) {
       expect(rule(w, other), `${w} / ${other}`).toBeNull();
       expect(rule(other, w), `${other} / ${w}`).toBeNull();
     }
@@ -313,39 +340,57 @@ describe('display blocks', () => {
 
   it('a missing word: empty cell on top, the word below', () => {
     expect(blocks('le nom', 'nom')).toEqual([
-      [{ status: 'missing', top: null, bottom: 'le' }],
-      [{ status: 'ok', top: 'nom', bottom: 'nom' }],
+      [{ status: 'missing', top: null, bottom: 'le', space: true, heard: null }],
+      [{ status: 'ok', top: 'nom', bottom: 'nom', space: true, heard: 'nom' }],
     ]);
   });
 
-  it('an elided article stays in its word block', () => {
+  it('an elided article stays in its word block, without a space', () => {
     expect(blocks("l'ami", 'ami')).toEqual([
       [
-        { status: 'missing', top: null, bottom: "l'" },
-        { status: 'ok', top: 'ami', bottom: 'ami' },
+        { status: 'missing', top: null, bottom: "l'", space: true, heard: null },
+        { status: 'ok', top: 'ami', bottom: 'ami', space: false, heard: 'ami' },
       ],
+    ]);
+  });
+
+  it("c'est is one block; est-ce keeps its hyphen", () => {
+    expect(blocks("c'est la vie", "s'est la vie")[0]!.map((c) => [c.top, c.bottom, c.space])).toEqual([
+      ["s'", "c'", true],
+      ['est', 'est', false],
+    ]);
+    expect(blocks('est-ce que', 'est-ce que')[0]!.map((c) => [c.top, c.bottom, c.space])).toEqual([
+      ['est-', 'est-', true],
+      ['ce', 'ce', false],
     ]);
   });
 
   it('an extra word: struck on top, empty cell below', () => {
     expect(blocks('bonjour', 'bonjour madame')).toEqual([
-      [{ status: 'ok', top: 'bonjour', bottom: 'bonjour' }],
-      [{ status: 'extra', top: 'madame', bottom: null }],
+      [{ status: 'ok', top: 'bonjour', bottom: 'bonjour', space: true, heard: 'bonjour' }],
+      [{ status: 'extra', top: 'madame', bottom: null, space: true, heard: 'madame' }],
     ]);
   });
 
-  it('a number in digits shows the digits once over its words', () => {
+  it('digits: shown once over the words, as a plain match', () => {
     expect(blocks('vingt et un', '21')).toEqual([
       [
-        { status: 'sound', top: '21', bottom: 'vingt', rule: 'Ч' },
-        { status: 'sound', top: '', bottom: 'et', rule: 'Ч' },
-        { status: 'sound', top: '', bottom: 'un', rule: 'Ч' },
+        { status: 'ok', top: '21', bottom: 'vingt', space: true, heard: '21', rule: 'Ч' },
+        { status: 'ok', top: '', bottom: 'et', space: true, heard: '21', rule: 'Ч' },
+        { status: 'ok', top: '', bottom: 'un', space: true, heard: '21', rule: 'Ч' },
       ],
     ]);
   });
 
   it('a sound match keeps what was heard', () => {
-    expect(blocks('parler', 'parlé')).toEqual([[{ status: 'sound', top: 'parlé', bottom: 'parler', rule: 'З1' }]]);
+    expect(blocks('parler', 'parlé')).toEqual([[{ status: 'sound', top: 'parlé', bottom: 'parler', space: true, heard: 'parlé', rule: 'З1' }]]);
+  });
+
+  it('allMatched: one line when every word was heard (by sound too) and nothing extra', () => {
+    expect(allMatched(check('parler', 'parlé'))).toBe(true);
+    expect(allMatched(check('vingt et un', '21'))).toBe(true);
+    expect(allMatched(check('bonjour', 'bonjour madame'))).toBe(false);
+    expect(allMatched(check('le nom', 'nom'))).toBe(false);
   });
 });
 
@@ -401,5 +446,15 @@ describe('marks never contradict the verdict (generated answers)', () => {
       expect(cells.filter((x) => x.bottom !== null).length, ctx).toBe(c.ref.length);
       expect(cells.filter((x) => x.top !== null).length, ctx).toBe(c.heard.length);
     }
+  });
+});
+
+describe('biasPhrases', () => {
+  it('distinct words of all entries, without elided parts and digits', () => {
+    expect(biasPhrases(["l'ami", 'le nom', "C'est l'ami", '21 euros'], R)).toEqual(['ami', 'le', 'nom', 'est', 'euros']);
+  });
+
+  it('is capped', () => {
+    expect(biasPhrases(['un deux trois quatre'], R, 2)).toEqual(['un', 'deux']);
   });
 });

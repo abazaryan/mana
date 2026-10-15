@@ -74,13 +74,24 @@ export function frenchOrdinal(n: number, feminine: boolean): string | null {
  * (cher ≠ chez). Closed list; every word has a test.
  */
 export const ER_READ_AS_AIR: readonly string[] = [
-  'amer', 'blazer', 'boxer', 'bulldozer', 'bunker', 'cancer', 'charter', 'cher', 'cluster',
+  'amer', 'blazer', 'bulldozer', 'bunker', 'cancer', 'charter', 'cher', 'cluster',
   'cocker', 'container', 'cuiller', 'dealer', 'docker', 'enfer', 'esther', 'éther', 'fer',
   'fier', 'freezer', 'gangster', 'geyser', 'hacker', 'hamster', 'hier', 'hiver', 'holster',
   'joker', 'jupiter', 'kaiser', 'laser', 'leader', 'lucifer', 'magister', 'master', 'mer',
-  'mixer', 'munster', 'pater', 'poker', 'poster', 'ranger', 'reporter', 'revolver', 'rocker',
+  'munster', 'pater', 'poker', 'reporter', 'revolver', 'rocker',
   'scooter', 'speaker', 'spencer', 'starter', 'super', 'sweater', 'tender', 'thriller', 'ver',
 ];
+
+/**
+ * Rule З9: a final consonant that is pronounced stays the same when -e is added
+ * (seul = seule, noir = noire, tadjik = tadjike). Only these stem endings: l, k, and
+ * r not after e (léger ≠ légère; -er belongs to З1). t, d, n, f… are silent or change
+ * (petit ≠ petite, grand ≠ grande, brun ≠ brune, actif → active).
+ */
+export const PRONOUNCED_FINAL = /(?:l|k|[^e]r)$/;
+
+/** Words where З9 does not apply although the ending fits: the sound changes with -e. Closed list. */
+export const PRONOUNCED_FINAL_EXCEPTIONS: readonly string[] = ['gentil'];
 
 /**
  * Words whose final s or x is pronounced. Rules З5 and З6 (silent final -s/-x)
@@ -131,6 +142,14 @@ export const FRENCH_SPOKEN: SpokenRules = {
     { id: 'З6', endings: ['', 'e', 's', 'es'], minStem: 2, stemPattern: VOWEL_END, exceptions: FINAL_S_PRONOUNCED },
     // cruel = cruelle; quel = quelle = quels = quelles
     { id: 'З7', endings: ['el', 'elle', 'els', 'elles'], minStem: 2 },
+    // -e after a pronounced final consonant: seul = seule, noir = noire, tadjik = tadjike
+    {
+      id: 'З9',
+      endings: ['', 'e', 's', 'es'],
+      minStem: 2,
+      stemPattern: PRONOUNCED_FINAL,
+      exceptions: [...PRONOUNCED_FINAL_EXCEPTIONS, ...FINAL_S_PRONOUNCED],
+    },
   ],
   wordClasses: [
     { id: 'З8', words: ['a', 'à'] },

@@ -26,6 +26,8 @@ export interface SpokenToken {
   word: number;
   /** Tokens spelled out from one number share this id; null otherwise. */
   num: number | null;
+  /** What follows the token inside its written word: '-' (est-ce), else ''. For display only. */
+  glue: string;
 }
 
 export type SpokenStatus = 'ok' | 'sound' | 'other' | 'missing' | 'extra';
@@ -91,12 +93,13 @@ function expandAbbreviations(s: string, rules: SpokenRules): string {
   return out;
 }
 
-/** "l'ami" → ["l'", "ami"]; "est-ce" → ["est", "ce"]. */
-function splitWord(w: string): string[] {
-  return w
-    .split('-')
-    .flatMap((part) => part.match(/[^']+'|[^']+/g) ?? [])
-    .filter((p) => p !== "'");
+/** "l'ami" → ["l'", "ami"]; "est-ce" → ["est-", "ce"] (the hyphen as glue). */
+function splitWord(w: string): { text: string; glue: string }[] {
+  const parts = w.split('-');
+  return parts.flatMap((part, k) => {
+    const pieces = (part.match(/[^']+'|[^']+/g) ?? []).filter((p) => p !== "'");
+    return pieces.map((text, j) => ({ text, glue: j === pieces.length - 1 && k < parts.length - 1 ? '-' : '' }));
+  });
 }
 
 /**
@@ -120,15 +123,15 @@ export function tokenizeSpoken(text: string, rules: SpokenRules): SpokenToken[] 
   let num = 0;
   for (const w of words) {
     let added = false;
-    for (const part of splitWord(w)) {
+    for (const { text: part, glue } of splitWord(w)) {
       const key = keyOf(part);
       if (rules.fillers.includes(key)) continue;
       const spelled = spellNumber(key, rules);
       if (spelled) {
-        for (const k of spelled) tokens.push({ key: k, text: part, word, num });
+        for (const k of spelled) tokens.push({ key: k, text: part, word, num, glue: '' });
         num++;
       } else {
-        tokens.push({ key, text: part, word, num: null });
+        tokens.push({ key, text: part, word, num: null, glue });
       }
       added = true;
     }
@@ -391,12 +394,22 @@ export function liveHeard(expected: string, interim: string, rules: SpokenRules)
 
 /** One column of a block: what was heard (top) over the reference (bottom). */
 export interface SpokenCell {
+  /** As shown: a match of digits against words (rule Ч) is shown as plain `ok`. */
   status: SpokenStatus;
-  /** Heard text; null = empty cell (the word was not said). */
+  /** Heard text; null = empty cell (the word was not said); '' = the rest of a number already shown. */
   top: string | null;
   /** Reference text; null = empty cell (an extra word). */
   bottom: string | null;
+  /** A space before this cell: it starts another word inside the block (an elision part does not). */
+  space: boolean;
+  /** What was heard for this cell, for the explanation on tap (the whole number for digits). */
+  heard: string | null;
   rule?: string;
+}
+
+/** Every reference word was heard (exactly or by sound) and nothing extra: shown as one line. */
+export function allMatched(c: Pick<SpokenCheck, 'ops'>): boolean {
+  return c.ops.every((o) => o.status === 'ok' || o.status === 'sound');
 }
 
 /**
@@ -412,13 +425,41 @@ export function spokenBlocks(c: Pick<SpokenCheck, 'ref' | 'heard' | 'ops'>): Spo
     const h = op.heard !== undefined ? c.heard[op.heard]! : null;
     const pr = prev?.ref !== undefined ? c.ref[prev.ref]! : null;
     const ph = prev?.heard !== undefined ? c.heard[prev.heard]! : null;
-    const sameWord = (r !== null && pr !== null && r.word === pr.word) || (h !== null && ph !== null && h.word === ph.word);
-    const top = h === null ? null : h.num !== null && ph !== null && ph.num === h.num ? '' : h.text;
-    const bottom = r === null ? null : r.num !== null && pr !== null && pr.num === r.num ? '' : r.text;
-    const cell: SpokenCell = { status: op.status, top, bottom, ...(op.rule ? { rule: op.rule } : {}) };
+    const sameRefWord = r !== null && pr !== null && r.word === pr.word;
+    const sameHeardWord = h !== null && ph !== null && h.word === ph.word;
+    const sameWord = sameRefWord || sameHeardWord;
+    const top = h === null ? null : h.num !== null && ph !== null && ph.num === h.num ? '' : h.text + h.glue;
+    const bottom = r === null ? null : r.num !== null && pr !== null && pr.num === r.num ? '' : r.text + r.glue;
+    // Inside a block a space separates words; the parts of one word (c'|est, est-|ce) stay together.
+    const space = r !== null && pr !== null ? !sameRefWord : !sameHeardWord;
+    const status: SpokenStatus = op.rule === DIGITS_RULE ? 'ok' : op.status;
+    const cell: SpokenCell = { status, top, bottom, space, heard: h?.text ?? null, ...(op.rule ? { rule: op.rule } : {}) };
     if (sameWord && blocks.length > 0) blocks[blocks.length - 1]!.push(cell);
     else blocks.push([cell]);
     prev = op;
   }
   return blocks;
+}
+
+// ---------- Recognizer hints (experiment) ----------
+
+/** Upper bound on hint words sent to the recognizer. */
+export const MAX_BIAS_PHRASES = 1000;
+
+/**
+ * Words for recognizer hints (contextual biasing): every distinct word of the given
+ * entry texts, in order of first appearance. The whole vocabulary of the decks, so
+ * the expected answer is never singled out. Elided parts (`l'`) and digits are
+ * left out; numbers come as the words the deck writes.
+ */
+export function biasPhrases(texts: readonly string[], rules: SpokenRules, max = MAX_BIAS_PHRASES): string[] {
+  const seen = new Set<string>();
+  for (const text of texts) {
+    for (const t of tokenizeSpoken(text, rules)) {
+      if (t.num !== null || t.key.endsWith("'")) continue;
+      seen.add(t.key);
+      if (seen.size >= max) return [...seen];
+    }
+  }
+  return [...seen];
 }
