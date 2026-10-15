@@ -153,18 +153,9 @@ export const STRINGS = {
 
   // Answer marks (Р22.9): the labels never promise to judge pronunciation
   'answer.heard': { tg: 'Шунида шуд:', ru: 'Услышано:', en: 'Heard:' },
-  'answer.typed': { tg: 'Навишта шуд:', ru: 'Набрано:', en: 'Typed:' },
   'answer.nothing': { tg: '(ҳеҷ чиз)', ru: '(ничего)', en: '(nothing)' },
-  'marks.rows.voice': {
-    tg: 'Боло — шунидашуда, поён — ҷавоби дуруст',
-    ru: 'Сверху — услышанное, снизу — правильный ответ',
-    en: 'Top: what was heard; bottom: the right answer',
-  },
-  'marks.rows.typed': {
-    tg: 'Боло — навиштаи шумо, поён — намуна',
-    ru: 'Сверху — ваш ответ, снизу — образец',
-    en: 'Top: what you typed; bottom: the model',
-  },
+  'mark.heardX': { tg: 'шунида шуд: {x}', ru: 'услышано: {x}', en: 'heard: {x}' },
+  'mark.typedX': { tg: 'навишта шуд: {x}', ru: 'набрано: {x}', en: 'typed: {x}' },
   'mark.sound': { tg: 'аз рӯи талаффуз қабул шуд', ru: 'засчитано по звучанию', en: 'accepted by sound' },
   'mark.other': { tg: 'вожаи дигар шунида шуд', ru: 'распознано другое слово', en: 'recognised as another word' },
   'mark.otherTyped': { tg: 'вожаи дигар', ru: 'другое слово', en: 'another word' },
@@ -195,6 +186,11 @@ export const STRINGS = {
   'reason.almost': { tg: 'Тақрибан дуруст', ru: 'Почти', en: 'Almost' },
   'reason.correct': { tg: 'Дуруст', ru: 'Верно', en: 'Correct' },
   'reason.correct-fast': { tg: 'Дуруст ва босуръат', ru: 'Верно и быстро', en: 'Correct and fast' },
+  'reason.correct-retried': {
+    tg: 'Дуруст, вале на аз талоши аввал',
+    ru: 'Верно, но не с первой попытки',
+    en: 'Correct, but not on the first try',
+  },
   'reason.correct-fast-twice': {
     tg: 'Дуруст ва босуръат, ду бор паёпай',
     ru: 'Верно и быстро второй раз подряд',
@@ -255,6 +251,58 @@ export const STRINGS = {
     en: 'Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one.',
   },
   'settings.newPerDay': { tg: 'Омӯзбаргҳои нав дар як рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
+  'settings.recognition': { tg: 'Шинохти гуфтор', ru: 'Распознавание речи', en: 'Speech recognition' },
+  'settings.biasing': {
+    tg: 'Вожаҳо барои шинохти гуфтор (озмоишӣ)',
+    ru: 'Подсказки распознавателю (эксперимент)',
+    en: 'Recognizer hints (experiment)',
+  },
+  'settings.biasingHint': {
+    tg: 'Ба шинохти гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар шиносад. Дар ҳама мурургарҳо кор намекунад.',
+    ru: 'Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах.',
+    en: 'The recognizer gets the words of your decks to recognise them better. Not every browser supports it.',
+  },
+  'settings.biasingRejected': {
+    tg: 'Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва боз фаъол кунед.',
+    ru: 'Этот браузер не принял подсказки — на этом устройстве они не отправляются. Чтобы попробовать снова, выключите и включите переключатель.',
+    en: 'This browser rejected the hints, so they are not sent on this device. To try again, switch this off and on.',
+  },
+  'settings.biasingNoApi': {
+    tg: 'Ин мурургар вожаҳо барои шинохти гуфторро қабул намекунад.',
+    ru: 'Этот браузер не поддерживает подсказки распознавателю.',
+    en: 'This browser does not support recognizer hints.',
+  },
+  'pack.available': {
+    tg: 'Шинохт дар дастгоҳ ({lang}): насб шудааст.',
+    ru: 'Распознавание на устройстве ({lang}): установлено.',
+    en: 'On-device recognition ({lang}): installed.',
+  },
+  'pack.downloadable': {
+    tg: 'Шинохт дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст.',
+    ru: 'Распознавание на устройстве ({lang}): можно скачать.',
+    en: 'On-device recognition ({lang}): can be downloaded.',
+  },
+  'pack.downloading': {
+    tg: 'Шинохт дар дастгоҳ ({lang}): боргирӣ мешавад…',
+    ru: 'Распознавание на устройстве ({lang}): скачивается…',
+    en: 'On-device recognition ({lang}): downloading…',
+  },
+  'pack.unavailable': {
+    tg: 'Шинохт дар дастгоҳ ({lang}): барои ин забон дастрас нест.',
+    ru: 'Распознавание на устройстве ({lang}): для этого языка недоступно.',
+    en: 'On-device recognition ({lang}): not available for this language.',
+  },
+  'pack.unsupported': {
+    tg: 'Ин мурургар шинохт дар дастгоҳро надорад.',
+    ru: 'Этот браузер не умеет распознавать на устройстве.',
+    en: 'This browser has no on-device recognition.',
+  },
+  'pack.download': {
+    tg: 'Боргирии забони {lang} барои шинохт дар дастгоҳ',
+    ru: 'Скачать {lang} для распознавания на устройстве',
+    en: 'Download {lang} for on-device recognition',
+  },
+  'pack.failed': { tg: 'Боргирӣ нашуд.', ru: 'Скачать не удалось.', en: 'The download failed.' },
   'settings.prototype': {
     tg: 'Саҳифаи пешнамуна (бо таърихчаи қаблӣ)',
     ru: 'Экран прототипа (со старым журналом)',

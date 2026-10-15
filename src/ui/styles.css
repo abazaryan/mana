@@ -178,30 +178,37 @@ a.primary,a.secondary{text-decoration:none;}
 .live-words .lw{color:var(--muted);}
 .live-words .lw.on{color:var(--ok);text-decoration:underline 2px;text-underline-offset:4px;}
 
-/* Marks: a block = one word on either side; answer on top, reference below. */
+/* Marks (Р22.9, amendments of 15.10.2026): all correct → one line with ✓;
+   otherwise word blocks, the answer on top (🎤 / ⌨), the reference below in the card's font. */
 .marks{margin:14px 0 8px;}
+.marks.one{display:block;line-height:1.5;font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.35rem;}
+.marks.one .check{color:var(--ok);font-weight:700;font-family:system-ui,sans-serif;margin-right:.1em;}
+.marks.one .blk{display:inline;}
+.marks.one .w.sp{margin-left:.3em;}
 .blocks{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;}
-.blocks.words{font-size:1.15rem;}
-.blocks.chars{gap:8px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.15rem;}
 .blk{display:inline-flex;white-space:pre;}
-.blocks.words .cell+.cell{margin-left:.2em;}
+button.blk{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:inherit;cursor:pointer;position:relative;border-radius:6px;}
+button.blk:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 .cell{display:inline-flex;flex-direction:column;align-items:center;}
-.cell .top,.cell .bot{display:block;min-height:1.6em;line-height:1.6em;padding:0 1px;text-align:center;}
-.cell .bot{border-top:1px solid var(--line);}
-.cell .gap{min-width:1.1em;border:1.5px dashed var(--muted);border-radius:5px;margin:1px 0;min-height:calc(1.6em - 2px);}
+.cell.sp{margin-left:.35em;}
+.cell .top,.cell .bot{display:block;padding:0 1px;text-align:center;}
+.cell .top{font-size:1.05rem;min-height:1.7rem;line-height:1.7rem;}
+.cell .bot{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.35rem;min-height:2rem;line-height:2rem;border-top:1px solid var(--line);}
+.blk.icon .bot{border-top-color:transparent;}
+.cell .gap{min-width:1.1em;border:1.5px dashed var(--muted);border-radius:5px;margin:1px 0;}
+.cell .top.gap{min-height:calc(1.7rem - 2px);}
+.cell .bot.gap{min-height:calc(2rem - 2px);}
 .blocks.words .cell .gap{min-width:2.4em;}
-.cell .sign{font-style:normal;font-weight:700;margin-right:2px;}
+.sign{font-style:normal;color:var(--muted);font-weight:400;font-size:.85em;margin-right:2px;}
 .st-ok .top,.st-sound .top{color:var(--ok);}
 .st-other .top,.st-wrong .top{color:var(--bad);text-decoration:underline wavy var(--bad);text-underline-offset:4px;}
-.st-other .bot,.st-wrong .bot{font-weight:700;}
-.st-missing .bot{color:var(--bad);font-weight:700;text-decoration:underline dashed;text-underline-offset:4px;}
 .st-extra .top{color:var(--bad);text-decoration:line-through 2px;}
 .st-diacritic .top{color:var(--hard);text-decoration:underline dotted 2px;text-underline-offset:4px;}
-.st-diacritic .bot{color:var(--hard);font-weight:700;}
-.marks figcaption{margin-top:8px;}
-.legend{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted);}
-.legend li{display:flex;align-items:center;gap:6px;}
-.legend .cell{font-size:.95rem;}
-.legend .cell .top{min-height:1.5em;line-height:1.5em;}
-.legend .cell .gap{min-width:1.8em;}
+/* Corrected characters and words of the reference: bold and green. */
+.st-other .bot,.st-wrong .bot,.st-missing .bot,.st-diacritic .bot{color:var(--ok);font-weight:700;}
+.pop{position:absolute;top:calc(100% + 4px);left:0;z-index:5;display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font:400 .85rem/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.18);text-align:left;}
+.pop.right{left:auto;right:0;}
+.step-title{margin-top:14px;}
+.typebox.loud input{min-height:64px;font-size:1.3rem;border:2px solid var(--accent);box-shadow:0 0 0 4px var(--wash);}
 .primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed;}
+.blocks.chars .cell .top{font-size:1.15rem;} .blocks.chars .cell .bot{font-size:1.25rem;}

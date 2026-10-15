@@ -8,19 +8,63 @@ import { findLanguagePack, speechLocale } from '../core/languages';
 import type { DeckRow, FinalRating, ReviewRecord } from '../core/model';
 import { createScheduler } from '../core/scheduler';
 import { buildSession, type SessionPlan } from '../core/session';
+import { biasPhrases } from '../core/spoken';
 import type { ManaDb } from '../platform/db';
-import { getDeck, lastReview, loadSessionData, randomId, recordIntro, recordReview, type Actor } from '../platform/repo';
+import {
+  entryTextsForLanguage,
+  getDeck,
+  lastReview,
+  loadSessionData,
+  randomId,
+  recordIntro,
+  recordReview,
+  setPhrasesUnsupported,
+  type Actor,
+} from '../platform/repo';
+import { speechPackState } from '../platform/speechPack';
 import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { IntroCard, type IntroResult } from './IntroCard';
 import { deckHref } from './Root';
 import { SpeakCard, type SpeakAnswer } from './SpeakCard';
+import { phrasesApiPresent, type RecognitionSetup } from './studyHooks';
 
 const scheduler = createScheduler();
 
-type Round = { deck: DeckRow; plan: SessionPlan; sessionId: string } | 'missing' | null;
+type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
+type Round = { deck: DeckRow; plan: SessionPlan; sessionId: string; hints: Hints } | 'missing' | null;
 
-export function StudyScreen({ db, deckId, actor, newPerDay }: { db: ManaDb; deckId: string; actor: Actor; newPerDay: number }) {
+const OFF: Hints = { options: {}, biasing: 'off', speechPack: null };
+
+/**
+ * Recognizer hints for a round (experiment, off by default): the words of every
+ * installed deck in the language; on the device when its pack is installed. Not
+ * sent when this browser has no hints API or once rejected them.
+ */
+async function prepareHints(db: ManaDb, deck: DeckRow, biasing: boolean): Promise<Hints> {
+  if (!biasing) return OFF;
+  const pack = findLanguagePack(deck.language);
+  const locale = speechLocale(deck.language);
+  const meta = await db.meta.get('device');
+  if (!pack || !locale || !phrasesApiPresent || meta?.phrasesUnsupported) return { ...OFF, biasing: 'unavailable' };
+  const speechPack = await speechPackState(locale);
+  const phrases = biasPhrases(await entryTextsForLanguage(db, deck.language), pack.spoken);
+  return { options: { phrases, processLocally: speechPack === 'available' }, biasing: 'on', speechPack };
+}
+
+export function StudyScreen({
+  db,
+  deckId,
+  actor,
+  newPerDay,
+  biasing,
+}: {
+  db: ManaDb;
+  deckId: string;
+  actor: Actor;
+  newPerDay: number;
+  biasing: boolean;
+}) {
   const { t, lang } = useI18n();
   const [round, setRound] = useState<Round>(null);
   const [index, setIndex] = useState(0);
@@ -36,11 +80,12 @@ export function StudyScreen({ db, deckId, actor, newPerDay }: { db: ManaDb; deck
     }
     const data = await loadSessionData(db, actor.userId, deckId);
     const plan = buildSession({ now: new Date(), ...data, newPerDay });
-    setRound({ deck, plan, sessionId: randomId() });
+    const hints = await prepareHints(db, deck, biasing);
+    setRound({ deck, plan, sessionId: randomId(), hints });
     setIndex(0);
     setRatings([]);
     setPrevious(null);
-  }, [db, deckId, actor.userId, newPerDay]);
+  }, [db, deckId, actor.userId, newPerDay, biasing]);
 
   useEffect(() => {
     void start();
@@ -72,6 +117,14 @@ export function StudyScreen({ db, deckId, actor, newPerDay }: { db: ManaDb; deck
     );
   }
   const { deck, plan, sessionId } = round;
+  const recognition: RecognitionSetup = {
+    ...round.hints,
+    onPhrasesUnsupported: () => {
+      // Remembered on this device; later cards go without hints (Р22, amendments of 15.10.2026).
+      void setPhrasesUnsupported(db, true);
+      setRound((r) => (r && r !== 'missing' ? { ...r, hints: { ...OFF, biasing: 'unavailable', speechPack: r.hints.speechPack } } : r));
+    },
+  };
   const back = (
     <a className="back-link" href={deckHref(deck.id)}>
       ← {deck.name}
@@ -169,7 +222,7 @@ export function StudyScreen({ db, deckId, actor, newPerDay }: { db: ManaDb; deck
         </p>
       )}
       {item.kind === 'intro' ? (
-        <IntroCard key={`${sessionId}-${index}`} db={db} entry={item.entry} pack={pack} locale={locale} onDone={onIntro(item.entry.entryId)} />
+        <IntroCard key={`${sessionId}-${index}`} db={db} entry={item.entry} pack={pack} locale={locale} recognition={recognition} onDone={onIntro(item.entry.entryId)} />
       ) : previous?.index === index ? (
         <SpeakCard
           key={`${sessionId}-${index}`}
@@ -178,6 +231,7 @@ export function StudyScreen({ db, deckId, actor, newPerDay }: { db: ManaDb; deck
           pack={pack}
           locale={locale}
           previous={previous.review}
+          recognition={recognition}
           onDone={onSpeak(item.entry.entryId)}
         />
       ) : (

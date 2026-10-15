@@ -19,7 +19,7 @@ import { useI18n } from './i18n';
 import { SpokenMarks } from './Marks';
 import { MicStatus } from './MicStatus';
 import { LANG_NAMES } from './strings';
-import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice } from './studyHooks';
+import { playEntry, recognitionSupported, recognizerId, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
 /** The answer part of a review record; the study screen adds session and deck fields. */
 export type SpeakAnswer = Omit<ReviewInput, 'at' | 'deckId' | 'entryId' | 'deckRevision' | 'sessionId' | 'skill'>;
@@ -43,6 +43,7 @@ export function SpeakCard({
   pack,
   locale,
   previous,
+  recognition,
   onDone,
 }: {
   db: ManaDb;
@@ -51,12 +52,15 @@ export function SpeakCard({
   locale: string;
   /** The last answer on this card, for the Easy rule. */
   previous: ReviewRecord | null;
+  recognition: RecognitionSetup;
   onDone(a: SpeakAnswer): void;
 }) {
   const { t, lang, meaningLang } = useI18n();
   const visibleMs = useVisibleClock();
-  const voice = useVoice(locale, visibleMs);
+  const voice = useVoice(locale, visibleMs, recognition);
   const [typing, setTyping] = useState(!recognitionSupported);
+  /** Three unrecognised attempts in a row: the microphone gives way to a large, highlighted field. */
+  const [gaveUp, setGaveUp] = useState(false);
   const [typed, setTyped] = useState('');
   const firstKey = useRef<number | null>(null);
   const [answered, setAnswered] = useState<Answered | null>(null);
@@ -71,8 +75,15 @@ export function SpeakCard({
     // Once per card.
   }, []);
 
+  useEffect(() => {
+    if (voice.state.failuresInRow >= 3 && !typing) {
+      setGaveUp(true);
+      setTyping(true);
+    }
+  }, [voice.state.failuresInRow, typing]);
+
   const finish = (a: Omit<Answered, 'suggestion'>) => {
-    const suggestion = suggestSpeak(a.check, a.latencyMs, previous);
+    const suggestion = suggestSpeak(a.check, a.latencyMs, previous, a.voice.troubled);
     setAnswered({ ...a, suggestion });
     setChoice({ final: suggestion.rating as FinalRating, correction: null });
     setAudioError(false);
@@ -140,6 +151,12 @@ export function SpeakCard({
       unsaid: check?.unsaid ?? null,
       extraWords: check?.extra ?? null,
       soundRules: check?.rules ?? [],
+      recognizer: recognizerId,
+      biasing:
+        recognition.biasing === 'on' && v.errors.some((e) => e.code === 'phrases-not-supported') ? 'unavailable' : recognition.biasing,
+      phrasesCount: v.phrasesCount,
+      processLocally: v.processLocally,
+      speechPack: recognition.speechPack,
       suggested: answered.suggestion.rating as FinalRating,
       reason: answered.suggestion.reason,
       final: choice.final,
@@ -192,7 +209,7 @@ export function SpeakCard({
         {!recognitionSupported && <p className="hint">{t('mic.unsupported')}</p>}
         {typing && (
           <form
-            className="typebox"
+            className={gaveUp ? 'typebox loud' : 'typebox'}
             onSubmit={(e) => {
               e.preventDefault();
               submitTyped();
@@ -285,11 +302,14 @@ export function SpeakCard({
         </p>
       )}
 
-      {check && <SpokenMarks check={check} lang={pack.code} typed={mode === 'typed'} />}
-      <p className="heard">
-        <span className="lbl">{mode === 'typed' ? t('answer.typed') : mode === 'skip' ? t('speak.dontKnow') : t('answer.heard')}</span>
-        {mode !== 'skip' && <span lang={pack.code}>{(mode === 'typed' ? answered.typed : check?.answer) || t('answer.nothing')}</span>}
-      </p>
+      {check && <SpokenMarks check={check} lang={pack.code} source={mode === 'typed' ? 'typed' : 'voice'} />}
+      {mode === 'voice' && (
+        <p className="heard m">
+          <span className="lbl">{t('answer.heard')}</span>
+          <span lang={pack.code}>{check?.answer || t('answer.nothing')}</span>
+        </p>
+      )}
+      {mode === 'skip' && <p className="heard m">{t('speak.dontKnow')}</p>}
 
       <p className="reason">
         {t('rating.suggested', { rating: t(`rating.${suggested}`) })} — {t(`reason.${suggestion.reason}`)}

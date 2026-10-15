@@ -1,7 +1,8 @@
 /** Browser wiring of a study card: visible-time clock, microphone, entry audio. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyElapsed, elapsedMs, startElapsed, type ElapsedState } from '../core/latency';
-import type { EntryRow } from '../core/model';
+import type { BiasingState, EntryRow, SpeechPackState } from '../core/model';
+import type { RecognitionOptions } from '../core/ports';
 import { VoiceCapture, type VoiceOutcome, type VoiceState } from '../core/voice';
 import { playAudio, stopAudio } from '../platform/audio';
 import type { ManaDb } from '../platform/db';
@@ -13,6 +14,20 @@ const recognizer = createBrowserRecognizer();
 const speaker = createBrowserSpeaker();
 
 export const recognitionSupported = recognizer.supported;
+/** The browser has the hints API at all (it may still reject them with `phrases-not-supported`). */
+export const phrasesApiPresent = recognizer.phrasesSupported === true;
+export const recognizerId = recognizer.id ?? null;
+
+/** Recognizer hints for the cards of one session (decided by the study screen). */
+export interface RecognitionSetup {
+  options: RecognitionOptions;
+  biasing: BiasingState;
+  speechPack: SpeechPackState | null;
+  /** Called once when the browser rejects the hints. */
+  onPhrasesUnsupported(): void;
+}
+
+export const NO_HINTS: RecognitionSetup = { options: {}, biasing: 'off', speechPack: null, onPhrasesUnsupported: () => {} };
 
 /** Visible milliseconds since the component mounted (stops while the tab is hidden, latency.ts). */
 export function useVisibleClock(): () => number {
@@ -43,11 +58,21 @@ export interface Voice {
 }
 
 /** One VoiceCapture per mounted card; aborted on unmount. */
-export function useVoice(lang: string, visibleMs: () => number): Voice {
-  const [state, setState] = useState<VoiceState>({ phase: 'idle', transcript: '', error: null, fatal: false });
+export function useVoice(lang: string, visibleMs: () => number, setup: RecognitionSetup = NO_HINTS): Voice {
+  const [state, setState] = useState<VoiceState>({ phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0 });
+  const setupRef = useRef(setup);
+  setupRef.current = setup;
   const ref = useRef<VoiceCapture | null>(null);
   if (ref.current === null) {
-    ref.current = new VoiceCapture({ recognizer, clock: browserClock, visibleMs, lang, onChange: setState });
+    ref.current = new VoiceCapture({
+      recognizer,
+      clock: browserClock,
+      visibleMs,
+      lang,
+      onChange: setState,
+      options: () => setupRef.current.options,
+      onPhrasesUnsupported: () => setupRef.current.onPhrasesUnsupported(),
+    });
   }
   useEffect(() => {
     const v = ref.current!;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { getDb } from '../platform/db';
-import { ensureDevice, getSettings, putSettings } from '../platform/repo';
+import { ensureDevice, getSettings, putSettings, setPhrasesUnsupported } from '../platform/repo';
 import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
@@ -57,10 +57,13 @@ export function MainApp({ route }: { route: Route }) {
     return <FirstRun onChoose={(l) => void choose(l)} />;
   }
 
-  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay'>>) => {
+  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>) => {
+    // Switching the hints on again forgets that this browser once rejected them.
+    // The flag lives in the database (a study round may have set it since boot): always clear it.
+    const freshMeta = patch.biasing === true ? await setPhrasesUnsupported(db, false) : meta;
     const s = { ...settings, ...patch, updatedAt: new Date() };
     await putSettings(db, s);
-    setBoot({ phase: 'ready', meta, settings: s });
+    setBoot({ phase: 'ready', meta: freshMeta, settings: s });
   };
 
   return (
@@ -68,10 +71,22 @@ export function MainApp({ route }: { route: Route }) {
       <Shell route={route}>
         {route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} />}
         {route.name === 'study' && (
-          <StudyScreen key={route.deckId} db={db} deckId={route.deckId} actor={meta} newPerDay={settings.newPerDay} />
+          <StudyScreen
+            key={route.deckId}
+            db={db}
+            deckId={route.deckId}
+            actor={meta}
+            newPerDay={settings.newPerDay}
+            biasing={settings.biasing === true}
+          />
         )}
         {route.name === 'settings' && (
-          <SettingsScreen db={db} meta={meta} newPerDay={settings.newPerDay} onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
+          <SettingsScreen
+            db={db}
+            meta={meta}
+            newPerDay={settings.newPerDay}
+            biasing={settings.biasing === true}
+            onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
         )}
         {route.name === 'decks' && <DecksScreen db={db} />}
       </Shell>
