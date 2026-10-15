@@ -47,6 +47,28 @@ export async function ensureDevice(db: ManaDb, now = new Date(), newId: NewId = 
   });
 }
 
+/** Remember (or forget) that this browser rejects recognizer hints. */
+export async function setPhrasesUnsupported(db: ManaDb, value: boolean): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const row = await db.meta.get('device');
+    if (!row) throw new Error('setPhrasesUnsupported: no device row');
+    const next: MetaRow = { ...row, phrasesUnsupported: value };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/** Texts of every visible entry of the installed decks in a learning language (hint vocabulary). */
+export async function entryTextsForLanguage(db: ManaDb, language: string): Promise<string[]> {
+  const primary = (tag: string) => tag.split('-')[0]!.toLowerCase();
+  const decks = (await db.decks.toArray()).filter((d) => primary(d.language) === primary(language));
+  const texts: string[] = [];
+  for (const d of decks.sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const e of await listEntries(db, d.id)) texts.push(e.text);
+  }
+  return texts;
+}
+
 export function getSettings(db: ManaDb, userId: string): Promise<SettingsRow | undefined> {
   return db.settings.get(userId);
 }

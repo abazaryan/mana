@@ -1,6 +1,7 @@
 /**
  * Rating a `speak` answer and the user's correction of it (Р4, Р22.6). Pure.
  */
+import { Rating } from 'ts-fsrs';
 import { suggestRating, type AnswerOutcome, type RatingSuggestion } from './rating';
 import type { AnswerMode, Correction, FinalRating, ReviewRecord } from './model';
 import type { SpokenCheck } from './spoken';
@@ -19,14 +20,21 @@ export function previousOutcome(prev: ReviewRecord | null): AnswerOutcome | null
   };
 }
 
-/** Suggested rating of a checked answer; "I don't know" is always Again. */
+/**
+ * Suggested rating of a checked answer; "I don't know" is always Again.
+ * `troubled`: on this card the answer came only after retries or attempts with
+ * nothing recognised — then Easy is not offered (Good instead).
+ */
 export function suggestSpeak(
   check: SpokenCheck | null,
   latencyMs: number | null,
   previous: ReviewRecord | null,
+  troubled = false,
 ): RatingSuggestion {
   if (!check) return suggestRating({ verdict: 'incorrect', latencyMs: null, nWords: 0 }, null);
-  return suggestRating({ verdict: check.verdict, latencyMs, nWords: check.words }, previousOutcome(previous));
+  const s = suggestRating({ verdict: check.verdict, latencyMs, nWords: check.words }, previousOutcome(previous));
+  if (troubled && s.rating === Rating.Easy) return { rating: Rating.Good, reason: 'correct-retried' };
+  return s;
 }
 
 export interface RatingChoice {

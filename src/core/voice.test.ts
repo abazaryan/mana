@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { Clock, RecognitionHandlers, SpeechRecognizer } from './ports';
+import type { Clock, RecognitionHandlers, RecognitionOptions, SpeechRecognizer } from './ports';
 import { RecognitionStartError } from './ports';
 import { MIC_WATCHDOG_MS, VoiceCapture, type VoiceState } from './voice';
 
 /** Fake time: `real` drives the watchdog and the mic delay, `vis` the visible clock. */
-function setup(opts: { throwOnStart?: boolean } = {}) {
+function setup(opts: { throwOnStart?: boolean; options?: RecognitionOptions } = {}) {
   const t = { real: 1000, vis: 0 };
   const timers: { at: number; fn: () => void; id: number }[] = [];
   let nextId = 1;
@@ -20,18 +20,27 @@ function setup(opts: { throwOnStart?: boolean } = {}) {
       if (k >= 0) timers.splice(k, 1);
     },
   };
-  const sessions: { h: RecognitionHandlers; aborted: boolean }[] = [];
+  const sessions: { h: RecognitionHandlers; aborted: boolean; options: RecognitionOptions | undefined }[] = [];
+  let unsupportedCalls = 0;
   const recognizer: SpeechRecognizer = {
     supported: true,
-    start(_lang, h) {
+    start(_lang, h, options) {
       if (opts.throwOnStart) throw new RecognitionStartError('start');
-      const s = { h, aborted: false };
+      const s = { h, aborted: false, options };
       sessions.push(s);
       return { abort: () => void (s.aborted = true) };
     },
   };
   const states: VoiceState[] = [];
-  const v = new VoiceCapture({ recognizer, clock, visibleMs: () => t.vis, lang: 'fr-FR', onChange: (s) => states.push(s) });
+  const v = new VoiceCapture({
+    recognizer,
+    clock,
+    visibleMs: () => t.vis,
+    lang: 'fr-FR',
+    onChange: (s) => states.push(s),
+    ...(opts.options ? { options: () => opts.options! } : {}),
+    onPhrasesUnsupported: () => void unsupportedCalls++,
+  });
   const advance = (ms: number, visible = true) => {
     t.real += ms;
     if (visible) t.vis += ms;
@@ -43,7 +52,7 @@ function setup(opts: { throwOnStart?: boolean } = {}) {
     }
   };
   const h = () => sessions[sessions.length - 1]!.h;
-  return { v, advance, h, sessions, states, t };
+  return { v, advance, h, sessions, states, t, unsupported: () => unsupportedCalls };
 }
 
 describe('VoiceCapture: latency', () => {
@@ -209,5 +218,88 @@ describe('VoiceCapture: results and errors', () => {
     old.onEnd();
     expect(v.getState().phase).toBe('idle');
     expect(v.outcome()).toMatchObject({ alternatives: [], errors: [] });
+  });
+});
+
+describe('VoiceCapture: unrecognised attempts in a row', () => {
+  it('counts no-speech / no-result in a row; a success resets the count', () => {
+    const { v, h } = setup();
+    for (let k = 1; k <= 3; k++) {
+      v.start();
+      h().onAudioStart!();
+      if (k === 2) h().onEnd();
+      else h().onError('no-speech');
+      expect(v.getState().failuresInRow).toBe(k);
+    }
+    v.start();
+    h().onAudioStart!();
+    h().onResult({ finalAlts: ['un'], interim: '' });
+    h().onEnd();
+    expect(v.getState()).toMatchObject({ phase: 'done', failuresInRow: 0 });
+  });
+
+  it('a network error is not an unrecognised attempt', () => {
+    const { v, h } = setup();
+    v.start();
+    h().onError('network');
+    expect(v.getState().failuresInRow).toBe(0);
+  });
+
+  it('troubled: retries or nothing recognised before the answer', () => {
+    const ok = setup();
+    ok.v.start();
+    ok.h().onAudioStart!();
+    ok.h().onResult({ finalAlts: ['oui'], interim: '' });
+    ok.h().onEnd();
+    expect(ok.v.outcome().troubled).toBe(false);
+
+    const nomatch = setup();
+    nomatch.v.start();
+    nomatch.h().onNoMatch!();
+    nomatch.h().onResult({ finalAlts: ['oui'], interim: '' });
+    nomatch.h().onEnd();
+    expect(nomatch.v.outcome().troubled).toBe(true);
+
+    const retried = setup();
+    retried.v.start();
+    retried.v.start();
+    retried.h().onResult({ finalAlts: ['oui'], interim: '' });
+    retried.h().onEnd();
+    expect(retried.v.outcome()).toMatchObject({ troubled: true, retries: 1 });
+  });
+});
+
+describe('VoiceCapture: recognizer hints', () => {
+  it('sends phrases and processLocally', () => {
+    const { v, sessions } = setup({ options: { phrases: ['un', 'deux'], processLocally: true } });
+    v.start();
+    expect(sessions[0]!.options).toEqual({ phrases: ['un', 'deux'], processLocally: true });
+  });
+
+  it('phrases-not-supported: logged, reported once, repeated at once without phrases, not a retry', () => {
+    const { v, h, sessions, unsupported } = setup({ options: { phrases: ['un'] } });
+    v.start();
+    h().onError('phrases-not-supported');
+    expect(sessions).toHaveLength(2);
+    expect(sessions[0]!.aborted).toBe(true);
+    expect(sessions[1]!.options).toEqual({});
+    expect(unsupported()).toBe(1);
+    h().onAudioStart!();
+    h().onResult({ finalAlts: ['un'], interim: '' });
+    h().onEnd();
+    const o = v.outcome();
+    expect(o).toMatchObject({ retries: 0, troubled: false, phrasesCount: 0 });
+    expect(o.errors.map((e) => e.code)).toEqual(['phrases-not-supported']);
+    // Later attempts on this card go without phrases too.
+    v.start();
+    expect(sessions[2]!.options).toEqual({});
+  });
+
+  it('phrasesCount of the attempt that answered', () => {
+    const { v, h } = setup({ options: { phrases: ['un', 'deux', 'trois'] } });
+    v.start();
+    h().onResult({ finalAlts: ['deux'], interim: '' });
+    h().onEnd();
+    expect(v.outcome()).toMatchObject({ phrasesCount: 3, processLocally: false });
   });
 });

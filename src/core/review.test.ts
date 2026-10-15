@@ -61,6 +61,12 @@ describe('suggestSpeak', () => {
     expect(suggestSpeak(check('le nom'), 1500, prev(3, null)).rating).toBe(3);
   });
 
+  it('no Easy after retries or unrecognised attempts on this card', () => {
+    expect(suggestSpeak(check('le nom'), 1500, prev(3, 1200), true)).toEqual({ rating: 3, reason: 'correct-retried' });
+    expect(suggestSpeak(check('le nom'), 1500, null, true)).toEqual({ rating: 3, reason: 'correct-fast' });
+    expect(suggestSpeak(check('nom'), 1500, prev(3, 1200), true)).toEqual({ rating: 2, reason: 'almost' });
+  });
+
   it('previousOutcome', () => {
     expect(previousOutcome(null)).toBeNull();
     expect(previousOutcome(prev(4, 900, 5))).toEqual({ verdict: 'correct', latencyMs: 900, nWords: 5 });

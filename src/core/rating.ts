@@ -59,7 +59,14 @@ export function isCorrectAndFast(a: AnswerOutcome): boolean {
 }
 
 /** Why the rating was suggested; the UI translates it (Р8). */
-export type RatingReason = 'incorrect' | 'almost' | 'correct' | 'correct-fast' | 'correct-fast-twice';
+export type RatingReason =
+  | 'incorrect'
+  | 'almost'
+  | 'correct'
+  | 'correct-fast'
+  | 'correct-fast-twice'
+  /** Would be Easy, but this card needed retries or unrecognised attempts first (Good). */
+  | 'correct-retried';
 
 export interface RatingSuggestion {
   rating: Grade;

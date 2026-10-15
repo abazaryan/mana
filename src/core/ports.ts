@@ -39,10 +39,36 @@ export class RecognitionStartError extends Error {
   }
 }
 
+/**
+ * Optional hints for one recognition session. Each adapter maps them to its own
+ * service (Web Speech: `phrases` + `processLocally`; a cloud service: its prompt or
+ * keywords) or ignores what it cannot use.
+ */
+export interface RecognitionOptions {
+  /** Words or phrases the recognizer should expect (contextual biasing). */
+  phrases?: readonly string[];
+  /** Recognise on the device, not in the browser's cloud service. */
+  processLocally?: boolean;
+}
+
+/**
+ * The speech recognizer as the core sees it. The core never touches a browser API:
+ * Chrome / Edge Web Speech is one adapter (src/platform/speech.ts); a cloud service
+ * (Whisper, Deepgram through a server proxy, Google) would be another one.
+ *
+ * Error codes are a shared vocabulary taken from Web Speech: `no-speech`, `aborted`,
+ * `audio-capture`, `network`, `not-allowed`, `service-not-allowed`,
+ * `language-not-supported`, `phrases-not-supported`; an adapter maps its own
+ * errors onto these and passes unknown ones through as they are.
+ */
 export interface SpeechRecognizer {
   readonly supported: boolean;
+  /** The adapter can take `phrases` (it may still answer `phrases-not-supported`). */
+  readonly phrasesSupported?: boolean;
+  /** Short id written to the journal, e.g. `web-speech`. */
+  readonly id?: string;
   /** Throws RecognitionStartError if the recognizer cannot be created or started. */
-  start(lang: string, handlers: RecognitionHandlers): RecognitionSession;
+  start(lang: string, handlers: RecognitionHandlers, options?: RecognitionOptions): RecognitionSession;
 }
 
 export interface Speaker {

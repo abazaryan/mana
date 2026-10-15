@@ -1,6 +1,7 @@
 import {
   RecognitionStartError,
   type RecognitionHandlers,
+  type RecognitionOptions,
   type RecognitionSession,
   type Speaker,
   type SpeechRecognizer,
@@ -25,6 +26,8 @@ interface SRInstance {
   interimResults: boolean;
   maxAlternatives: number;
   continuous: boolean;
+  processLocally?: boolean;
+  phrases?: unknown[];
   onstart: (() => void) | null;
   onaudiostart: (() => void) | null;
   onspeechstart: (() => void) | null;
@@ -42,15 +45,25 @@ function getSRConstructor(): SRConstructor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+type PhraseConstructor = new (phrase: string, boost?: number) => unknown;
+
+function getPhraseConstructor(): PhraseConstructor | null {
+  const w = window as unknown as { SpeechRecognitionPhrase?: PhraseConstructor };
+  return typeof window !== 'undefined' ? (w.SpeechRecognitionPhrase ?? null) : null;
+}
+
 export function isRecognitionSupported(): boolean {
   return getSRConstructor() !== null;
 }
 
 export function createBrowserRecognizer(): SpeechRecognizer {
   const SR = getSRConstructor();
+  const Phrase = getPhraseConstructor();
   return {
     supported: SR !== null,
-    start(lang: string, h: RecognitionHandlers): RecognitionSession {
+    phrasesSupported: SR !== null && Phrase !== null && 'phrases' in SR.prototype,
+    id: 'web-speech',
+    start(lang: string, h: RecognitionHandlers, options: RecognitionOptions = {}): RecognitionSession {
       if (!SR) throw new RecognitionStartError('create');
       let r: SRInstance;
       try {
@@ -62,6 +75,11 @@ export function createBrowserRecognizer(): SpeechRecognizer {
       r.interimResults = true;
       r.maxAlternatives = 3;
       r.continuous = false;
+      if (options.processLocally) r.processLocally = true;
+      if (options.phrases?.length && Phrase && 'phrases' in r) {
+        // Boost 1.0 is the default of the spec (range 0–10).
+        r.phrases = options.phrases.map((p) => new Phrase(p, 1));
+      }
       r.onstart = () => h.onStart();
       r.onspeechstart = () => h.onSpeechStart();
       r.onaudiostart = () => h.onAudioStart?.();

@@ -14,7 +14,14 @@
  */
 import { believableLatency } from './latency';
 import type { LatencySource, RecognitionErrorEntry } from './model';
-import { RecognitionStartError, type Clock, type RecognitionSession, type RecognitionUpdate, type SpeechRecognizer } from './ports';
+import {
+  RecognitionStartError,
+  type Clock,
+  type RecognitionOptions,
+  type RecognitionSession,
+  type RecognitionUpdate,
+  type SpeechRecognizer,
+} from './ports';
 
 /** If the microphone has not started within this time, give up (code `watchdog`). */
 export const MIC_WATCHDOG_MS = 5000;
@@ -29,6 +36,15 @@ export const FATAL_RECOGNITION_ERRORS: readonly string[] = [
   'start',
 ];
 
+/** Failed attempts that count as "not recognised" (Р22 amendments: three in a row → typing). */
+export const UNRECOGNISED_CODES: readonly string[] = ['no-speech', 'no-result'];
+
+/** Error codes that mean the answer was hard to get: Easy is not offered after them. */
+export const TROUBLE_CODES: readonly string[] = ['no-speech', 'no-result', 'nomatch'];
+
+/** The recognizer rejected the hints; the attempt is repeated without them at once. */
+export const PHRASES_NOT_SUPPORTED = 'phrases-not-supported';
+
 export type VoicePhase = 'idle' | 'starting' | 'listening' | 'done' | 'failed';
 
 export interface VoiceState {
@@ -38,6 +54,8 @@ export interface VoiceState {
   /** Last error code of a failed attempt. */
   error: string | null;
   fatal: boolean;
+  /** Attempts in a row that ended with nothing recognised. */
+  failuresInRow: number;
 }
 
 export interface VoiceOutcome {
@@ -50,6 +68,11 @@ export interface VoiceOutcome {
   totalMs: number | null;
   errors: RecognitionErrorEntry[];
   retries: number;
+  /** Hints sent with the attempt that gave the answer (0 = none). */
+  phrasesCount: number;
+  processLocally: boolean;
+  /** Before the answer there were retries or attempts with nothing recognised (no Easy). */
+  troubled: boolean;
 }
 
 export interface VoiceDeps {
@@ -60,11 +83,15 @@ export interface VoiceDeps {
   visibleMs(): number;
   lang: string;
   onChange(state: VoiceState): void;
+  /** Hints for each attempt; read at every start. */
+  options?(): RecognitionOptions;
+  /** The recognizer answered `phrases-not-supported` (the caller remembers it on the device). */
+  onPhrasesUnsupported?(): void;
 }
 
 export class VoiceCapture {
   private readonly deps: VoiceDeps;
-  private state: VoiceState = { phase: 'idle', transcript: '', error: null, fatal: false };
+  private state: VoiceState = { phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0 };
   private session: RecognitionSession | null = null;
   private watchdog: unknown = null;
   private attempt = 0;
@@ -80,6 +107,8 @@ export class VoiceCapture {
   private confidences: (number | null)[] = [];
   private lastInterim = '';
   private readonly errors: RecognitionErrorEntry[] = [];
+  private phrasesBlocked = false;
+  private sent: { phrases: number; local: boolean } = { phrases: 0, local: false };
 
   constructor(deps: VoiceDeps) {
     this.deps = deps;
@@ -97,7 +126,13 @@ export class VoiceCapture {
   private fail(code: string): void {
     this.errors.push({ code, atMs: Math.round(this.deps.visibleMs()) });
     this.stopSession();
-    this.set({ phase: 'failed', error: code, fatal: FATAL_RECOGNITION_ERRORS.includes(code) });
+    const unrecognised = UNRECOGNISED_CODES.includes(code);
+    this.set({
+      phase: 'failed',
+      error: code,
+      fatal: FATAL_RECOGNITION_ERRORS.includes(code),
+      failuresInRow: unrecognised ? this.state.failuresInRow + 1 : this.state.failuresInRow,
+    });
   }
 
   private stopSession(): void {
@@ -110,8 +145,13 @@ export class VoiceCapture {
 
   /** Starts listening; a second call is a retry (counted). Call from a user gesture when possible. */
   start(): void {
+    this.begin(true);
+  }
+
+  /** `counted`: false for the automatic repeat without hints after `phrases-not-supported`. */
+  private begin(counted: boolean): void {
     this.stopSession();
-    this.attempts++;
+    if (counted) this.attempts++;
     const my = ++this.attempt;
     const live = () => my === this.attempt;
     this.startAt = null;
@@ -125,6 +165,12 @@ export class VoiceCapture {
     this.set({ phase: 'starting', transcript: '', error: null, fatal: false });
 
     const { clock, visibleMs } = this.deps;
+    const wanted = this.deps.options?.() ?? {};
+    const options: RecognitionOptions = {
+      ...(wanted.processLocally ? { processLocally: true } : {}),
+      ...(wanted.phrases?.length && !this.phrasesBlocked ? { phrases: wanted.phrases } : {}),
+    };
+    this.sent = { phrases: options.phrases?.length ?? 0, local: options.processLocally === true };
     this.requestedAt = clock.now();
     const now = () => ({ real: clock.now(), vis: visibleMs() });
     try {
@@ -158,13 +204,21 @@ export class VoiceCapture {
         },
         onError: (code) => {
           if (!live() || code === 'aborted') return;
+          if (code === PHRASES_NOT_SUPPORTED && options.phrases) {
+            // Remember it and repeat the same attempt without hints; not a retry of the user.
+            this.errors.push({ code, atMs: Math.round(visibleMs()) });
+            this.phrasesBlocked = true;
+            this.deps.onPhrasesUnsupported?.();
+            this.begin(false);
+            return;
+          }
           this.fail(code);
         },
         onEnd: () => {
           if (!live() || this.state.phase === 'failed') return;
           this.finish();
         },
-      });
+      }, options);
     } catch (e) {
       this.fail(e instanceof RecognitionStartError ? e.stage : 'start');
       return;
@@ -193,7 +247,7 @@ export class VoiceCapture {
       this.fail('no-result');
       return;
     }
-    this.set({ phase: 'done', transcript: this.alts[0]! });
+    this.set({ phase: 'done', transcript: this.alts[0]!, failuresInRow: 0 });
   }
 
   /** Stops without a result (leaving the card, switching to typing). */
@@ -222,6 +276,9 @@ export class VoiceCapture {
       totalMs: this.endVis === null ? null : Math.round(this.endVis),
       errors: [...this.errors],
       retries: Math.max(0, this.attempts - 1),
+      phrasesCount: this.sent.phrases,
+      processLocally: this.sent.local,
+      troubled: this.attempts > 1 || this.errors.some((e) => TROUBLE_CODES.includes(e.code)),
     };
   }
 }

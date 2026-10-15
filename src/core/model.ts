@@ -18,6 +18,11 @@ export interface MetaRow {
   userId: string;
   deviceId: string;
   createdAt: Date;
+  /**
+   * This browser answered `phrases-not-supported` to recognizer hints: they are not
+   * sent again until the setting is switched off and on (device-only, never synced).
+   */
+  phrasesUnsupported?: boolean;
 }
 
 export interface SettingsRow {
@@ -27,6 +32,8 @@ export interface SettingsRow {
   meaningLang: UiLang;
   /** New entries per day (Р7); used from stage 4.2. */
   newPerDay: number;
+  /** Recognizer hints from the words of the decks (experiment, off by default); absent = off. */
+  biasing?: boolean;
   updatedAt: Date;
 }
 
@@ -120,6 +127,12 @@ export interface RecognitionErrorEntry {
 
 export type LatencySource = 'speechstart' | 'result' | 'key';
 
+/** Recognizer hints for an answer: sent, switched off, or wanted but not possible here. */
+export type BiasingState = 'on' | 'off' | 'unavailable';
+
+/** On-device recognition pack of a language (SpeechRecognition.available), or `unsupported` (no such API). */
+export type SpeechPackState = 'available' | 'downloadable' | 'downloading' | 'unavailable' | 'unsupported';
+
 export type AnswerMode = 'voice' | 'typed' | 'skip';
 export type Correction = 'lowered' | 'raised' | 'misrecognized';
 export type FinalRating = 1 | 2 | 3 | 4;
@@ -168,8 +181,16 @@ export interface ReviewRecord extends LogBase {
   unsaid?: number | null;
   /** Extra words heard. */
   extraWords?: number | null;
-  /** Sound rules that made a word match (З1…З8, Ч). */
+  /** Sound rules that made a word match (З1…З9, Ч). */
   soundRules?: string[];
+  /** Recognizer adapter (`web-speech`); from the stage 4.2 amendments. */
+  recognizer?: string | null;
+  biasing?: BiasingState;
+  /** Hint words sent with the attempt that gave the answer. */
+  phrasesCount?: number;
+  processLocally?: boolean;
+  /** On-device pack state checked when the session started (hints on only). */
+  speechPack?: SpeechPackState | null;
   suggested: FinalRating;
   reason: RatingReason;
   /** Goes to FSRS (Р4). */
