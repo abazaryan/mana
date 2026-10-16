@@ -303,3 +303,38 @@ describe('VoiceCapture: recognizer hints', () => {
     expect(v.outcome()).toMatchObject({ phrasesCount: 3, processLocally: false });
   });
 });
+
+describe('VoiceCapture: listening activity (drives the ring; no second microphone stream)', () => {
+  it('waiting → sound → speech → waiting; results counted; none at the end', () => {
+    const { v, h } = setup();
+    v.start();
+    expect(v.getState()).toMatchObject({ phase: 'starting', activity: 'none' });
+    h().onAudioStart!();
+    expect(v.getState()).toMatchObject({ phase: 'listening', activity: 'waiting' });
+    h().onSoundStart!();
+    expect(v.getState().activity).toBe('sound');
+    h().onSpeechStart();
+    expect(v.getState().activity).toBe('speech');
+    h().onSoundStart!();
+    expect(v.getState().activity).toBe('speech');
+    h().onResult({ finalAlts: null, interim: 'le', transcript: 'le' });
+    h().onResult({ finalAlts: null, interim: 'le nom', transcript: 'le nom' });
+    expect(v.getState().results).toBe(2);
+    h().onSpeechEnd!();
+    expect(v.getState().activity).toBe('waiting');
+    h().onResult({ finalAlts: ['le nom'], interim: '' });
+    h().onEnd();
+    expect(v.getState()).toMatchObject({ phase: 'done', activity: 'none', results: 3 });
+  });
+
+  it('an error switches the ring off; a new attempt starts from zero', () => {
+    const { v, h } = setup();
+    v.start();
+    h().onAudioStart!();
+    h().onSoundStart!();
+    h().onError('no-speech');
+    expect(v.getState()).toMatchObject({ phase: 'failed', activity: 'none' });
+    v.start();
+    expect(v.getState()).toMatchObject({ activity: 'none', results: 0 });
+  });
+});

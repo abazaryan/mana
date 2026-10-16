@@ -47,6 +47,14 @@ export const PHRASES_NOT_SUPPORTED = 'phrases-not-supported';
 
 export type VoicePhase = 'idle' | 'starting' | 'listening' | 'done' | 'failed';
 
+/**
+ * What the recognizer hears while listening, from its own events (no second
+ * microphone stream: on Chrome Android it would compete with recognition):
+ * none → waiting (microphone open, silence) → sound → speech, back to waiting at
+ * the end of speech or sound.
+ */
+export type VoiceActivity = 'none' | 'waiting' | 'sound' | 'speech';
+
 export interface VoiceState {
   phase: VoicePhase;
   /** Everything recognised so far (live highlight). */
@@ -56,6 +64,9 @@ export interface VoiceState {
   fatal: boolean;
   /** Attempts in a row that ended with nothing recognised. */
   failuresInRow: number;
+  activity: VoiceActivity;
+  /** Results (interim or final) in this attempt: each one may flash the listening ring. */
+  results: number;
 }
 
 export interface VoiceOutcome {
@@ -91,7 +102,7 @@ export interface VoiceDeps {
 
 export class VoiceCapture {
   private readonly deps: VoiceDeps;
-  private state: VoiceState = { phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0 };
+  private state: VoiceState = { phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0, activity: 'none', results: 0 };
   private session: RecognitionSession | null = null;
   private watchdog: unknown = null;
   private attempt = 0;
@@ -129,6 +140,7 @@ export class VoiceCapture {
     const unrecognised = UNRECOGNISED_CODES.includes(code);
     this.set({
       phase: 'failed',
+      activity: 'none',
       error: code,
       fatal: FATAL_RECOGNITION_ERRORS.includes(code),
       failuresInRow: unrecognised ? this.state.failuresInRow + 1 : this.state.failuresInRow,
@@ -162,7 +174,7 @@ export class VoiceCapture {
     this.alts = null;
     this.confidences = [];
     this.lastInterim = '';
-    this.set({ phase: 'starting', transcript: '', error: null, fatal: false });
+    this.set({ phase: 'starting', transcript: '', error: null, fatal: false, activity: 'none', results: 0 });
 
     const { clock, visibleMs } = this.deps;
     const wanted = this.deps.options?.() ?? {};
@@ -186,7 +198,18 @@ export class VoiceCapture {
           this.ready();
         },
         onSpeechStart: () => {
-          if (live()) this.speechVis ??= visibleMs();
+          if (!live()) return;
+          this.speechVis ??= visibleMs();
+          this.set({ activity: 'speech' });
+        },
+        onSoundStart: () => {
+          if (live() && this.state.activity !== 'speech') this.set({ activity: 'sound' });
+        },
+        onSoundEnd: () => {
+          if (live() && this.state.phase === 'listening') this.set({ activity: 'waiting' });
+        },
+        onSpeechEnd: () => {
+          if (live() && this.state.phase === 'listening') this.set({ activity: 'waiting' });
         },
         onResult: (u: RecognitionUpdate) => {
           if (!live()) return;
@@ -197,7 +220,11 @@ export class VoiceCapture {
             this.confidences = u.finalConfidences ?? u.finalAlts.map(() => null);
             this.endVis = visibleMs();
           }
-          this.set({ transcript: u.transcript ?? u.finalAlts?.[0] ?? u.interim });
+          this.set({
+            transcript: u.transcript ?? u.finalAlts?.[0] ?? u.interim,
+            results: this.state.results + 1,
+            activity: this.state.activity === 'waiting' || this.state.activity === 'none' ? 'speech' : this.state.activity,
+          });
         },
         onNoMatch: () => {
           if (live()) this.errors.push({ code: 'nomatch', atMs: Math.round(visibleMs()) });
@@ -231,7 +258,7 @@ export class VoiceCapture {
   private ready(): void {
     if (this.watchdog !== null) this.deps.clock.clearTimeout(this.watchdog);
     this.watchdog = null;
-    if (this.state.phase === 'starting') this.set({ phase: 'listening' });
+    if (this.state.phase === 'starting') this.set({ phase: 'listening', activity: 'waiting' });
   }
 
   private finish(): void {
@@ -247,14 +274,14 @@ export class VoiceCapture {
       this.fail('no-result');
       return;
     }
-    this.set({ phase: 'done', transcript: this.alts[0]!, failuresInRow: 0 });
+    this.set({ phase: 'done', transcript: this.alts[0]!, failuresInRow: 0, activity: 'none' });
   }
 
   /** Stops without a result (leaving the card, switching to typing). */
   abort(): void {
     this.attempt++;
     this.stopSession();
-    if (this.state.phase === 'starting' || this.state.phase === 'listening') this.set({ phase: 'idle' });
+    if (this.state.phase === 'starting' || this.state.phase === 'listening') this.set({ phase: 'idle', activity: 'none' });
   }
 
   /** Timings and alternatives of the last attempt, plus every error of the card. */

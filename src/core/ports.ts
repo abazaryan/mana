@@ -19,6 +19,10 @@ export interface RecognitionHandlers {
   /** The microphone really captures sound (`audiostart`). */
   onAudioStart?(): void;
   onSpeechStart(): void;
+  /** Any sound / speech detected or gone (`soundstart`, `soundend`, `speechend`); drive the listening animation only. */
+  onSoundStart?(): void;
+  onSoundEnd?(): void;
+  onSpeechEnd?(): void;
   onResult(update: RecognitionUpdate): void;
   /** Speech was heard but nothing recognised (`nomatch`). */
   onNoMatch?(): void;

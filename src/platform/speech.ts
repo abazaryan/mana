@@ -31,6 +31,9 @@ interface SRInstance {
   onstart: (() => void) | null;
   onaudiostart: (() => void) | null;
   onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
+  onsoundstart: (() => void) | null;
+  onsoundend: (() => void) | null;
   onnomatch: (() => void) | null;
   onresult: ((e: SREvent) => void) | null;
   onerror: ((e: { error?: string }) => void) | null;
@@ -83,6 +86,9 @@ export function createBrowserRecognizer(): SpeechRecognizer {
       r.onstart = () => h.onStart();
       r.onspeechstart = () => h.onSpeechStart();
       r.onaudiostart = () => h.onAudioStart?.();
+      r.onsoundstart = () => h.onSoundStart?.();
+      r.onsoundend = () => h.onSoundEnd?.();
+      r.onspeechend = () => h.onSpeechEnd?.();
       r.onnomatch = () => h.onNoMatch?.();
       r.onresult = (e) => {
         let finalAlts: string[] | null = null;
@@ -118,7 +124,7 @@ export function createBrowserRecognizer(): SpeechRecognizer {
       r.onerror = (e) => h.onError(e.error ?? 'unknown');
       r.onend = () => h.onEnd();
       const detach = () => {
-        r.onstart = r.onaudiostart = r.onspeechstart = r.onnomatch = r.onresult = r.onerror = r.onend = null;
+        r.onstart = r.onaudiostart = r.onspeechstart = r.onspeechend = r.onsoundstart = r.onsoundend = r.onnomatch = r.onresult = r.onerror = r.onend = null;
       };
       try {
         r.start();
