@@ -110,10 +110,17 @@ export const STRINGS = {
   'speak.typePlaceholder': { tg: 'Ҷавобро нависед', ru: 'Напишите ответ', en: 'Type the answer' },
   'speak.check': { tg: 'Санҷиш', ru: 'Проверить', en: 'Check' },
   'speak.dontKnow': { tg: 'Намедонам', ru: 'Не знаю', en: "I don't know" },
+  'listen.prompt': { tg: 'Гӯш диҳед ва бигӯед', ru: 'Послушайте и скажите', en: 'Listen and say it' },
+  'listen.playing': { tg: 'Гӯш диҳед…', ru: 'Слушайте…', en: 'Listen…' },
+  'listen.replay': { tg: 'Такрор', ru: 'Прослушать ещё раз', en: 'Play again' },
+  'write.article': { tg: 'Шиносвожаи нодуруст', ru: 'Неверный артикль', en: 'Wrong article' },
+  'write.elision': { tg: "Ин ҷо l' лозим аст", ru: "Нужна элизия: l'", en: "Needs the elision: l'" },
+  'study.returned': { tg: 'Пас аз «Дубора» баргашт', ru: 'Вернулась после «Снова»', en: 'Back after Again' },
 
   // Microphone
   'mic.start': { tg: 'Гуфтан', ru: 'Говорить', en: 'Speak' },
   'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
+  'mic.hint': { tg: 'Фишор диҳед ва гӯед', ru: 'Нажмите и говорите', en: 'Tap and speak' },
   'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
   'mic.unsupported': {
     tg: 'Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед.',
@@ -188,6 +195,7 @@ export const STRINGS = {
     ru: 'Верно, но не с первой попытки',
     en: 'Correct, but not on the first try',
   },
+  'reason.listen-no-easy': { tg: 'Дуруст ва босуръат', ru: 'Верно и быстро', en: 'Correct and fast' },
   'reason.correct-fast-twice': {
     tg: 'Дуруст ва босуръат, ду бор паёпай',
     ru: 'Верно и быстро второй раз подряд',

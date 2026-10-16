@@ -52,7 +52,8 @@ export function useVisibleClock(): () => number {
 
 export interface Voice {
   state: VoiceState;
-  start(): void;
+  /** `counted` false: not a retry of the user (restart after replaying the audio). */
+  start(counted?: boolean): void;
   abort(): void;
   outcome(): VoiceOutcome;
 }
@@ -80,27 +81,30 @@ export function useVoice(lang: string, visibleMs: () => number, setup: Recogniti
   }, []);
   return {
     state,
-    start: () => {
+    start: (counted = true) => {
       stopAudio();
       speaker.cancel();
-      ref.current!.start();
+      ref.current!.start(counted);
     },
     abort: () => ref.current!.abort(),
     outcome: () => ref.current!.outcome(),
   };
 }
 
-/** Deck audio of the entry; the browser voice only when the entry has none. Rejects if it cannot play. */
-export async function playEntry(db: ManaDb, entry: EntryRow, locale: string): Promise<void> {
+/**
+ * Deck audio of the entry; the browser voice only when the entry has none. Rejects if
+ * it cannot play. `onEnded`: the sound played to the end (not called when stopped).
+ */
+export async function playEntry(db: ManaDb, entry: EntryRow, locale: string, onEnded?: () => void): Promise<void> {
   speaker.cancel();
   if (!entry.audio) {
     stopAudio();
-    speaker.speak(entry.text, locale);
+    speaker.speak(entry.text, locale, onEnded);
     return;
   }
   const media = await getMedia(db, entry.deckId, entry.audio);
   if (!media) throw new Error('no media');
-  await playAudio(media.data, media.type);
+  await playAudio(media.data, media.type, onEnded);
 }
 
 export function stopEntryAudio(): void {

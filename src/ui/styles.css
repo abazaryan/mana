@@ -151,6 +151,7 @@ a.primary,a.secondary{text-decoration:none;}
 .center{display:flex;align-items:center;justify-content:center;}
 .study-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:6px;}
 .kicker{text-transform:uppercase;font-size:.75rem;letter-spacing:.08em;color:var(--muted);margin:0 0 6px;}
+.kicker .returned{color:var(--accent);font-size:1rem;letter-spacing:0;}
 .intro-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;}
 .intro-text{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.9rem;line-height:1.2;overflow-wrap:anywhere;}
 .intro-head .answer{margin:0;}

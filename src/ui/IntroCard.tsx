@@ -4,22 +4,18 @@
  *   1. the card: text, IPA, meaning, gender, form, hint, note; the audio plays;
  *   2. "say it aloud": recognised and marked, never rated, may be skipped;
  *   3. "copy it out" (entries with the skill `write` only): checked by the written
- *      cascade, never rated.
+ *      check (Р24), never rated.
  * Nothing goes to FSRS; the journal gets one introduction record at the end.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { checkTyped, type TypedCheck } from '../core/evaluate';
+import { useEffect, useState } from 'react';
 import { FORM_LABELS, formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { LanguagePack } from '../core/languages';
 import type { EntryRow, IntroCopy, IntroEcho } from '../core/model';
-import { checkSpoken, liveHeard, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
 import type { ManaDb } from '../platform/db';
 import { useI18n } from './i18n';
-import { CharMarks, LiveWords, SpokenMarks } from './Marks';
-import { MicPanel } from './MicPanel';
-import { TypeField } from './TypeField';
+import { CopyStep, EchoStep, SKIPPED_ECHO } from './PracticeSteps';
 import { LANG_NAMES } from './strings';
-import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
+import { playEntry, recognitionSupported, stopEntryAudio, type RecognitionSetup } from './studyHooks';
 
 export interface IntroResult {
   echo: IntroEcho;
@@ -34,6 +30,7 @@ export function IntroCard({
   pack,
   locale,
   recognition,
+  nextTyped,
   onDone,
 }: {
   db: ManaDb;
@@ -41,19 +38,14 @@ export function IntroCard({
   pack: LanguagePack;
   locale: string;
   recognition: RecognitionSetup;
+  /** The next card starts with the keyboard: keep it up after copying out. */
+  nextTyped: boolean;
   onDone(r: IntroResult): void;
 }) {
   const { t, lang, meaningLang } = useI18n();
-  const visibleMs = useVisibleClock();
-  const voice = useVoice(locale, visibleMs, recognition);
   const [step, setStep] = useState<Step>('card');
   const [audioError, setAudioError] = useState(false);
-  const [echo, setEcho] = useState<{ check: SpokenCheck; alternatives: string[]; mode: 'voice' | 'typed' } | null>(null);
-  /** Three unrecognised attempts in a row: the microphone gives way to a large, highlighted field (as in `speak`). */
-  const gaveUp = voice.state.failuresInRow >= 3;
-  const [echoTyped, setEchoTyped] = useState('');
-  const [typed, setTyped] = useState('');
-  const [copy, setCopy] = useState<TypedCheck | null>(null);
+  const [echo, setEcho] = useState<IntroEcho>(SKIPPED_ECHO);
   const needsCopy = entry.skills.includes('write');
 
   const play = () => {
@@ -66,65 +58,53 @@ export function IntroCard({
     // Once per card.
   }, []);
 
-  const { phase, transcript } = voice.state;
-  useEffect(() => {
-    if (phase !== 'done') return;
-    const alternatives = voice.outcome().alternatives;
-    setEcho({ check: checkSpoken(entry.text, alternatives, pack.spoken), alternatives, mode: 'voice' });
-    // On each finished attempt.
-  }, [phase]);
-
-  const words = useMemo(() => {
-    const tokens = tokenizeSpoken(entry.text, pack.spoken);
-    return tokens.map((tk, k) => {
-      const next = tokens[k + 1];
-      const join = tk.glue || (!next || tk.text.endsWith("'") || next.word === tk.word ? '' : ' ');
-      return { text: tk.text, join };
-    });
-  }, [entry.text, pack.spoken]);
-  const live = useMemo(() => liveHeard(entry.text, transcript, pack.spoken), [entry.text, transcript, pack.spoken]);
-  const listening = phase === 'starting' || phase === 'listening';
-
-  const finish = (echoSkipped: boolean, copyResult: TypedCheck | null) => {
-    voice.abort();
-    stopEntryAudio();
-    const o = voice.outcome();
-    onDone({
-      echo: {
-        answer: echoSkipped ? '' : (echo?.check.answer ?? ''),
-        alternatives: echoSkipped ? [] : (echo?.alternatives ?? []),
-        verdict: echoSkipped ? null : (echo?.check.verdict ?? null),
-        skipped: echoSkipped || echo === null,
-        mode: echo?.mode ?? 'voice',
-        recognitionErrors: o.errors,
-        repeatHintShown: o.repeatHint,
-        retries: o.retries,
-        repeats: echoSkipped ? 0 : (echo?.check.repeats ?? 0),
-      },
-      copy: copyResult ? { typed, verdict: copyResult.evaluation.verdict, errorType: copyResult.evaluation.errorType ?? null } : null,
-    });
-  };
-
   /** Leaves "say it aloud": on to copying, or done. */
-  const afterEcho = (skipped: boolean) => {
-    voice.abort();
-    stopEntryAudio();
-    if (skipped) setEcho(null);
+  const afterEcho = (e: IntroEcho) => {
+    setEcho(e);
     if (needsCopy) setStep('copy');
-    else finish(skipped, null);
+    else onDone({ echo: e, copy: null });
   };
 
-  const head = (
-    <>
+  if (step === 'echo') {
+    return (
+      <EchoStep
+        db={db}
+        entry={entry}
+        pack={pack}
+        locale={locale}
+        recognition={recognition}
+        kicker={t('intro.label')}
+        start="now"
+        blurOnNext={!needsCopy && !nextTyped}
+        onDone={afterEcho}
+      />
+    );
+  }
+  if (step === 'copy') {
+    return (
+      <CopyStep
+        db={db}
+        entry={entry}
+        pack={pack}
+        locale={locale}
+        kicker={t('intro.label')}
+        blurOnNext={!nextTyped}
+        onDone={(copy) => onDone({ echo, copy })}
+      />
+    );
+  }
+
+  const meaning = pickLocalizedWithLang(entry.meaning, meaningLang);
+  const hint = pickLocalizedWithLang(entry.hint, meaningLang);
+  const note = pickLocalizedWithLang(entry.note, meaningLang);
+  const hints = [...(entry.gender ? [FORM_LABELS.gender[entry.gender][lang]] : []), ...formHints(entry.form, lang)];
+  return (
+    <article className="study-card">
       <p className="kicker">{t('intro.label')}</p>
       <div className="intro-head">
-        {step === 'echo' && listening ? (
-          <LiveWords words={words} heard={live} lang={pack.code} />
-        ) : (
-          <div className="intro-text" lang={pack.code}>
-            {entry.text}
-          </div>
-        )}
+        <div className="intro-text" lang={pack.code}>
+          {entry.text}
+        </div>
         <button className="play" type="button" aria-label={`${t('deck.play')}: ${entry.text}`} onClick={play}>
           ▶
         </button>
@@ -134,121 +114,38 @@ export function IntroCard({
           {t('deck.audioError')}
         </p>
       )}
-    </>
-  );
-
-  if (step === 'card') {
-    const meaning = pickLocalizedWithLang(entry.meaning, meaningLang);
-    const hint = pickLocalizedWithLang(entry.hint, meaningLang);
-    const note = pickLocalizedWithLang(entry.note, meaningLang);
-    const hints = [...(entry.gender ? [FORM_LABELS.gender[entry.gender][lang]] : []), ...formHints(entry.form, lang)];
-    return (
-      <article className="study-card">
-        {head}
-        {entry.ipa && <p className="m ipa">[{entry.ipa}]</p>}
-        {meaning && (
-          <p className="meaning" lang={meaning.lang}>
-            {meaning.text}
-            {meaning.lang !== meaningLang && (
-              <span className="chip lang-mark" title={LANG_NAMES[meaning.lang]}>
-                {meaning.lang}
-              </span>
-            )}
-          </p>
-        )}
-        {hints.length > 0 && <p className="m">{hints.join(' · ')}</p>}
-        {hint && (
-          <p className="m" lang={hint.lang}>
-            {hint.text}
-          </p>
-        )}
-        {note && (
-          <p className="m note-text" lang={note.lang}>
-            {note.text}
-          </p>
-        )}
-        <button
-          className="primary big mt"
-          type="button"
-          onClick={() => {
-            stopEntryAudio();
-            if (recognitionSupported) {
-              setStep('echo');
-              // The microphone starts in this tap, as on a `speak` card.
-              voice.start();
-            } else {
-              afterEcho(true);
-            }
-          }}
-        >
-          {t('common.next')}
-        </button>
-      </article>
-    );
-  }
-
-  if (step === 'echo') {
-    return (
-      <article className="study-card">
-        {head}
-        <h2 className="h3 step-title">{t('intro.echo')}</h2>
-        {echo && !listening && <SpokenMarks check={echo.check} lang={pack.code} source={echo.mode} />}
-        {gaveUp ? (
-          <TypeField
-            loud
-            lang={pack.code}
-            value={echoTyped}
-            placeholder={t('speak.typePlaceholder')}
-            ariaLabel={t('speak.typePlaceholder')}
-            onChange={(v) => {
-              setEchoTyped(v);
-              setEcho(null);
-            }}
-            checked={echo !== null && echo.mode === 'typed'}
-            onCheck={() => setEcho({ check: checkSpoken(entry.text, [echoTyped], pack.spoken), alternatives: [], mode: 'typed' })}
-            onNext={() => afterEcho(false)}
-            blurOnNext={!needsCopy}
-          />
-        ) : (
-          <MicPanel state={voice.state} onStart={() => voice.start()} startLabel={echo ? 'intro.again' : 'mic.start'} />
-        )}
-        <div className="row start">
-          {!echo && (
-            <button className="ghost" type="button" onClick={() => afterEcho(true)}>
-              {t('intro.skip')}
-            </button>
+      {entry.ipa && <p className="m ipa">[{entry.ipa}]</p>}
+      {meaning && (
+        <p className="meaning" lang={meaning.lang}>
+          {meaning.text}
+          {meaning.lang !== meaningLang && (
+            <span className="chip lang-mark" title={LANG_NAMES[meaning.lang]}>
+              {meaning.lang}
+            </span>
           )}
-        </div>
-        <button className="primary big mt" type="button" disabled={!echo} onClick={() => afterEcho(false)}>
-          {t('common.next')}
-        </button>
-      </article>
-    );
-  }
-
-  return (
-    <article className="study-card">
-      {head}
-      <h2 className="h3 step-title">{t('intro.copy')}</h2>
-      <TypeField
-        lang={pack.code}
-        value={typed}
-        ariaLabel={t('intro.copy')}
-        onChange={(v) => {
-          setTyped(v);
-          setCopy(null);
-        }}
-        checked={copy !== null}
-        onCheck={() => setCopy(checkTyped(entry.text, typed, pack.writing))}
-        onNext={() => finish(echo === null, copy)}
-      />
-      {copy && (
-        <>
-          <CharMarks cells={copy.cells} lang={pack.code} />
-          <p className="reason">{t(`reason.${copy.evaluation.verdict}`)}</p>
-        </>
+        </p>
       )}
-      <button className="primary big mt" type="button" disabled={!copy} onClick={() => finish(echo === null, copy)}>
+      {hints.length > 0 && <p className="m">{hints.join(' · ')}</p>}
+      {hint && (
+        <p className="m" lang={hint.lang}>
+          {hint.text}
+        </p>
+      )}
+      {note && (
+        <p className="m note-text" lang={note.lang}>
+          {note.text}
+        </p>
+      )}
+      <button
+        className="primary big mt"
+        type="button"
+        onClick={() => {
+          stopEntryAudio();
+          // The microphone starts with the next step, right after this tap (as on a `speak` card).
+          if (recognitionSupported) setStep('echo');
+          else afterEcho(SKIPPED_ECHO);
+        }}
+      >
         {t('common.next')}
       </button>
     </article>

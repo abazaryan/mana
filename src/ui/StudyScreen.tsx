@@ -1,13 +1,15 @@
 /**
- * One round of study in a deck (Р17, Р22.4): buildSession decides the items; each
- * introduction and each answer is written to the journal as soon as it is finished,
- * so leaving in the middle loses nothing already done.
+ * One round of study in a deck (Р17, Р22.4, Р25): buildSession decides the items; each
+ * introduction, answer and practice is written to the journal as soon as it is
+ * finished, so leaving in the middle loses nothing already done. An answer rated
+ * Again is written first, then its short practice follows, and the card comes back
+ * at the end of the portion (requeueAfterAgain).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { findLanguagePack, speechLocale } from '../core/languages';
-import type { DeckRow, FinalRating, ReviewRecord } from '../core/model';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { findLanguagePack, speechLocale, type LanguagePack } from '../core/languages';
+import type { DeckRow, EntryRow, FinalRating, IntroCopy, IntroEcho, ReviewRecord } from '../core/model';
 import { createScheduler } from '../core/scheduler';
-import { buildSession, type SessionPlan } from '../core/session';
+import { buildSession, requeueAfterAgain, sinceEntry, type ReviewItem, type SessionItem, type SessionPlan } from '../core/session';
 import { biasPhrases } from '../core/spoken';
 import type { ManaDb } from '../platform/db';
 import {
@@ -16,6 +18,7 @@ import {
   lastReview,
   loadSessionData,
   randomId,
+  recordDrill,
   recordIntro,
   recordReview,
   setPhrasesUnsupported,
@@ -25,14 +28,17 @@ import { speechPackState } from '../platform/speechPack';
 import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { IntroCard, type IntroResult } from './IntroCard';
+import { CopyStep, EchoStep } from './PracticeSteps';
 import { deckHref } from './Root';
-import { SpeakCard, type SpeakAnswer } from './SpeakCard';
-import { phrasesApiPresent, type RecognitionSetup } from './studyHooks';
+import { phrasesApiPresent, recognitionSupported, type RecognitionSetup } from './studyHooks';
+import { VoiceCard, type CardAnswer } from './VoiceCard';
+import { WriteCard } from './WriteCard';
 
 const scheduler = createScheduler();
 
 type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
-type Round = { deck: DeckRow; plan: SessionPlan; sessionId: string; hints: Hints } | 'missing' | null;
+type Round = { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints } | 'missing' | null;
+type DrillResult = { echo: IntroEcho | null; copy: IntroCopy | null; skipped: boolean };
 
 const OFF: Hints = { options: {}, biasing: 'off', speechPack: null };
 
@@ -50,6 +56,12 @@ async function prepareHints(db: ManaDb, deck: DeckRow, biasing: boolean): Promis
   const speechPack = await speechPackState(locale);
   const phrases = biasPhrases(await entryTextsForLanguage(db, deck.language), pack.spoken);
   return { options: { phrases, processLocally: speechPack === 'available' }, biasing: 'on', speechPack };
+}
+
+/** Two entries sound the same (ravi / ravie, Р16): kept apart in the portion. */
+function sameSoundOf(pack: LanguagePack | undefined) {
+  const same = pack?.sameSound;
+  return same ? (a: EntryRow, b: EntryRow) => same(a.text, b.text) : undefined;
 }
 
 export function StudyScreen({
@@ -71,6 +83,10 @@ export function StudyScreen({
   const [ratings, setRatings] = useState<FinalRating[]>([]);
   const [previous, setPrevious] = useState<{ index: number; review: ReviewRecord | null } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  /** The short practice after Again of the card at `index`, answered in the record `reviewId`. */
+  const [drill, setDrill] = useState<{ index: number; reviewId: string } | null>(null);
+  /** When each item of the portion was finished (for the spacing figures in the journal). */
+  const finishedAt = useRef(new Map<number, Date>());
 
   const start = useCallback(async () => {
     const deck = await getDeck(db, deckId);
@@ -79,25 +95,27 @@ export function StudyScreen({
       return;
     }
     const data = await loadSessionData(db, actor.userId, deckId);
-    const plan = buildSession({ now: new Date(), ...data, newPerDay });
+    const plan = buildSession({ now: new Date(), ...data, newPerDay, sameSound: sameSoundOf(findLanguagePack(deck.language)) });
     const hints = await prepareHints(db, deck, biasing);
-    setRound({ deck, plan, sessionId: randomId(), hints });
+    setRound({ deck, plan, items: plan.items, sessionId: randomId(), hints });
     setIndex(0);
     setRatings([]);
     setPrevious(null);
+    setDrill(null);
+    finishedAt.current = new Map();
   }, [db, deckId, actor.userId, newPerDay, biasing]);
 
   useEffect(() => {
     void start();
   }, [start]);
 
-  const item = round && round !== 'missing' ? round.plan.items[index] : undefined;
+  const item = round && round !== 'missing' ? round.items[index] : undefined;
 
   // The previous answer on the card, for the Easy rule; loaded before the card shows.
   useEffect(() => {
-    if (!item || item.kind !== 'speak') return;
+    if (!item || item.kind !== 'review') return;
     let live = true;
-    void lastReview(db, actor.userId, item.entry.deckId, item.entry.entryId, 'speak').then((review) => {
+    void lastReview(db, actor.userId, item.entry.deckId, item.entry.entryId, item.skill).then((review) => {
       if (live) setPrevious({ index, review });
     });
     return () => {
@@ -116,7 +134,7 @@ export function StudyScreen({
       </section>
     );
   }
-  const { deck, plan, sessionId } = round;
+  const { deck, plan, items, sessionId } = round;
   const recognition: RecognitionSetup = {
     ...round.hints,
     onPhrasesUnsupported: () => {
@@ -148,7 +166,7 @@ export function StudyScreen({
           ? t('study.noNew.noMaterial')
           : null;
 
-  if (plan.items.length === 0) {
+  if (items.length === 0) {
     return (
       <section>
         {back}
@@ -170,11 +188,45 @@ export function StudyScreen({
     }
   };
   const onIntro = (entryId: string) => (r: IntroResult) =>
-    void save(() => recordIntro(db, actor, { ...base(entryId), echo: r.echo, copy: r.copy }));
-  const onSpeak = (entryId: string) => (a: SpeakAnswer) =>
     void save(async () => {
-      await recordReview(db, scheduler, actor, { ...base(entryId), skill: 'speak', ...a });
-      setRatings((r) => [...r, a.final]);
+      const b = base(entryId);
+      await recordIntro(db, actor, { ...b, echo: r.echo, copy: r.copy });
+      finishedAt.current.set(index, b.at);
+    });
+  const onAnswer = (it: ReviewItem, prev: ReviewRecord | null) => (a: CardAnswer) => {
+    setSaveError(null);
+    void (async () => {
+      try {
+        const b = base(it.entry.entryId);
+        const since = sinceEntry(items, finishedAt.current, index, b.at);
+        const { record } = await recordReview(db, scheduler, actor, {
+          ...b,
+          skill: it.skill,
+          ...a,
+          requeue: it.requeue,
+          sincePairSec: prev ? Math.round((b.at.getTime() - prev.at.getTime()) / 1000) : null,
+          sinceEntryCards: since.cards,
+          sinceEntrySec: since.sec,
+        });
+        finishedAt.current.set(index, b.at);
+        setRatings((r) => [...r, a.final]);
+        if (a.final !== 1) {
+          setIndex((i) => i + 1);
+          return;
+        }
+        // Again (Р25): the answer is in the journal; now the short practice, and the card comes back later.
+        const requeued = requeueAfterAgain(items, index);
+        if (requeued) setRound((r) => (r && r !== 'missing' ? { ...r, items: requeued } : r));
+        setDrill({ index, reviewId: record.id });
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+  };
+  const onDrill = (it: ReviewItem, reviewId: string) => (r: DrillResult) =>
+    void save(async () => {
+      await recordDrill(db, actor, { ...base(it.entry.entryId), skill: it.skill, reviewId, ...r });
+      setDrill(null);
     });
 
   if (!item) {
@@ -205,7 +257,88 @@ export function StudyScreen({
     );
   }
 
-  const total = plan.items.length;
+  const total = items.length;
+  /** The next card starts with the keyboard (`write`, or any answer without a microphone): keep it up. */
+  const nextItem = items[index + 1];
+  const nextTyped = nextItem?.kind === 'review' && (nextItem.skill === 'write' || !recognitionSupported);
+  const cardKey = `${sessionId}-${index}`;
+
+  let card;
+  if (item.kind === 'intro') {
+    card = (
+      <IntroCard
+        key={cardKey}
+        db={db}
+        entry={item.entry}
+        pack={pack}
+        locale={locale}
+        recognition={recognition}
+        nextTyped={nextTyped}
+        onDone={onIntro(item.entry.entryId)}
+      />
+    );
+  } else if (drill?.index === index) {
+    const finishDrill = onDrill(item, drill.reviewId);
+    card =
+      item.skill === 'write' ? (
+        <CopyStep
+          key={`${cardKey}-drill`}
+          db={db}
+          entry={item.entry}
+          pack={pack}
+          locale={locale}
+          kicker={t('skill.write')}
+          skippable
+          blurOnNext={!nextTyped}
+          onDone={(copy) => finishDrill({ echo: null, copy, skipped: copy === null })}
+        />
+      ) : (
+        <EchoStep
+          key={`${cardKey}-drill`}
+          db={db}
+          entry={item.entry}
+          pack={pack}
+          locale={locale}
+          recognition={recognition}
+          kicker={t(`skill.${item.skill}`)}
+          start="afterAudio"
+          blurOnNext={!nextTyped}
+          onDone={(echo) => finishDrill({ echo, copy: null, skipped: echo.skipped })}
+        />
+      );
+  } else if (previous?.index === index) {
+    card =
+      item.skill === 'write' ? (
+        <WriteCard
+          key={cardKey}
+          db={db}
+          entry={item.entry}
+          pack={pack}
+          locale={locale}
+          previous={previous.review}
+          requeue={item.requeue}
+          nextTyped={nextTyped}
+          onDone={onAnswer(item, previous.review)}
+        />
+      ) : (
+        <VoiceCard
+          key={cardKey}
+          db={db}
+          entry={item.entry}
+          pack={pack}
+          locale={locale}
+          skill={item.skill}
+          previous={previous.review}
+          recognition={recognition}
+          requeue={item.requeue}
+          nextTyped={nextTyped}
+          onDone={onAnswer(item, previous.review)}
+        />
+      );
+  } else {
+    card = <p className="lead">{t('common.loading')}</p>;
+  }
+
   return (
     <section>
       {back}
@@ -221,22 +354,7 @@ export function StudyScreen({
           {t('study.saveError', { error: saveError })}
         </p>
       )}
-      {item.kind === 'intro' ? (
-        <IntroCard key={`${sessionId}-${index}`} db={db} entry={item.entry} pack={pack} locale={locale} recognition={recognition} onDone={onIntro(item.entry.entryId)} />
-      ) : previous?.index === index ? (
-        <SpeakCard
-          key={`${sessionId}-${index}`}
-          db={db}
-          entry={item.entry}
-          pack={pack}
-          locale={locale}
-          previous={previous.review}
-          recognition={recognition}
-          onDone={onSpeak(item.entry.entryId)}
-        />
-      ) : (
-        <p className="lead">{t('common.loading')}</p>
-      )}
+      {card}
     </section>
   );
 }

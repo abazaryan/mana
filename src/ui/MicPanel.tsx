@@ -11,11 +11,30 @@ import { useI18n } from './i18n';
 import { MicStatus } from './MicStatus';
 import type { StringKey } from './strings';
 
-export function MicPanel({ state, onStart, startLabel }: { state: VoiceState; onStart(): void; startLabel: StringKey }) {
+export function MicPanel({
+  state,
+  onStart,
+  startLabel,
+  playing = false,
+}: {
+  state: VoiceState;
+  onStart(): void;
+  startLabel: StringKey;
+  /** The question's audio is playing (`listen`); the microphone starts when it ends. */
+  playing?: boolean;
+}) {
   const { t } = useI18n();
   const listening = state.phase === 'starting' || state.phase === 'listening';
-  // Under the circle always the same short line; "Speak" / "Once more" names the button for screen readers.
-  const caption = state.phase === 'starting' ? t('mic.starting') : t('speak.prompt');
+  // A short line under the circle: listening → "Say the answer"; stopped (or never started
+  // on its own) → "Tap and speak" (Р25); "Speak" / "Once more" names the button for screen readers.
+  const caption =
+    state.phase === 'starting'
+      ? t('mic.starting')
+      : listening
+        ? t('speak.prompt')
+        : playing
+          ? t('listen.playing')
+          : t('mic.hint');
   return (
     <div className={`mic2 ${listening ? `on act-${state.activity}` : 'off'}`}>
       <div className="mic2-stage">
