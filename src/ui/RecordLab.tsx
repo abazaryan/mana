@@ -63,6 +63,9 @@ export function RecordLab() {
   const simulSession = useRef<RecognitionSession | null>(null);
   const simulResult = useRef<LabChromeResult | null>(null);
   const chromeSession = useRef<RecognitionSession | null>(null);
+  // Latest takes for callbacks that outlive a render.
+  const takesRef = useRef(takes);
+  takesRef.current = takes;
 
   useEffect(() => {
     void (async () => {
@@ -152,7 +155,9 @@ export function RecordLab() {
       chromeSession.current = listenChrome(set.language, (r) => {
         chromeSession.current = null;
         setBusy(null);
-        void patch(item.id, { chrome: r });
+        // The first attempt is the baseline; a retry is only logged (16.10.2026).
+        const t = takesRef.current.get(item.id);
+        void patch(item.id, t?.chromeFirst ? { chromeRetries: [...(t.chromeRetries ?? []), r] } : { chromeFirst: r });
       });
     } catch {
       setBusy(null);
@@ -163,7 +168,7 @@ export function RecordLab() {
   const markSpoiled = async () => {
     if (!item) return;
     if (pass === 'rec') await patch(item.id, { spoiled: !take?.spoiled });
-    else if (take?.chrome) await patch(item.id, { chrome: { ...take.chrome, spoiled: !take.chrome.spoiled } });
+    else if (take?.chromeFirst) await patch(item.id, { chromeFirst: { ...take.chromeFirst, spoiled: !take.chromeFirst.spoiled } });
   };
 
   const exportZip = async () => {
@@ -201,7 +206,9 @@ export function RecordLab() {
           mimeType: t?.mimeType ?? null,
           durationMs: t?.durationMs ?? null,
           spoiled: t?.spoiled ?? false,
-          chrome: t?.chrome ?? null,
+          chrome: t?.chromeFirst ?? null,
+          chromeRetries: t?.chromeRetries ?? [],
+          chromeOld: t?.chrome ?? null,
           chromeSimultaneous: t?.chromeSimultaneous ?? null,
         });
       }
@@ -235,17 +242,18 @@ export function RecordLab() {
   }
 
   const recorded = set.items.filter((i) => takes.get(i.id)?.blob).length;
-  const heard = set.items.filter((i) => takes.get(i.id)?.chrome).length;
+  const heard = set.items.filter((i) => takes.get(i.id)?.chromeFirst).length;
   const shown = pass === 'rec' ? recorded : heard;
   const nextTodo = () => {
     for (let k = 1; k <= set.items.length; k++) {
       const j = (index + k) % set.items.length;
       const t = takes.get(set.items[j]!.id);
-      if (pass === 'rec' ? !t?.blob : !t?.chrome) return j;
+      if (pass === 'rec' ? !t?.blob : !t?.chromeFirst) return j;
     }
     return (index + 1) % set.items.length;
   };
-  const chrome = take?.chrome;
+  const chrome = take?.chromeFirst;
+  const retries = take?.chromeRetries ?? [];
   const spoiled = pass === 'rec' ? take?.spoiled : chrome?.spoiled;
 
   return (
@@ -255,13 +263,13 @@ export function RecordLab() {
           Проход 1: запись ({recorded}/{set.items.length})
         </button>
         <button type="button" className={pass === 'chrome' ? 'primary' : ''} onClick={() => setPass('chrome')} disabled={busy !== null}>
-          Проход 2: Chrome ({heard}/{set.items.length})
+          Проход 2: Chrome, первая попытка ({heard}/{set.items.length})
         </button>
       </div>
       <p className="note">
         {pass === 'rec'
           ? 'Нажмите «Записать», скажите фразу, нажмите «Стоп».'
-          : 'Скажите ту же фразу ещё раз: теперь слушает Chrome (звук не сохраняется).'}{' '}
+          : 'Скажите ту же фразу ещё раз: теперь слушает Chrome (звук не сохраняется). Засчитывается первая попытка; «Ещё раз» только записывается в журнал.'}{' '}
         Готово: {shown} из {set.items.length}.
       </p>
 
@@ -286,7 +294,7 @@ export function RecordLab() {
             )
           ) : (
             <button type="button" className="primary big" onClick={startChrome} disabled={busy !== null}>
-              🎤 {busy === 'listening' ? 'Слушаю…' : chrome ? 'Ещё раз' : 'Говорить'}
+              🎤 {busy === 'listening' ? 'Слушаю…' : chrome ? 'Ещё раз (не засчитывается)' : 'Говорить'}
             </button>
           )}
           {(pass === 'rec' ? take?.blob : chrome) && (
@@ -306,7 +314,8 @@ export function RecordLab() {
         {pass === 'chrome' && chrome && (
           <p>
             Chrome услышал: <b>{chrome.alternatives[0] ?? '— ничего —'}</b>
-            {chrome.error ? ` (ошибка: ${chrome.error})` : ''}
+            {chrome.error ? ` (ошибка: ${chrome.error})` : ''} — засчитана первая попытка.
+            {retries.length > 0 && <> Повторы ({retries.length}): {retries.map((r) => r.alternatives[0] ?? '—').join(' · ')}</>}
           </p>
         )}
         {pass === 'rec' && (

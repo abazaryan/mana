@@ -99,7 +99,12 @@ export interface LabManifestItem extends LabItem {
   durationMs: number | null;
   /** The recording is marked as spoiled by the speaker. */
   spoiled: boolean;
+  /** Chrome's first attempt (the baseline); null if the item was not heard in the pass. */
   chrome: LabChromeResult | null;
+  /** Later attempts on the same item: logged, not counted. */
+  chromeRetries?: LabChromeResult[];
+  /** Earlier pass where a retry replaced the result (last attempt only; not a fair baseline). */
+  chromeOld?: LabChromeResult | null;
   /** Trial of simultaneous recording + recognition on pass 1 (null if not tried). */
   chromeSimultaneous: LabChromeResult | null;
 }

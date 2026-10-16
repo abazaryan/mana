@@ -230,11 +230,30 @@ function evaluate(it: LabManifest['items'][number], alts: string[], ms: number |
   };
 }
 
+// Chrome baseline. recordings/manifest.json holds the first Chrome pass, where a retry replaced
+// the result (last attempt, not a fair baseline). recordings-chrome2/manifest.json, if present,
+// holds the repeated pass where only the first attempt counts (retries are logged).
 const rows = new Map<string, Row[]>();
-rows.set(
-  'chrome',
-  manifest.items.filter((i) => i.chrome).map((i) => evaluate(i, i.chrome!.alternatives, null)),
-);
+const chromeRows = (pick: (i: LabManifest['items'][number]) => { alternatives: string[] } | null | undefined) =>
+  manifest.items.flatMap((i) => {
+    const c = pick(i);
+    return c ? [evaluate(i, c.alternatives, null)] : [];
+  });
+let chrome2: Map<string, LabManifest['items'][number]> | null = null;
+try {
+  const m2 = JSON.parse(await readFile(join(labDir, 'recordings-chrome2', 'manifest.json'), 'utf8')) as LabManifest;
+  chrome2 = new Map(m2.items.map((i) => [i.id, i]));
+} catch {
+  /* no second Chrome pass yet */
+}
+if (chrome2) {
+  rows.set('chrome', chromeRows((i) => chrome2!.get(i.id)?.chrome));
+  rows.set('chrome-old', chromeRows((i) => i.chromeOld ?? i.chrome));
+  const retried = [...chrome2.values()].filter((i) => (i.chromeRetries?.length ?? 0) > 0).length;
+  console.log(`Chrome: первая попытка — ${rows.get('chrome')!.length} пунктов, с повторами — ${retried}.`);
+} else {
+  rows.set('chrome', chromeRows((i) => i.chrome));
+}
 for (const v of variants) {
   const m = answers.get(v.id)!;
   rows.set(
@@ -245,7 +264,11 @@ for (const v of variants) {
     }),
   );
 }
-const labels = new Map([['chrome', 'Chrome Web Speech (база, другой дубль)'], ...variants.map((v) => [v.id, v.label] as const)]);
+const labels = new Map<string, string>([
+  ['chrome', chrome2 ? 'Chrome Web Speech, первая попытка (база)' : 'Chrome Web Speech (с повторами, база завышена)'],
+  ['chrome-old', 'Chrome, проход с повторами (для сравнения)'],
+  ...variants.map((v) => [v.id, v.label] as const),
+]);
 const commonIds = new Set(rows.get('chrome')!.map((r) => r.id));
 const common = (id: string) => rows.get(id)!.filter((r) => commonIds.has(r.id));
 
@@ -263,7 +286,7 @@ const quantile = (xs: number[], q: number) => {
 const PRICE_PER_MIN: Record<string, number> = { chrome: 0, whisper: 0.0005, 'whisper-prompt': 0.0005, 'whisper-vad': 0.0005, deepgram: 0.0052 };
 const NEURONS_PER_MIN: Record<string, number> = { whisper: 46.63, 'whisper-prompt': 46.63, 'whisper-vad': 46.63, deepgram: 472.73 };
 function costLine(id: string): string {
-  if (id === 'chrome') return '0 (бесплатно)';
+  if (id.startsWith('chrome')) return '0 (бесплатно)';
   const minutes = 1500;
   const perDayNeurons = (minutes / 30) * NEURONS_PER_MIN[id]!;
   const paidNeurons = Math.max(0, perDayNeurons - 10000) * 30;
@@ -274,7 +297,7 @@ function costLine(id: string): string {
 }
 
 const out: string[] = [];
-const ids = ['chrome', ...variants.map((v) => v.id)];
+const ids = [...rows.keys()].filter((id) => id.startsWith('chrome')).concat(variants.map((v) => v.id));
 const nWrong = common('chrome').filter((r) => r.expected !== 'correct').length;
 const nRight = common('chrome').filter((r) => r.expected === 'correct').length;
 const nShort = common('chrome').filter((r) => r.category === 'short').length;
@@ -324,7 +347,7 @@ const plainLeak = new Map((rows.get('whisper') ?? []).map((r) => [r.id, new Set(
 for (const id of ids) {
   const rs = common(id);
   const probeCell =
-    id === 'chrome'
+    id.startsWith('chrome')
       ? '— (не проверялось)'
       : (() => {
           const m = answers.get(id)!;

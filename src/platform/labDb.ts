@@ -12,7 +12,12 @@ export interface LabTake {
   durationMs?: number;
   /** The speaker marked the recording as spoiled. */
   spoiled?: boolean;
+  /** Old protocol (16.10.2026): the last of possibly several attempts. Kept, not exported as the baseline. */
   chrome?: LabChromeResult;
+  /** First attempt of the Chrome pass: this is the baseline. */
+  chromeFirst?: LabChromeResult;
+  /** Later attempts on the same item: logged, not counted. */
+  chromeRetries?: LabChromeResult[];
   chromeSimultaneous?: LabChromeResult;
 }
 
