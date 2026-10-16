@@ -213,24 +213,35 @@ button.blk:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 .primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed;}
 .blocks.chars .cell .top{font-size:1.15rem;} .blocks.chars .cell .bot{font-size:1.25rem;}
 
-/* Microphone block (16.10.2026): same size and place as the large typing field. */
-.micpanel{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;margin:10px 0 0;padding:8px 16px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.15rem;font-weight:600;text-align:left;}
-.micpanel.on{border-color:var(--accent);box-shadow:0 0 0 4px var(--wash);}
-button.micpanel{cursor:pointer;color:var(--accent);border-color:var(--accent);}
-button.micpanel:hover{background:var(--wash);}
-.micring{position:relative;flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--wash);}
-.micring .icon{position:relative;font-size:1.5rem;line-height:1;}
-.micring .ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--accent);opacity:.25;}
-.act-waiting .micring .ring{animation:ringPulse 2s ease-out infinite;}
-.act-sound .micring .ring{border-width:3px;animation:ringPulse 1.2s ease-out infinite;}
-.act-speech .micring .ring{border-width:4px;animation:ringPulse .8s ease-out infinite;}
-.micring .flash{position:absolute;inset:-2px;border-radius:50%;background:var(--accent);opacity:0;animation:ringFlash .45s ease-out;}
-@keyframes ringPulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.6);opacity:0}}
-@keyframes ringFlash{0%{opacity:.35;transform:scale(1)}100%{opacity:0;transform:scale(1.35)}}
+/* Microphone (16.10.2026, second look): a large circle that is the button and the indicator.
+   Rings: dark and translucent in the light theme, accent with a moderate glow in the dark one. */
+:root{--mic-ring:rgba(27,36,48,.22);--mic-glow:none;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--mic-ring:rgba(124,147,255,.45);--mic-glow:0 0 14px rgba(124,147,255,.35);}}
+:root[data-theme="dark"]{--mic-ring:rgba(124,147,255,.45);--mic-glow:0 0 14px rgba(124,147,255,.35);}
+.mic2{display:flex;flex-direction:column;align-items:center;gap:4px;margin:8px 0;}
+/* Room for the widest ring (104 px × 1.75) so it never covers the text around. */
+.mic2-stage{height:184px;width:100%;display:grid;place-items:center;}
+.mic2-btn{position:relative;width:104px;height:104px;border-radius:50%;border:0;padding:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer;transition:opacity .2s,filter .2s;}
+.mic2.off .mic2-btn{opacity:.45;filter:saturate(.6);}
+.mic2.off .mic2-btn:hover{opacity:.7;}
+.mic2.on .mic2-btn{cursor:default;}
+.mic2-icon{position:relative;z-index:1;}
+.mic2-rings{position:absolute;inset:0;pointer-events:none;}
+.mic2-rings i,.mic2-rings b{position:absolute;inset:0;border-radius:50%;background:var(--mic-ring);box-shadow:var(--mic-glow);opacity:0;}
+.mic2-rings i{animation:mic2Pulse 2.4s ease-out infinite;}
+.mic2-rings i:nth-child(2){animation-delay:.8s;}
+.mic2-rings i:nth-child(3){animation-delay:1.6s;}
+.mic2.act-sound .mic2-rings i,.mic2.act-speech .mic2-rings i{animation-name:mic2Loud;animation-duration:1.6s;}
+.mic2.act-sound .mic2-rings i:nth-child(2),.mic2.act-speech .mic2-rings i:nth-child(2){animation-delay:.53s;}
+.mic2.act-sound .mic2-rings i:nth-child(3),.mic2.act-speech .mic2-rings i:nth-child(3){animation-delay:1.06s;}
+.mic2-rings b{animation:mic2Flash .5s ease-out;}
+@keyframes mic2Pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.45);opacity:0}}
+@keyframes mic2Loud{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.75);opacity:0}}
+@keyframes mic2Flash{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.3);opacity:0}}
+.mic2-cap{font-size:.85rem;color:var(--muted);}
+.mic2 .status{margin:0;text-align:center;}
 @media (prefers-reduced-motion: reduce){
-  .micring .ring{animation:none !important;transform:none;}
-  .act-waiting .micring .ring{opacity:.35;}
-  .act-sound .micring .ring{opacity:.65;}
-  .act-speech .micring .ring{opacity:1;border-width:5px;}
-  .micring .flash{display:none;}
+  .mic2-rings i,.mic2-rings b{animation:none !important;}
+  .mic2-rings i:first-child{opacity:.6;transform:scale(1.25);}
+  .mic2.act-sound .mic2-rings i:first-child,.mic2.act-speech .mic2-rings i:first-child{opacity:.9;transform:scale(1.35);}
 }
