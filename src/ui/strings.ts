@@ -113,6 +113,7 @@ export const STRINGS = {
 
   // Microphone
   'mic.start': { tg: 'Гуфтан', ru: 'Говорить', en: 'Speak' },
+  'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
   'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
   'mic.unsupported': {
     tg: 'Ин мурургар шинохти гуфторро надорад — ҷавобро нависед.',

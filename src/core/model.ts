@@ -104,6 +104,8 @@ export interface IntroEcho {
   /** From 16.10.2026: voice, or typed after three unrecognised attempts in a row. */
   mode?: 'voice' | 'typed';
   recognitionErrors?: RecognitionErrorEntry[];
+  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, Р23). */
+  repeatHintShown?: boolean;
   /** Presses of "Once more" / retries of the microphone. */
   retries?: number;
   /** The whole text said k times (Р22, amendment of 16.10.2026). */
@@ -182,6 +184,8 @@ export interface ReviewRecord extends LogBase {
   /** What marked the start of the answer: speechstart, the first result, the first key. */
   latencySource?: LatencySource | null;
   recognitionErrors?: RecognitionErrorEntry[];
+  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, Р23). */
+  repeatHintShown?: boolean;
   /** N: words in the reference (Р22.2). */
   wordCount?: number | null;
   /** E: reference words not heard. */

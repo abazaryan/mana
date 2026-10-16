@@ -43,6 +43,7 @@ export function MicPanel({ state, onStart, startLabel }: { state: VoiceState; on
       <span className="mic2-cap" aria-live="polite">
         {caption}
       </span>
+      {state.failuresInRow >= 1 && <p className="mic2-hint">{t('mic.repeatHint')}</p>}
       <MicStatus state={state} />
     </div>
   );

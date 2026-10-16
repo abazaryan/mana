@@ -97,6 +97,7 @@ export function IntroCard({
         skipped: echoSkipped || echo === null,
         mode: echo?.mode ?? 'voice',
         recognitionErrors: o.errors,
+        repeatHintShown: o.repeatHint,
         retries: o.retries,
         repeats: echoSkipped ? 0 : (echo?.check.repeats ?? 0),
       },

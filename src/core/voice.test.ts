@@ -269,6 +269,35 @@ describe('VoiceCapture: unrecognised attempts in a row', () => {
   });
 });
 
+describe('VoiceCapture: "say it 2–3 times" hint (Р23)', () => {
+  it('is due after the first attempt with nothing recognised and gone after an answer; the journal says it was shown', () => {
+    const { v, h } = setup();
+    v.start();
+    expect(v.getState().failuresInRow).toBe(0);
+    h().onError('no-speech');
+    expect(v.getState().failuresInRow).toBe(1);
+    v.start();
+    h().onResult({ finalAlts: ['deux'], interim: '' });
+    h().onEnd();
+    expect(v.getState().failuresInRow).toBe(0);
+    expect(v.outcome().repeatHint).toBe(true);
+  });
+
+  it('is not shown for other errors or a clean answer', () => {
+    const net = setup();
+    net.v.start();
+    net.h().onError('network');
+    expect(net.v.getState().failuresInRow).toBe(0);
+    expect(net.v.outcome().repeatHint).toBe(false);
+
+    const ok = setup();
+    ok.v.start();
+    ok.h().onResult({ finalAlts: ['oui'], interim: '' });
+    ok.h().onEnd();
+    expect(ok.v.outcome().repeatHint).toBe(false);
+  });
+});
+
 describe('VoiceCapture: recognizer hints', () => {
   it('sends phrases and processLocally', () => {
     const { v, sessions } = setup({ options: { phrases: ['un', 'deux'], processLocally: true } });

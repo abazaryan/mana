@@ -147,6 +147,7 @@ export function SpeakCard({
       micDelayMs: v.micDelayMs,
       retries: v.retries,
       recognitionErrors: v.errors,
+      repeatHintShown: v.repeatHint,
       recognitionLang: mode === 'voice' ? locale : null,
       wordCount: words,
       unsaid: check?.unsaid ?? null,

@@ -55,6 +55,7 @@
 | `speak.check` | Проверить | Check | Санҷиш |
 | `speak.dontKnow` | Не знаю | I don't know | Намедонам |
 | `mic.start` | Говорить | Speak | Гуфтан |
+| `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
 | `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар шинохти гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед. |

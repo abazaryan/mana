@@ -82,6 +82,8 @@ export interface VoiceOutcome {
   /** Hints sent with the attempt that gave the answer (0 = none). */
   phrasesCount: number;
   processLocally: boolean;
+  /** The "say the word 2–3 times" hint was shown: an attempt ended with nothing recognised (Р23, 16.10.2026). */
+  repeatHint: boolean;
   /** Before the answer there were retries or attempts with nothing recognised (no Easy). */
   troubled: boolean;
 }
@@ -305,6 +307,7 @@ export class VoiceCapture {
       retries: Math.max(0, this.attempts - 1),
       phrasesCount: this.sent.phrases,
       processLocally: this.sent.local,
+      repeatHint: this.errors.some((e) => UNRECOGNISED_CODES.includes(e.code)),
       troubled: this.attempts > 1 || this.errors.some((e) => TROUBLE_CODES.includes(e.code)),
     };
   }
