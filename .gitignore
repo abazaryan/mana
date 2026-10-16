@@ -15,3 +15,13 @@ reference/
 
 # Converted and generated decks (user content, not published)
 decks/
+
+# Secrets and speech-recognizer lab (recordings live outside the repo, in E:\dev\mana-lab)
+.env
+.env.*
+!.env.example
+tools/.env
+tools/.env.*
+!tools/.env.example
+mana-lab/
+*.key.json

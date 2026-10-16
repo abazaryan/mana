@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { MainApp } from './MainApp';
 import { PrototypeApp } from './PrototypeApp';
+import { RecordLab } from './RecordLab';
 
 export type Route =
   | { name: 'decks' }
   | { name: 'deck'; deckId: string }
   | { name: 'study'; deckId: string }
   | { name: 'settings' }
-  | { name: 'prototype' };
+  | { name: 'prototype' }
+  | { name: 'lab' };
 
-/** Hash routes: #/, #/deck/<id>, #/study/<id>, #/settings, #/prototype. Hashes work under any GitHub Pages path. */
+/**
+ * Hash routes: #/, #/deck/<id>, #/study/<id>, #/settings, #/prototype, and the hidden
+ * #/lab/record (recognizer experiment, in no menu). Hashes work under any GitHub Pages path.
+ */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (parts[0] === 'lab' && parts[1] === 'record') return { name: 'lab' };
   if (parts[0] === 'prototype') return { name: 'prototype' };
   if (parts[0] === 'settings') return { name: 'settings' };
   if (parts[0] === 'deck' && parts[1]) return { name: 'deck', deckId: decodeURIComponent(parts[1]) };
@@ -42,5 +48,6 @@ export function Root() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [route]);
+  if (route.name === 'lab') return <RecordLab />;
   return route.name === 'prototype' ? <PrototypeApp /> : <MainApp route={route} />;
 }
