@@ -234,12 +234,14 @@ function evaluate(it: LabManifest['items'][number], alts: string[], ms: number |
 // the result (last attempt, not a fair baseline). recordings-chrome2/manifest.json, if present,
 // holds the repeated pass where only the first attempt counts (retries are logged).
 const rows = new Map<string, Row[]>();
-const chromeRows = (pick: (i: LabManifest['items'][number]) => { alternatives: string[] } | null | undefined) =>
+// A take the speaker marked as spoiled (said something else) is left out: its expected verdict does not hold.
+const chromeRows = (pick: (i: LabManifest['items'][number]) => { alternatives: string[]; spoiled?: boolean } | null | undefined) =>
   manifest.items.flatMap((i) => {
     const c = pick(i);
-    return c ? [evaluate(i, c.alternatives, null)] : [];
+    return c && !c.spoiled ? [evaluate(i, c.alternatives, null)] : [];
   });
 let chrome2: Map<string, LabManifest['items'][number]> | null = null;
+let chromeNote = '';
 try {
   const m2 = JSON.parse(await readFile(join(labDir, 'recordings-chrome2', 'manifest.json'), 'utf8')) as LabManifest;
   chrome2 = new Map(m2.items.map((i) => [i.id, i]));
@@ -250,7 +252,9 @@ if (chrome2) {
   rows.set('chrome', chromeRows((i) => chrome2!.get(i.id)?.chrome));
   rows.set('chrome-old', chromeRows((i) => i.chromeOld ?? i.chrome));
   const retried = [...chrome2.values()].filter((i) => (i.chromeRetries?.length ?? 0) > 0).length;
-  console.log(`Chrome: первая попытка — ${rows.get('chrome')!.length} пунктов, с повторами — ${retried}.`);
+  const spoiled = [...chrome2.values()].filter((i) => i.chrome?.spoiled).length;
+  console.log(`Chrome: первая попытка — ${rows.get('chrome')!.length} пунктов (без ${spoiled} помеченных «сорвалось»), с повторами — ${retried}.`);
+  chromeNote = `Chrome, первая попытка: ${rows.get('chrome')!.length} пунктов; ${spoiled} помечены «сорвалось» (сказано не то) и не учитываются; повторов «Ещё раз» — ${retried} (не засчитываются).`;
 } else {
   rows.set('chrome', chromeRows((i) => i.chrome));
 }
@@ -264,7 +268,19 @@ for (const v of variants) {
     }),
   );
 }
+// Post-hoc estimate (not part of the pre-registered rule): Chrome first, a cloud variant only
+// where Chrome's first attempt came back empty. In real use the learner would speak again (a
+// new take); here the cloud answer is for the pass-1 recording of the same item.
+const hybrids: string[] = [];
+if (chrome2) {
+  for (const v of variants) {
+    const cloud = new Map(rows.get(v.id)!.map((r) => [r.id, r]));
+    rows.set(`chrome>${v.id}`, rows.get('chrome')!.map((r) => (r.empty ? cloud.get(r.id)! : r)));
+    hybrids.push(`chrome>${v.id}`);
+  }
+}
 const labels = new Map<string, string>([
+  ...variants.map((v) => [`chrome>${v.id}`, `Chrome → ${v.label} при пустом ответе (оценка)`] as const),
   ['chrome', chrome2 ? 'Chrome Web Speech, первая попытка (база)' : 'Chrome Web Speech (с повторами, база завышена)'],
   ['chrome-old', 'Chrome, проход с повторами (для сравнения)'],
   ...variants.map((v) => [v.id, v.label] as const),
@@ -286,6 +302,13 @@ const quantile = (xs: number[], q: number) => {
 const PRICE_PER_MIN: Record<string, number> = { chrome: 0, whisper: 0.0005, 'whisper-prompt': 0.0005, 'whisper-vad': 0.0005, deepgram: 0.0052 };
 const NEURONS_PER_MIN: Record<string, number> = { whisper: 46.63, 'whisper-prompt': 46.63, 'whisper-vad': 46.63, deepgram: 472.73 };
 function costLine(id: string): string {
+  if (id.includes('>')) {
+    const base = id.split('>')[1]!;
+    const share = rows.get('chrome')!.filter((r) => r.empty).length / rows.get('chrome')!.length;
+    const perDay = (1500 / 30) * share;
+    const free = perDay * NEURONS_PER_MIN[base]! <= 10000;
+    return `облако только на ${Math.round(share * 100)} % попыток (≈ ${Math.round(perDay)} мин/сутки): ${(1500 * share * PRICE_PER_MIN[base]!).toFixed(2)} USD по прайсу${free ? ', в бесплатных 10 000 нейронов в сутки' : ''}`;
+  }
   if (id.startsWith('chrome')) return '0 (бесплатно)';
   const minutes = 1500;
   const perDayNeurons = (minutes / 30) * NEURONS_PER_MIN[id]!;
@@ -297,11 +320,12 @@ function costLine(id: string): string {
 }
 
 const out: string[] = [];
-const ids = [...rows.keys()].filter((id) => id.startsWith('chrome')).concat(variants.map((v) => v.id));
+const ids = ['chrome', 'chrome-old'].filter((id) => rows.has(id)).concat(variants.map((v) => v.id), hybrids);
 const nWrong = common('chrome').filter((r) => r.expected !== 'correct').length;
 const nRight = common('chrome').filter((r) => r.expected === 'correct').length;
 const nShort = common('chrome').filter((r) => r.category === 'short').length;
 
+if (chromeNote) out.push(chromeNote, '');
 out.push(`Пункты: ${commonIds.size} общих с Chrome (из ${manifest.items.length}); ожидали «верно» — ${nRight}, «почти»/«неверно» — ${nWrong}, коротких слов — ${nShort}.`, '');
 out.push('### Сводка', '');
 out.push('| Вариант | Засчитано неверных | Отвергнуто верных | из них коротких | Пустых | Текст = сказанному | Время ответа, медиана / 90 % |', '|---|---|---|---|---|---|---|');
@@ -310,7 +334,7 @@ for (const id of ids) {
   const ms = rs.map((r) => r.ms).filter((x): x is number => x !== null);
   const fr = falseRejects(rs);
   out.push(
-    `| ${labels.get(id)} | ${pct(falseAccepts(rs).length, nWrong)} | ${pct(fr.length, nRight)} | ${pct(fr.filter((r) => r.category === 'short').length, nShort)} | ${rs.filter((r) => r.empty).length} | ${pct(rs.filter((r) => r.exact).length, rs.length)} | ${ms.length ? `${quantile(ms, 0.5)} / ${quantile(ms, 0.9)} мс` : '—'} |`,
+    `| ${labels.get(id)} | ${pct(falseAccepts(rs).length, nWrong)} | ${pct(fr.length, nRight)} | ${pct(fr.filter((r) => r.category === 'short').length, nShort)} | ${rs.filter((r) => r.empty).length} | ${pct(rs.filter((r) => r.exact).length, rs.length)} | ${ms.length && !id.includes('>') ? `${quantile(ms, 0.5)} / ${quantile(ms, 0.9)} мс` : '—'} |`,
   );
 }
 out.push('', 'Время ответа — от отправки готового файла до ответа сервиса с ноутбука; это нижняя граница (в приложении добавятся сеть телефона и ожидание конца речи). У Chrome время в журнале страницы включает саму речь, поэтому не сравнивается.', '');
