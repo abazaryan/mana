@@ -55,7 +55,7 @@ export const STRINGS = {
   'deck.notFound': { tg: 'Маҷмӯа ёфт нашуд.', ru: 'Колода не найдена.', en: 'Deck not found.' },
 
   // Skills (Р3)
-  'skill.listen': { tg: 'шунидан', ru: 'слушать', en: 'listen' },
+  'skill.listen': { tg: 'гӯш додан', ru: 'слушать', en: 'listen' },
   'skill.speak': { tg: 'гуфтан', ru: 'говорить', en: 'speak' },
   'skill.write': { tg: 'навиштан', ru: 'писать', en: 'write' },
 
@@ -101,7 +101,7 @@ export const STRINGS = {
   'intro.label': { tg: 'Ошноӣ', ru: 'Знакомство', en: 'Introduction' },
   'intro.echo': { tg: 'Бо садои баланд такрор кунед', ru: 'Повторите вслух', en: 'Say it aloud' },
   'intro.copy': { tg: 'Аз рӯи намуна нависед', ru: 'Напишите по образцу', en: 'Copy it out' },
-  'intro.again': { tg: 'Боз як бор', ru: 'Ещё раз', en: 'Once more' },
+  'intro.again': { tg: 'Бори дигар', ru: 'Ещё раз', en: 'Once more' },
   'intro.skip': { tg: 'Гузаштан', ru: 'Пропустить', en: 'Skip' },
 
   // Speak (Р22.6)
@@ -116,17 +116,17 @@ export const STRINGS = {
   'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
   'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
   'mic.unsupported': {
-    tg: 'Ин мурургар шинохти гуфторро надорад — ҷавобро нависед.',
+    tg: 'Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед.',
     ru: 'Этот браузер не распознаёт речь — напишите ответ.',
     en: 'This browser has no speech recognition — type the answer.',
   },
   'mic.err.not-allowed': {
-    tg: 'Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед.',
+    tg: 'Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед.',
     ru: 'Нет доступа к микрофону. Разрешите его для этого сайта.',
     en: 'No access to the microphone. Allow it for this site.',
   },
   'mic.err.service-not-allowed': {
-    tg: 'Мурургар шинохти гуфторро иҷозат надод.',
+    tg: 'Мурургар бозшиносии гуфторро иҷозат надод.',
     ru: 'Браузер не разрешил распознавание речи.',
     en: 'The browser did not allow speech recognition.',
   },
@@ -136,19 +136,19 @@ export const STRINGS = {
     en: 'No microphone found, or another app is using it.',
   },
   'mic.err.network': {
-    tg: 'Барои шинохти гуфтор интернет лозим аст.',
+    tg: 'Барои бозшиносии гуфтор интернет лозим аст.',
     ru: 'Для распознавания речи нужен интернет.',
     en: 'Speech recognition needs the internet.',
   },
   'mic.err.no-speech': { tg: 'Гуфтор шунида нашуд.', ru: 'Речь не услышана.', en: 'No speech heard.' },
-  'mic.err.no-result': { tg: 'Чизе шинохта нашуд.', ru: 'Ничего не распознано.', en: 'Nothing recognised.' },
+  'mic.err.no-result': { tg: 'Чизе шунида нашуд.', ru: 'Ничего не распознано.', en: 'Nothing recognised.' },
   'mic.err.language-not-supported': {
-    tg: 'Ин мурургар ин забонро намешиносад.',
+    tg: 'Бозшиносии гуфтор барои ин забон дар ин мурургар дар дастрас нест.',
     ru: 'Этот браузер не распознаёт этот язык.',
     en: 'This browser cannot recognise this language.',
   },
   'mic.err.watchdog': { tg: 'Микрофон фаъол нашуд.', ru: 'Микрофон не включился.', en: 'The microphone did not start.' },
-  'mic.err.other': { tg: 'Хатои шинохти гуфтор: {code}', ru: 'Ошибка распознавания: {code}', en: 'Recognition error: {code}' },
+  'mic.err.other': { tg: 'Хатои бозшиносии гуфтор: {code}', ru: 'Ошибка распознавания: {code}', en: 'Recognition error: {code}' },
 
   // Answer marks (Р22.9): the labels never promise to judge pronunciation
   'mark.heardX': { tg: 'шунида шуд: {x}', ru: 'услышано: {x}', en: 'heard: {x}' },
@@ -184,7 +184,7 @@ export const STRINGS = {
   'reason.correct': { tg: 'Дуруст', ru: 'Верно', en: 'Correct' },
   'reason.correct-fast': { tg: 'Дуруст ва босуръат', ru: 'Верно и быстро', en: 'Correct and fast' },
   'reason.correct-retried': {
-    tg: 'Дуруст, вале на аз талоши аввал',
+    tg: 'Дуруст, вале бо талоши дубора',
     ru: 'Верно, но не с первой попытки',
     en: 'Correct, but not on the first try',
   },
@@ -247,55 +247,55 @@ export const STRINGS = {
     ru: 'Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся.',
     en: 'Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one.',
   },
-  'settings.newPerDay': { tg: 'Омӯзбаргҳои нав дар як рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
-  'settings.recognition': { tg: 'Шинохти гуфтор', ru: 'Распознавание речи', en: 'Speech recognition' },
+  'settings.newPerDay': { tg: 'Омӯзбаргҳои нав дар рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
+  'settings.recognition': { tg: 'Бозшиносии гуфтор', ru: 'Распознавание речи', en: 'Speech recognition' },
   'settings.biasing': {
-    tg: 'Вожаҳо барои шинохти гуфтор (озмоишӣ)',
+    tg: 'Вожаҳо барои бозшиносии гуфтор (озмоишӣ)',
     ru: 'Подсказки распознавателю (эксперимент)',
     en: 'Recognizer hints (experiment)',
   },
   'settings.biasingHint': {
-    tg: 'Ба шинохти гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар шиносад. Дар ҳама мурургарҳо кор намекунад.',
+    tg: 'Ба бозшиносии гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар бишносад. Дар ҳама мурургарҳо кор намекунад.',
     ru: 'Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах.',
     en: 'The recognizer gets the words of your decks to recognise them better. Not every browser supports it.',
   },
   'settings.biasingRejected': {
-    tg: 'Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва боз фаъол кунед.',
+    tg: 'Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва дубора равшан кунед.',
     ru: 'Этот браузер не принял подсказки — на этом устройстве они не отправляются. Чтобы попробовать снова, выключите и включите переключатель.',
     en: 'This browser rejected the hints, so they are not sent on this device. To try again, switch this off and on.',
   },
   'settings.biasingNoApi': {
-    tg: 'Ин мурургар вожаҳо барои шинохти гуфторро қабул намекунад.',
+    tg: 'Ин мурургар вожаҳо барои бозшиносии гуфторро қабул намекунад.',
     ru: 'Этот браузер не поддерживает подсказки распознавателю.',
     en: 'This browser does not support recognizer hints.',
   },
   'pack.available': {
-    tg: 'Шинохт дар дастгоҳ ({lang}): насб шудааст.',
+    tg: 'Бозшиносӣ дар дастгоҳ ({lang}): насб шудааст.',
     ru: 'Распознавание на устройстве ({lang}): установлено.',
     en: 'On-device recognition ({lang}): installed.',
   },
   'pack.downloadable': {
-    tg: 'Шинохт дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст.',
+    tg: 'Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст.',
     ru: 'Распознавание на устройстве ({lang}): можно скачать.',
     en: 'On-device recognition ({lang}): can be downloaded.',
   },
   'pack.downloading': {
-    tg: 'Шинохт дар дастгоҳ ({lang}): боргирӣ мешавад…',
+    tg: 'Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ мешавад…',
     ru: 'Распознавание на устройстве ({lang}): скачивается…',
     en: 'On-device recognition ({lang}): downloading…',
   },
   'pack.unavailable': {
-    tg: 'Шинохт дар дастгоҳ ({lang}): барои ин забон дастрас нест.',
+    tg: 'Бозшиносӣ дар дастгоҳ ({lang}): барои ин забон дар дастрас нест.',
     ru: 'Распознавание на устройстве ({lang}): для этого языка недоступно.',
     en: 'On-device recognition ({lang}): not available for this language.',
   },
   'pack.unsupported': {
-    tg: 'Ин мурургар шинохт дар дастгоҳро надорад.',
+    tg: 'Ин мурургар бозшиносӣ дар дастгоҳро надорад.',
     ru: 'Этот браузер не умеет распознавать на устройстве.',
     en: 'This browser has no on-device recognition.',
   },
   'pack.download': {
-    tg: 'Боргирии забони {lang} барои шинохт дар дастгоҳ',
+    tg: 'Боргирии забони {lang} барои бозшиносӣ дар дастгоҳ',
     ru: 'Скачать {lang} для распознавания на устройстве',
     en: 'Download {lang} for on-device recognition',
   },

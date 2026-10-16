@@ -29,7 +29,7 @@
 | `deck.noAudio` | Нет аудио | No audio | Садо нест |
 | `deck.audioError` | Не удалось воспроизвести аудио. | Could not play the audio. | Садо пахш нашуд. |
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
-| `skill.listen` | слушать | listen | шунидан |
+| `skill.listen` | слушать | listen | гӯш додан |
 | `skill.speak` | говорить | speak | гуфтан |
 | `skill.write` | писать | write | навиштан |
 | `common.next` | Дальше | Next | Баъдӣ |
@@ -47,7 +47,7 @@
 | `intro.label` | Знакомство | Introduction | Ошноӣ |
 | `intro.echo` | Повторите вслух | Say it aloud | Бо садои баланд такрор кунед |
 | `intro.copy` | Напишите по образцу | Copy it out | Аз рӯи намуна нависед |
-| `intro.again` | Ещё раз | Once more | Боз як бор |
+| `intro.again` | Ещё раз | Once more | Бори дигар |
 | `intro.skip` | Пропустить | Skip | Гузаштан |
 | `speak.prompt` | Скажите ответ | Say the answer | Ҷавобро гӯед |
 | `speak.type` | Написать | Type | Навиштан |
@@ -57,16 +57,16 @@
 | `mic.start` | Говорить | Speak | Гуфтан |
 | `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
 | `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
-| `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар шинохти гуфторро надорад — ҷавобро нависед. |
-| `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед. |
-| `mic.err.service-not-allowed` | Браузер не разрешил распознавание речи. | The browser did not allow speech recognition. | Мурургар шинохти гуфторро иҷозат надод. |
+| `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |
+| `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед. |
+| `mic.err.service-not-allowed` | Браузер не разрешил распознавание речи. | The browser did not allow speech recognition. | Мурургар бозшиносии гуфторро иҷозат надод. |
 | `mic.err.audio-capture` | Микрофон не найден или занят другим приложением. | No microphone found, or another app is using it. | Микрофон ёфт нашуд ё барномаи дигар онро истифода мебарад. |
-| `mic.err.network` | Для распознавания речи нужен интернет. | Speech recognition needs the internet. | Барои шинохти гуфтор интернет лозим аст. |
+| `mic.err.network` | Для распознавания речи нужен интернет. | Speech recognition needs the internet. | Барои бозшиносии гуфтор интернет лозим аст. |
 | `mic.err.no-speech` | Речь не услышана. | No speech heard. | Гуфтор шунида нашуд. |
-| `mic.err.no-result` | Ничего не распознано. | Nothing recognised. | Чизе шинохта нашуд. |
-| `mic.err.language-not-supported` | Этот браузер не распознаёт этот язык. | This browser cannot recognise this language. | Ин мурургар ин забонро намешиносад. |
+| `mic.err.no-result` | Ничего не распознано. | Nothing recognised. | Чизе шунида нашуд. |
+| `mic.err.language-not-supported` | Этот браузер не распознаёт этот язык. | This browser cannot recognise this language. | Бозшиносии гуфтор барои ин забон дар ин мурургар дар дастрас нест. |
 | `mic.err.watchdog` | Микрофон не включился. | The microphone did not start. | Микрофон фаъол нашуд. |
-| `mic.err.other` | Ошибка распознавания: {code} | Recognition error: {code} | Хатои шинохти гуфтор: {code} |
+| `mic.err.other` | Ошибка распознавания: {code} | Recognition error: {code} | Хатои бозшиносии гуфтор: {code} |
 | `mark.heardX` | услышано: {x} | heard: {x} | шунида шуд: {x} |
 | `mark.typedX` | набрано: {x} | typed: {x} | навишта шуд: {x} |
 | `mark.sound` | засчитано по звучанию | accepted by sound | аз рӯи талаффуз қабул шуд |
@@ -89,7 +89,7 @@
 | `reason.almost` | Почти | Almost | Тақрибан дуруст |
 | `reason.correct` | Верно | Correct | Дуруст |
 | `reason.correct-fast` | Верно и быстро | Correct and fast | Дуруст ва босуръат |
-| `reason.correct-retried` | Верно, но не с первой попытки | Correct, but not on the first try | Дуруст, вале на аз талоши аввал |
+| `reason.correct-retried` | Верно, но не с первой попытки | Correct, but not on the first try | Дуруст, вале бо талоши дубора |
 | `reason.correct-fast-twice` | Верно и быстро второй раз подряд | Correct and fast twice in a row | Дуруст ва босуръат, ду бор паёпай |
 | `import.reading` | Читаю файл… | Reading the file… | Файл хонда мешавад… |
 | `import.rejected` | Колода не принята | Deck not accepted | Маҷмӯа қабул нашуд |
@@ -109,18 +109,18 @@
 | `settings.uiLang` | Язык интерфейса | Interface language | Забони барнома |
 | `settings.meaningLang` | Язык значений | Meaning language | Забони маъноҳо |
 | `settings.meaningHint` | Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся. | Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one. | Маъно, роҳнамо ва ёддошти омӯзбаргҳо бо ин забон нишон дода мешаванд; агар бо ин забон набошад — бо забони дигари мавҷуда. |
-| `settings.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар як рӯз |
-| `settings.recognition` | Распознавание речи | Speech recognition | Шинохти гуфтор |
-| `settings.biasing` | Подсказки распознавателю (эксперимент) | Recognizer hints (experiment) | Вожаҳо барои шинохти гуфтор (озмоишӣ) |
-| `settings.biasingHint` | Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах. | The recognizer gets the words of your decks to recognise them better. Not every browser supports it. | Ба шинохти гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар шиносад. Дар ҳама мурургарҳо кор намекунад. |
-| `settings.biasingRejected` | Этот браузер не принял подсказки — на этом устройстве они не отправляются. Чтобы попробовать снова, выключите и включите переключатель. | This browser rejected the hints, so they are not sent on this device. To try again, switch this off and on. | Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва боз фаъол кунед. |
-| `settings.biasingNoApi` | Этот браузер не поддерживает подсказки распознавателю. | This browser does not support recognizer hints. | Ин мурургар вожаҳо барои шинохти гуфторро қабул намекунад. |
-| `pack.available` | Распознавание на устройстве ({lang}): установлено. | On-device recognition ({lang}): installed. | Шинохт дар дастгоҳ ({lang}): насб шудааст. |
-| `pack.downloadable` | Распознавание на устройстве ({lang}): можно скачать. | On-device recognition ({lang}): can be downloaded. | Шинохт дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст. |
-| `pack.downloading` | Распознавание на устройстве ({lang}): скачивается… | On-device recognition ({lang}): downloading… | Шинохт дар дастгоҳ ({lang}): боргирӣ мешавад… |
-| `pack.unavailable` | Распознавание на устройстве ({lang}): для этого языка недоступно. | On-device recognition ({lang}): not available for this language. | Шинохт дар дастгоҳ ({lang}): барои ин забон дастрас нест. |
-| `pack.unsupported` | Этот браузер не умеет распознавать на устройстве. | This browser has no on-device recognition. | Ин мурургар шинохт дар дастгоҳро надорад. |
-| `pack.download` | Скачать {lang} для распознавания на устройстве | Download {lang} for on-device recognition | Боргирии забони {lang} барои шинохт дар дастгоҳ |
+| `settings.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар рӯз |
+| `settings.recognition` | Распознавание речи | Speech recognition | Бозшиносии гуфтор |
+| `settings.biasing` | Подсказки распознавателю (эксперимент) | Recognizer hints (experiment) | Вожаҳо барои бозшиносии гуфтор (озмоишӣ) |
+| `settings.biasingHint` | Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах. | The recognizer gets the words of your decks to recognise them better. Not every browser supports it. | Ба бозшиносии гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар бишносад. Дар ҳама мурургарҳо кор намекунад. |
+| `settings.biasingRejected` | Этот браузер не принял подсказки — на этом устройстве они не отправляются. Чтобы попробовать снова, выключите и включите переключатель. | This browser rejected the hints, so they are not sent on this device. To try again, switch this off and on. | Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва дубора равшан кунед. |
+| `settings.biasingNoApi` | Этот браузер не поддерживает подсказки распознавателю. | This browser does not support recognizer hints. | Ин мурургар вожаҳо барои бозшиносии гуфторро қабул намекунад. |
+| `pack.available` | Распознавание на устройстве ({lang}): установлено. | On-device recognition ({lang}): installed. | Бозшиносӣ дар дастгоҳ ({lang}): насб шудааст. |
+| `pack.downloadable` | Распознавание на устройстве ({lang}): можно скачать. | On-device recognition ({lang}): can be downloaded. | Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст. |
+| `pack.downloading` | Распознавание на устройстве ({lang}): скачивается… | On-device recognition ({lang}): downloading… | Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ мешавад… |
+| `pack.unavailable` | Распознавание на устройстве ({lang}): для этого языка недоступно. | On-device recognition ({lang}): not available for this language. | Бозшиносӣ дар дастгоҳ ({lang}): барои ин забон дар дастрас нест. |
+| `pack.unsupported` | Этот браузер не умеет распознавать на устройстве. | This browser has no on-device recognition. | Ин мурургар бозшиносӣ дар дастгоҳро надорад. |
+| `pack.download` | Скачать {lang} для распознавания на устройстве | Download {lang} for on-device recognition | Боргирии забони {lang} барои бозшиносӣ дар дастгоҳ |
 | `pack.failed` | Скачать не удалось. | The download failed. | Боргирӣ нашуд. |
 | `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old journal) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
 | `backup.title` | Резервная копия | Backup | Нусхаи пуштибон |
