@@ -76,7 +76,8 @@ export interface SpeechRecognizer {
 }
 
 export interface Speaker {
-  speak(text: string, lang: string): void;
+  /** `onEnd`: the utterance finished (not called when cancelled). */
+  speak(text: string, lang: string, onEnd?: () => void): void;
   cancel(): void;
 }
 

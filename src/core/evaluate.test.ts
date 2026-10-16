@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editDistance, evaluate, normalize } from './evaluate';
+import { checkWritten, editDistance, evaluate, normalize, type ArticleForm } from './evaluate';
 import { FRENCH } from './languages';
 
 const fr = FRENCH.writing;
@@ -166,5 +166,60 @@ describe('editDistance', () => {
     expect(editDistance('', 'abc')).toBe(3);
     expect(editDistance('chat', 'chats')).toBe(1);
     expect(editDistance('same', 'same')).toBe(0);
+  });
+});
+
+describe('checkWritten: the article in `write` (Р24)', () => {
+  const HINT: ArticleForm = { determiner: true, gender: 'm' };
+  const NO_HINT: ArticleForm = { determiner: false, gender: 'm' };
+  const w = (e: string, a: string, form: ArticleForm) => checkWritten(e, a, fr, form).evaluation;
+
+  it('another article is incorrect, with the form hint and without', () => {
+    expect(w('le nom', 'la nom', HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('le nom', 'la nom', NO_HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('le nom', 'les nom', NO_HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('le nom', 'un nom', NO_HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('la maison', 'le maison', { determiner: true, gender: 'f' })).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('un rendez-vous', 'une rendez-vous', HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+  });
+
+  it('a missing article: incorrect with the form hint, almost without it', () => {
+    expect(w('le nom', 'nom', HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w('le nom', 'nom', NO_HINT)).toEqual({ verdict: 'almost', errorType: 'article' });
+    expect(w("l'hôpital", 'hôpital', HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w("l'hôpital", 'hôpital', NO_HINT)).toEqual({ verdict: 'almost', errorType: 'article' });
+  });
+
+  it('le/la where the word takes l\': almost, its own reason (elision); the wrong gender is an article error', () => {
+    expect(w("l'hôpital", 'le hôpital', HINT)).toEqual({ verdict: 'almost', errorType: 'elision' });
+    expect(w("l'hôpital", 'la hôpital', HINT)).toEqual({ verdict: 'incorrect', errorType: 'article' });
+    expect(w("l'école", 'la école', { determiner: true, gender: 'f' })).toEqual({ verdict: 'almost', errorType: 'elision' });
+    // Gender unknown: either one is taken as the missed elision.
+    expect(w("l'ami", 'la ami', { determiner: false })).toEqual({ verdict: 'almost', errorType: 'elision' });
+    // l' where the word takes le/la.
+    expect(w('le héros', "l'héros", HINT)).toEqual({ verdict: 'almost', errorType: 'elision' });
+  });
+
+  it('everything else is the ported cascade', () => {
+    expect(w('le nom', 'le nom', HINT)).toEqual({ verdict: 'correct' });
+    expect(w("l'hôpital", "l'hopital", HINT)).toEqual({ verdict: 'almost', errorType: 'diacritic' });
+    expect(w('beaucoup', 'beacoup', NO_HINT)).toEqual({ verdict: 'almost', errorType: 'typo' });
+    expect(w('Ça va ?', 'ça va?', NO_HINT)).toEqual({ verdict: 'correct', typographyNote: true });
+    expect(w('le nom', 'la nomx', HINT)).toEqual({ verdict: 'incorrect' });
+    expect(w('le nom', '', HINT)).toEqual({ verdict: 'incorrect' });
+  });
+
+  it('the marks show what was compared, and never an error on a correct answer', () => {
+    for (const [e, a, form] of [
+      ['le nom', 'la nom', HINT],
+      ['le nom', 'nom', HINT],
+      ["l'hôpital", 'le hôpital', HINT],
+      ['le nom', 'le nom', HINT],
+    ] as const) {
+      const { evaluation, cells } = checkWritten(e, a, fr, form);
+      expect(cells.flatMap((c) => (c.top === null ? [] : [c.top])).join('').toLowerCase()).toBe(normalize(a, fr));
+      expect(cells.flatMap((c) => (c.bottom === null ? [] : [c.bottom])).join('').toLowerCase()).toBe(normalize(e, fr));
+      expect(cells.some((c) => c.status !== 'ok')).toBe(evaluation.verdict !== 'correct');
+    }
   });
 });

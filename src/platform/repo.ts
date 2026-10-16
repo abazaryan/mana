@@ -11,6 +11,7 @@ import type { DeckArchive, DeckAudio } from '../core/deckArchive';
 import type { Skill } from '../core/deckFormat';
 import { planImport, type ImportPlan, type InstalledDeck } from '../core/deckImport';
 import type {
+  DrillRecord,
   CardRow,
   DeckRow,
   EntryRow,
@@ -153,6 +154,15 @@ export async function recordIntro(
 }
 
 /** Appends an answer and updates its card in one transaction. */
+export type DrillInput = Omit<DrillRecord, 'id' | 'type' | 'userId' | 'deviceId'>;
+
+/** Appends the short practice after Again (Р25); never touches the card. */
+export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, newId: NewId = randomId): Promise<DrillRecord> {
+  const record: DrillRecord = { ...input, id: newId(), type: 'drill', ...who(actor) };
+  await db.log.add(record);
+  return record;
+}
+
 export async function recordReview(
   db: ManaDb,
   scheduler: FSRS,
@@ -194,10 +204,13 @@ export async function lastReview(
   entryId: string,
   skill: Skill,
 ): Promise<ReviewRecord | null> {
+  // Drills after Again share the index (they have a skill); the Easy rule skips them (Р25).
   const last = await db.log
     .where('[userId+deckId+entryId+skill+at]')
     .between([userId, deckId, entryId, skill, Dexie.minKey], [userId, deckId, entryId, skill, Dexie.maxKey])
-    .last();
+    .reverse()
+    .filter((r) => r.type === 'review')
+    .first();
   return last && last.type === 'review' ? last : null;
 }
 

@@ -14,7 +14,8 @@ import type { WritingRules } from './languages';
 import type { Alternate } from './printConventions';
 
 export type Verdict = 'correct' | 'almost' | 'incorrect';
-export type ErrorType = 'diacritic' | 'typo' | 'article';
+/** `elision`: `le hôpital` for `l'hôpital` (Р24) — the written check only, never the ported cascade. */
+export type ErrorType = 'diacritic' | 'typo' | 'article' | 'elision';
 
 export interface Evaluation {
   verdict: Verdict;
@@ -340,4 +341,63 @@ export function charBlocks(cells: readonly CharCell[]): CharCell[][] {
   }
   flush();
   return blocks;
+}
+
+// ---------- The article in `write` (Р24) ----------
+
+/** What the entry says about the article it asks for (Р16, Р24). */
+export interface ArticleForm {
+  /** The entry has the hint `form.determiner`: the article is part of the question. */
+  determiner: boolean;
+  /** Gender of the word (`form.gender`, else the entry's `gender`): tells `le hôpital` from `la hôpital`. */
+  gender?: 'm' | 'f' | 'n';
+}
+
+const ELIDED = "l'";
+const ELIDABLE: Readonly<Record<string, 'm' | 'f'>> = { le: 'm', la: 'f' };
+
+function splitArticle(s: string, rules: WritingRules): { article: string; rest: string } | null {
+  if (!rules.leadingArticle) return null;
+  const m = s.match(rules.leadingArticle);
+  return m ? { article: m[1]!.trim(), rest: s.slice(m[0].length) } : null;
+}
+
+/**
+ * The verdict of a written answer (skill `write`, intro copy-out) with Р24 on top of
+ * the ported cascade. The article carries the gender, and `write` is the only skill
+ * that checks it (Р23.4):
+ *   another article → incorrect (`article`), with or without the form hint;
+ *   no article where the entry has the hint → incorrect (`article`);
+ *   no article without the hint → almost (`article`), as in the cascade;
+ *   `le`/`la` where the word takes `l'` (or the other way) → almost (`elision`),
+ *   unless the gender of the entry says `le`/`la` itself is wrong.
+ * Stricter than the voice rule (Р22.2), which stays as it is.
+ */
+export function checkWritten(expected: string, actual: string, rules: WritingRules, form: ArticleForm): TypedCheck {
+  const base = checkTyped(expected, actual, rules);
+  const e = normalize(expected, rules);
+  const a = normalize(actual, rules);
+  const re = splitArticle(e, rules);
+  if (!re || a.length === 0) return base;
+  const align = (evaluation: Evaluation): TypedCheck => ({
+    evaluation,
+    cells: alignChars(foldTraced(expected, rules), foldTraced(actual, rules)),
+  });
+  const ra = splitArticle(a, rules);
+  if (ra) {
+    if (ra.article === re.article) return base;
+    const restOk = evaluate(re.rest, ra.rest, rules).verdict !== 'incorrect';
+    if (ra.rest === re.rest) {
+      const typedGender = ELIDABLE[ra.article];
+      if (re.article === ELIDED && typedGender && (!form.gender || form.gender === typedGender)) {
+        return align({ verdict: 'almost', errorType: 'elision' });
+      }
+      if (ra.article === ELIDED && ELIDABLE[re.article]) return align({ verdict: 'almost', errorType: 'elision' });
+    }
+    return align(restOk ? { verdict: 'incorrect', errorType: 'article' } : { verdict: 'incorrect' });
+  }
+  if (base.evaluation.errorType === 'article' && form.determiner) {
+    return { evaluation: { verdict: 'incorrect', errorType: 'article' }, cells: base.cells };
+  }
+  return base;
 }

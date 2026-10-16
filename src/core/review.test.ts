@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FRENCH } from './languages';
 import type { FinalRating, ReviewRecord } from './model';
-import { canChoose, canClaimMisrecognized, chooseRating, claimMisrecognized, previousOutcome, suggestSpeak } from './review';
+import { canChoose, canClaimMisrecognized, chooseRating, claimMisrecognized, previousOutcome, suggestSpeak, suggestWrite } from './review';
 import { checkSpoken } from './spoken';
 
 const prev = (final: FinalRating, latencyMs: number | null, wordCount = 2) =>
@@ -80,5 +80,33 @@ describe('suggestSpeak', () => {
     expect(previousOutcome(null)).toBeNull();
     expect(previousOutcome(prev(4, 900, 5))).toEqual({ verdict: 'correct', latencyMs: 900, nWords: 5 });
     expect(previousOutcome(prev(1, 900))?.verdict).toBe('incorrect');
+  });
+});
+
+describe('stage 4.3 (Р25)', () => {
+  const check = (heard: string) => checkSpoken('le nom', [heard], FRENCH.spoken);
+
+  it('`listen` is rated Good at most, with its own reason', () => {
+    expect(suggestSpeak(check('le nom'), 1500, prev(3, 1200), false, 'listen')).toEqual({ rating: 3, reason: 'listen-no-easy' });
+    expect(suggestSpeak(check('le nom'), 1500, null, false, 'listen')).toEqual({ rating: 3, reason: 'correct-fast' });
+    expect(suggestSpeak(check('nom'), 1500, null, false, 'listen')).toEqual({ rating: 2, reason: 'almost' });
+    // A raise by the user stays allowed (Р4).
+    expect(chooseRating(3, 4)).toEqual({ final: 4, correction: 'raised' });
+  });
+
+  it('an answer that came back after Again is never "correct and fast" for the next Easy', () => {
+    const returned = { ...prev(3, 1200), requeue: 1 } as ReviewRecord;
+    expect(previousOutcome(returned)?.latencyMs).toBeNull();
+    expect(suggestSpeak(check('le nom'), 1500, returned)).toEqual({ rating: 3, reason: 'correct-fast' });
+    expect(suggestWrite('correct', 1500, 2, returned)).toEqual({ rating: 3, reason: 'correct-fast' });
+    expect(suggestSpeak(check('le nom'), 1500, { ...prev(3, 1200), requeue: 0 } as ReviewRecord).rating).toBe(4);
+  });
+
+  it('`write`: verdict → rating, Easy by the latency to the first key; "I don\'t know" is Again', () => {
+    expect(suggestWrite('correct', 4000, 2, null)).toEqual({ rating: 3, reason: 'correct' });
+    expect(suggestWrite('almost', 1000, 2, null)).toEqual({ rating: 2, reason: 'almost' });
+    expect(suggestWrite('incorrect', 1000, 2, null)).toEqual({ rating: 1, reason: 'incorrect' });
+    expect(suggestWrite('correct', 1500, 2, prev(3, 1200))).toEqual({ rating: 4, reason: 'correct-fast-twice' });
+    expect(suggestWrite(null, null, 2, prev(3, 1200))).toEqual({ rating: 1, reason: 'incorrect' });
   });
 });

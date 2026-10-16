@@ -14,6 +14,7 @@ import {
   exportJournal,
   getMedia,
   lastReview,
+  recordDrill,
   listDecks,
   loadSessionData,
   listEntries,
@@ -377,5 +378,37 @@ describe('backup', () => {
     });
     expect(await restoreJournal(db, s, bad)).toEqual({ ok: false, error: 'records' });
     expect(await db.log.count()).toBe(0);
+  });
+});
+
+describe('drill records (Р25)', () => {
+  it('written after the answer; the Easy rule and the rebuild skip it; the backup keeps it', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await someProgress(db, actor);
+    const answered = await lastReview(db, actor.userId, 'fr-test-01', 'a', 'speak');
+    await recordDrill(db, actor, {
+      at: new Date(T0 + 2 * D + 30_000),
+      deckId: 'fr-test-01',
+      entryId: 'a',
+      deckRevision: 1,
+      sessionId: 's2',
+      skill: 'speak',
+      reviewId: answered!.id,
+      skipped: false,
+      echo: { answer: 'a', alternatives: ['a'], verdict: 'correct', skipped: false, mode: 'voice', recognitionErrors: [], retries: 0, repeats: 1 },
+      copy: null,
+    });
+    expect(await lastReview(db, actor.userId, 'fr-test-01', 'a', 'speak')).toEqual(answered);
+    const cards = await db.cards.toArray();
+    const rebuilt = await rebuildUserCards(db, createScheduler(), actor.userId);
+    const dues = (x: { entryId: string; skill: string; due: Date }[]) =>
+      Object.fromEntries(x.map((c) => [`${c.entryId}/${c.skill}`, c.due.toISOString()]));
+    expect(dues(rebuilt)).toEqual(dues(cards));
+
+    const { json, count } = await exportJournal(db, actor, new Date(T0 + 3 * D));
+    expect(count).toBe(7);
+    const parsed = parseBackup(json);
+    expect(parsed.ok && parsed.backup.records.find((r) => r.type === 'drill')).toMatchObject({ reviewId: answered!.id, skill: 'speak' });
   });
 });

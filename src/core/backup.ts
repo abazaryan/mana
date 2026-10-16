@@ -65,6 +65,10 @@ function reviveRecord(v: unknown, userId: string): LogRecord | null {
     if (v.skill !== null) return null;
     return { ...(v as unknown as LogRecord), at };
   }
+  if (v.type === 'drill') {
+    if (!(SKILLS as readonly unknown[]).includes(v.skill as Skill) || !str(v.reviewId)) return null;
+    return { ...(v as unknown as LogRecord), at };
+  }
   if (v.type !== 'review') return null;
   if (!(SKILLS as readonly unknown[]).includes(v.skill as Skill)) return null;
   if (!rating(v.final) || !rating(v.suggested) || !isObject(v.fsrs)) return null;

@@ -194,6 +194,20 @@ export interface ReviewRecord extends LogBase {
   repeats?: number | null;
   /** Extra words heard. */
   extraWords?: number | null;
+  /** `listen` (stage 4.3): times the audio played before the answer (1 = only the automatic play). */
+  plays?: number | null;
+  /** `listen`: visible ms from the card shown to the end of the last play before the answer. */
+  audioEndMs?: number | null;
+  /** `listen`: visible ms from the card shown to the microphone ready after that play; latency counts from here. */
+  micReadyMs?: number | null;
+  /** 0 = the card as planned; 1 or 2 = it came back in the portion after Again (Р25). */
+  requeue?: number;
+  /** Seconds since the previous answer on this pair (any day); null for the first one. */
+  sincePairSec?: number | null;
+  /** Other cards between this one and the previous card of the same entry in the portion (introduction included); null if none. */
+  sinceEntryCards?: number | null;
+  /** Seconds since the previous card of the same entry in the portion was finished; null if none. */
+  sinceEntrySec?: number | null;
   /** Sound rules that made a word match (З1…З9, Ч). */
   soundRules?: string[];
   /** Recognizer adapter (`web-speech`); from the stage 4.2 amendments. */
@@ -212,7 +226,22 @@ export interface ReviewRecord extends LogBase {
   fsrs: ReviewFsrs;
 }
 
-export type LogRecord = IntroRecord | ReviewRecord;
+/**
+ * The short practice after Again (Р17.11, Р25): `speak` and `listen` — hear and say it
+ * aloud; `write` — copy it out once. Never rated; written after its answer, which it
+ * points to. FSRS and the Easy rule skip it.
+ */
+export interface DrillRecord extends LogBase {
+  type: 'drill';
+  skill: Skill;
+  /** The answer rated Again. */
+  reviewId: string;
+  skipped: boolean;
+  echo: IntroEcho | null;
+  copy: IntroCopy | null;
+}
+
+export type LogRecord = IntroRecord | ReviewRecord | DrillRecord;
 
 /** Derived FSRS state of one card; rebuilt from the journal at any time. */
 export interface CardRow extends CardState {

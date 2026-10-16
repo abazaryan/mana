@@ -548,3 +548,25 @@ describe('pickLocalizedWithLang', () => {
     expect(pickLocalizedWithLang(undefined, 'ru')).toBeUndefined();
   });
 });
+
+describe('validateDeck: forms that sound the same (Р16)', () => {
+  const pair = (skillsOfSecond: string[]) =>
+    deck({
+      entries: [
+        entry({ id: 'ravi', text: 'ravi', audio: 'audio/ravi.mp3', skills: ['listen', 'speak', 'write'] }),
+        entry({ id: 'ravie', text: 'ravie', audio: 'audio/ravie.mp3', skills: skillsOfSecond }),
+        entry({ id: 'petite', text: 'petite', audio: 'audio/petite.mp3', skills: ['speak'] }),
+        entry({ id: 'petit', text: 'petit', audio: 'audio/petit.mp3', skills: ['speak'] }),
+      ],
+    });
+  const sameSound = (v: unknown) => messages(validateDeck(v, withPacks).warnings).filter((m) => m.includes('звучат одинаково'));
+
+  it('warns when both have `speak` or `listen`', () => {
+    expect(sameSound(pair(['speak', 'write']))).toHaveLength(1);
+    expect(sameSound(pair(['listen', 'write']))[0]).toContain('Записи 1 и 2');
+  });
+
+  it('is quiet when the second has `write` only, and for forms that sound different', () => {
+    expect(sameSound(pair(['write']))).toEqual([]);
+  });
+});

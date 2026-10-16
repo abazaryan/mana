@@ -423,6 +423,11 @@ export function checkSpoken(
  * (exactly or by sound). The not-yet-said end of the reference is no error, so the
  * alignment lets it go free; nothing is judged here — the final result is.
  */
+/** Two texts sound the same: each one, said, is accepted for the other (Р16). */
+export function soundsSame(a: string, b: string, rules: SpokenRules): boolean {
+  return checkSpoken(a, [b], rules).verdict === 'correct' && checkSpoken(b, [a], rules).verdict === 'correct';
+}
+
 export function liveHeard(expected: string, interim: string, rules: SpokenRules): boolean[] {
   const ref = tokenizeSpoken(expected, rules);
   const heard = tokenizeSpoken(interim, rules);

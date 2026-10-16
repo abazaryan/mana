@@ -13,6 +13,7 @@
  */
 import type { LanguageSupport, UiLang } from './deckFormat';
 import { FRENCH_SPOKEN } from './frenchSpoken.ts';
+import { soundsSame } from './spoken.ts';
 
 /**
  * Language rules of the written-answer cascade (src/core/evaluate.ts) and of print
@@ -111,6 +112,7 @@ export const FRENCH: LanguagePack = {
   defaultLocale: 'fr-FR',
   name: { tg: 'фаронсавӣ', ru: 'французский', en: 'French' },
   genders: ['m', 'f'],
+  sameSound: (a, b) => soundsSame(a, b, FRENCH_SPOKEN),
   keyboardRow: ['é', 'è', 'ê', 'ë', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ü', 'œ', 'æ', "'", '-'],
   writing: {
     // French typography: a space before `? ! : ; »` and after `«`. Correct in print,

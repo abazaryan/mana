@@ -89,6 +89,8 @@ export interface LanguageSupport {
   /** Primary BCP-47 subtag, e.g. "fr". */
   code: string;
   genders: readonly Gender[];
+  /** Two texts sound the same (ravi / ravie): each one, said, is accepted for the other (Р16). */
+  sameSound?(a: string, b: string): boolean;
 }
 
 export interface DeckCheckOptions {
@@ -599,6 +601,33 @@ function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): Lan
   return pack;
 }
 
+const VOICE_SKILLS: readonly string[] = ['speak', 'listen'];
+
+/**
+ * Р16: forms that sound the same (ravi / ravie) — `speak` and `listen` at one entry only,
+ * `write` at both. A pair with a voice skill on both entries is a warning: the
+ * recognizer cannot tell them apart.
+ */
+function sameSoundWarnings(c: Collector, entries: readonly unknown[], sameSound: (a: string, b: string) => boolean): void {
+  const voiced = entries.flatMap((raw, i) => {
+    if (!isObject(raw) || typeof raw.text !== 'string' || !Array.isArray(raw.skills)) return [];
+    const skills = raw.skills.filter((s): s is string => typeof s === 'string' && VOICE_SKILLS.includes(s));
+    return skills.length > 0 ? [{ i, text: raw.text.trim(), skills }] : [];
+  });
+  for (let b = 0; b < voiced.length; b++) {
+    for (let a = 0; a < b; a++) {
+      const x = voiced[a]!;
+      const y = voiced[b]!;
+      if (x.text.toLowerCase() === y.text.toLowerCase() || !sameSound(x.text, y.text)) continue;
+      c.warn(
+        `entries[${y.i}].skills`,
+        `Записи ${x.i + 1} и ${y.i + 1} звучат одинаково (${q(x.text)} и ${q(y.text)}), и у обеих есть ${list(VOICE_SKILLS)}: ` +
+          'по звучанию их не различить. Оставьте speak и listen только у одной записи, write — у обеих.',
+      );
+    }
+  }
+}
+
 /** Validates parsed deck.json content. */
 export function validateDeck(value: unknown, options: DeckCheckOptions = {}): DeckCheck {
   const c = new Collector();
@@ -682,6 +711,7 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
       for (const l of e.langs) langCount.set(l, (langCount.get(l) ?? 0) + 1);
       for (const t of e.tags) tagUse.set(t, [...(tagUse.get(t) ?? []), i + 1]);
     });
+    if (lang?.sameSound) sameSoundWarnings(c, entries, lang.sameSound);
     for (const [t, nums] of tagUse) {
       if (tagCodes.has(t)) continue;
       const shown = nums.slice(0, 5).join(', ') + (nums.length > 5 ? '…' : '');

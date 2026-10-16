@@ -66,7 +66,9 @@ export type RatingReason =
   | 'correct-fast'
   | 'correct-fast-twice'
   /** Would be Easy, but this card needed retries or unrecognised attempts first (Good). */
-  | 'correct-retried';
+  | 'correct-retried'
+  /** Would be Easy, but `listen` gives Good at most for now (Р25): it is an echo, intervals grow anyway. */
+  | 'listen-no-easy';
 
 export interface RatingSuggestion {
   rating: Grade;

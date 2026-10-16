@@ -4,6 +4,7 @@
 import { Rating } from 'ts-fsrs';
 import { suggestRating, type AnswerOutcome, type RatingSuggestion } from './rating';
 import type { AnswerMode, Correction, FinalRating, ReviewRecord } from './model';
+import type { Verdict } from './evaluate';
 import type { SpokenCheck } from './spoken';
 
 /**
@@ -15,7 +16,8 @@ export function previousOutcome(prev: ReviewRecord | null): AnswerOutcome | null
   if (!prev) return null;
   return {
     verdict: prev.final >= 3 ? 'correct' : 'incorrect',
-    latencyMs: prev.latencyMs,
+    // A return after Again (Р25) came minutes after the reference was shown: never "fast".
+    latencyMs: (prev.requeue ?? 0) > 0 ? null : prev.latencyMs,
     nWords: prev.wordCount ?? prev.expected.split(/\s+/).filter(Boolean).length,
   };
 }
@@ -30,11 +32,28 @@ export function suggestSpeak(
   latencyMs: number | null,
   previous: ReviewRecord | null,
   troubled = false,
+  skill: 'speak' | 'listen' = 'speak',
 ): RatingSuggestion {
   if (!check) return suggestRating({ verdict: 'incorrect', latencyMs: null, nWords: 0 }, null);
   const s = suggestRating({ verdict: check.verdict, latencyMs, nWords: check.words }, previousOutcome(previous));
   if (troubled && s.rating === Rating.Easy) return { rating: Rating.Good, reason: 'correct-retried' };
+  // Р25: `listen` is not rated Easy automatically (a raise by the user is allowed, Р4).
+  if (skill === 'listen' && s.rating === Rating.Easy) return { rating: Rating.Good, reason: 'listen-no-easy' };
   return s;
+}
+
+/**
+ * Suggested rating of a `write` answer (Р4, Р21, Р24): the written verdict, the
+ * latency to the first key; null check = "I don't know" (Again).
+ */
+export function suggestWrite(
+  verdict: Verdict | null,
+  latencyMs: number | null,
+  nWords: number,
+  previous: ReviewRecord | null,
+): RatingSuggestion {
+  if (!verdict) return suggestRating({ verdict: 'incorrect', latencyMs: null, nWords: 0 }, null);
+  return suggestRating({ verdict, latencyMs, nWords }, previousOutcome(previous));
 }
 
 export interface RatingChoice {

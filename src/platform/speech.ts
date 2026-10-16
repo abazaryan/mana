@@ -159,9 +159,10 @@ function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
 export function createBrowserSpeaker(): Speaker {
   const available = typeof window !== 'undefined' && 'speechSynthesis' in window;
   return {
-    speak(text, lang) {
+    speak(text, lang, onEnd) {
       if (!available) return;
       const u = new SpeechSynthesisUtterance(text);
+      if (onEnd) u.onend = () => onEnd();
       u.lang = lang;
       u.rate = 0.95;
       const v = pickVoice(lang);

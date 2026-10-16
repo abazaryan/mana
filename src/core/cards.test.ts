@@ -1,7 +1,7 @@
 import { fsrs, Rating, type Grade } from 'ts-fsrs';
 import { describe, expect, it } from 'vitest';
 import { rebuildCards, stepCard } from './cards';
-import { cardKey, type IntroRecord, type LogRecord, type ReviewRecord } from './model';
+import { cardKey, type DrillRecord, type IntroRecord, type LogRecord, type ReviewRecord } from './model';
 import { createScheduler, type CardState } from './scheduler';
 
 const USER = 'user-1';
@@ -129,5 +129,34 @@ describe('rebuildCards', () => {
     };
     const other: LogRecord = { ...log[0]!, id: 'o1', userId: 'user-2' };
     expect(rebuildCards(createScheduler(), [intro, other], USER)).toEqual([]);
+  });
+});
+
+describe('drill records (Р25)', () => {
+  it('the rebuild with and without the practice after Again gives the same next due dates', () => {
+    const { log } = recordIncrementally();
+    const drills: DrillRecord[] = log
+      .filter((r) => r.final === Rating.Again)
+      .map((r, k) => ({
+        id: `dr${k}`,
+        type: 'drill',
+        userId: USER,
+        deviceId: 'dev-1',
+        at: new Date(r.at.getTime() + 20_000),
+        deckId: r.deckId,
+        entryId: r.entryId,
+        deckRevision: 1,
+        sessionId: 's',
+        skill: r.skill,
+        reviewId: r.id,
+        skipped: false,
+        echo: null,
+        copy: { typed: r.entryId, verdict: 'correct', errorType: null },
+      }));
+    expect(drills.length).toBeGreaterThan(0);
+    const plain = rebuildCards(createScheduler(), log, USER);
+    const withDrills = rebuildCards(createScheduler(), [...log, ...drills], USER);
+    expect(withDrills).toEqual(plain);
+    for (const c of withDrills) expect(c.due).toEqual(log.find((r) => r.id === c.lastLogId)!.fsrs.nextDue);
   });
 });

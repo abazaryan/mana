@@ -79,6 +79,8 @@ export interface VoiceOutcome {
   totalMs: number | null;
   errors: RecognitionErrorEntry[];
   retries: number;
+  /** Visible ms from the card shown to the microphone ready in the last attempt. */
+  readyMs: number | null;
   /** Hints sent with the attempt that gave the answer (0 = none). */
   phrasesCount: number;
   processLocally: boolean;
@@ -157,9 +159,12 @@ export class VoiceCapture {
     s?.abort();
   }
 
-  /** Starts listening; a second call is a retry (counted). Call from a user gesture when possible. */
-  start(): void {
-    this.begin(true);
+  /**
+   * Starts listening; a second call is a retry (counted). Call from a user gesture when possible.
+   * `counted` false: a restart the user did not ask for as a retry (after replaying the audio in `listen`).
+   */
+  start(counted = true): void {
+    this.begin(counted);
   }
 
   /** `counted`: false for the automatic repeat without hints after `phrases-not-supported`. */
@@ -302,6 +307,7 @@ export class VoiceCapture {
       latencyMs: latency === null ? null : Math.round(latency),
       latencySource: latency === null ? null : latencySource,
       micDelayMs: ready ? Math.round(ready.real - this.requestedAt) : null,
+      readyMs: ready ? Math.round(ready.vis) : null,
       totalMs: this.endVis === null ? null : Math.round(this.endVis),
       errors: [...this.errors],
       retries: Math.max(0, this.attempts - 1),
