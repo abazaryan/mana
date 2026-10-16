@@ -253,6 +253,26 @@ describe('journal and cards', () => {
   });
 });
 
+describe('a new revision keeps progress (amendment of 16.10.2026)', () => {
+  it('changed meanings: the same entries, cards and journal', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await importDeck(db, deck(1, ['a', 'b', 'c']));
+    await someProgress(db, actor);
+    const cardsBefore = await db.cards.toArray();
+    const logBefore = await userLog(db, actor.userId);
+
+    const rev2 = deck(2, ['a', 'b', 'c']);
+    rev2.entries[0] = { ...rev2.entries[0]!, meaning: { tg: 'Ту фаронсавӣ гап мезанӣ?', ru: 'Ты говоришь?', en: 'Do you speak? (informal)' } };
+    await importDeck(db, rev2);
+
+    expect((await db.entries.get(['fr-test-01', 'a']))?.meaning.tg).toBe('Ту фаронсавӣ гап мезанӣ?');
+    expect(await db.cards.toArray()).toEqual(cardsBefore);
+    expect(await userLog(db, actor.userId)).toEqual(logBefore);
+    expect((await listEntries(db, 'fr-test-01')).map((e) => e.entryId)).toEqual(['a', 'b', 'c']);
+  });
+});
+
 describe('session data (stage 4.2)', () => {
   it('lastReview: the latest answer on that card only', async () => {
     const db = freshDb();
