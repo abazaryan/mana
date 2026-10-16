@@ -96,11 +96,18 @@ interface LogBase {
 
 /** "Say it aloud" during an introduction (Р22.5): recognised, never rated. */
 export interface IntroEcho {
-  /** Chosen recognizer alternative; '' if nothing was heard or the step was skipped. */
+  /** Chosen recognizer alternative (or the typed text); '' if nothing was heard or the step was skipped. */
   answer: string;
   alternatives: string[];
   verdict: Verdict | null;
   skipped: boolean;
+  /** From 16.10.2026: voice, or typed after three unrecognised attempts in a row. */
+  mode?: 'voice' | 'typed';
+  recognitionErrors?: RecognitionErrorEntry[];
+  /** Presses of "Once more" / retries of the microphone. */
+  retries?: number;
+  /** The whole text said k times (Р22, amendment of 16.10.2026). */
+  repeats?: number;
 }
 
 /** "Copy it out" during an introduction, entries with `write` only (Р22.5): checked, never rated. */
@@ -179,6 +186,8 @@ export interface ReviewRecord extends LogBase {
   wordCount?: number | null;
   /** E: reference words not heard. */
   unsaid?: number | null;
+  /** The whole reference said k times ("sept sept" = 2); 1 for an ordinary answer (from 16.10.2026). */
+  repeats?: number | null;
   /** Extra words heard. */
   extraWords?: number | null;
   /** Sound rules that made a word match (З1…З9, Ч). */

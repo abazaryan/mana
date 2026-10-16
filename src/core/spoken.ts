@@ -62,6 +62,12 @@ export interface SpokenCheck {
   extra: number;
   /** Sound rules that matched, without repeats. */
   rules: string[];
+  /**
+   * How many times the whole reference was said (Р22, amendment of 16.10.2026):
+   * "sept sept" for "sept" is 2 and correct. 1 for an ordinary answer. When above 1,
+   * `ops` cover the first repetition only.
+   */
+  repeats: number;
 }
 
 export interface SpokenOptions {
@@ -326,12 +332,57 @@ function judge(
   return { ...base, verdict: 'incorrect', errorType: 'words' };
 }
 
+const matched = (ops: readonly SpokenOp[]) => ops.every((o) => o.status === 'ok' || o.status === 'sound');
+const rulesOf = (ops: readonly SpokenOp[]) => ops.flatMap((o) => (o.rule ? [o.rule] : []));
+
+/**
+ * The answer is the whole reference said k ≥ 2 times ("sept sept", "4 4 4 4"):
+ * learners repeat short words so the recognizer catches them. Every repetition must
+ * match on its own (exactly or by sound); a partial repeat ("le nom nom") or other
+ * words between ("sept huit sept") is not one. Returns the first repetition's
+ * alignment and k, or null.
+ */
+function wholeRepeats(
+  ref: readonly SpokenToken[],
+  heard: readonly SpokenToken[],
+  rules: SpokenRules,
+): { ops: SpokenOp[]; k: number; found: string[] } | null {
+  const n = ref.length;
+  if (n === 0 || heard.length < 2 * n || heard.length % n !== 0) return null;
+  const k = heard.length / n;
+  let first: SpokenOp[] | null = null;
+  const found: string[] = [];
+  for (let c = 0; c < k; c++) {
+    const ops = alignSpoken(ref, heard.slice(c * n, (c + 1) * n), rules);
+    if (!matched(ops)) return null;
+    found.push(...rulesOf(ops));
+    first ??= ops;
+  }
+  return { ops: first!, k, found };
+}
+
 function checkOne(expected: string, answer: string, altIndex: number, rules: SpokenRules, opts: SpokenOptions): SpokenCheck {
   const ref = tokenizeSpoken(expected, rules);
   const heard = tokenizeSpoken(answer, rules);
+  const rep = wholeRepeats(ref, heard, rules);
+  if (rep) {
+    return {
+      answer,
+      altIndex,
+      ref,
+      heard,
+      ops: rep.ops,
+      rules: [...new Set(rep.found)],
+      repeats: rep.k,
+      verdict: 'correct',
+      errorType: null,
+      words: countSpokenWords(ref),
+      unsaid: 0,
+      extra: 0,
+    };
+  }
   const ops = alignSpoken(ref, heard, rules);
-  const found = ops.flatMap((o) => (o.rule ? [o.rule] : []));
-  return { answer, altIndex, ref, heard, ops, rules: [...new Set(found)], ...judge(ref, heard, ops, rules, opts) };
+  return { answer, altIndex, ref, heard, ops, rules: [...new Set(rulesOf(ops))], repeats: 1, ...judge(ref, heard, ops, rules, opts) };
 }
 
 /**

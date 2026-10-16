@@ -67,6 +67,15 @@ describe('suggestSpeak', () => {
     expect(suggestSpeak(check('nom'), 1500, prev(3, 1200), true)).toEqual({ rating: 2, reason: 'almost' });
   });
 
+  it('Easy is possible for the reference repeated: latency to the first word, words of the reference', () => {
+    const twice = checkSpoken('sept', ['sept sept'], FRENCH.spoken);
+    expect(twice.words).toBe(1);
+    expect(suggestSpeak(twice, 1500, { final: 3, latencyMs: 1200, wordCount: 1, expected: 'sept' } as ReviewRecord)).toEqual({
+      rating: 4,
+      reason: 'correct-fast-twice',
+    });
+  });
+
   it('previousOutcome', () => {
     expect(previousOutcome(null)).toBeNull();
     expect(previousOutcome(prev(4, 900, 5))).toEqual({ verdict: 'correct', latencyMs: 900, nWords: 5 });

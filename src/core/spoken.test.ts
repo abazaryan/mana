@@ -287,6 +287,35 @@ describe('verdict (Р22.2)', () => {
   });
 });
 
+describe('the whole reference repeated (amendment of 16.10.2026)', () => {
+  it.each([
+    ['sept', 'sept sept', 2],
+    ['quatre', '4 4 4 4', 4],
+    ['neuf', '9 9 9', 3],
+    ['très très bien', 'très très bien très très bien', 2],
+    ['vingt et un', '21 21', 2],
+    ['parler', 'parlé parlez', 2],
+  ])('%s ← %s: correct, %i repeats', (expected, heard, k) => {
+    expect(check(expected, heard)).toMatchObject({ verdict: 'correct', errorType: null, repeats: k, unsaid: 0, extra: 0 });
+    expect(allMatched(check(expected, heard))).toBe(true);
+  });
+
+  it.each([
+    ['le nom', 'le nom nom'],
+    ['sept', 'sept huit sept'],
+    ['très très bien', 'très bien très très bien'],
+  ])('%s ← %s: a partial repeat is still almost', (expected, heard) => {
+    expect(check(expected, heard)).toMatchObject({ verdict: 'almost', repeats: 1 });
+  });
+
+  it('an ordinary answer has 1 repeat', () => expect(check('sept', 'sept').repeats).toBe(1));
+
+  it('marks show the first repetition only', () => {
+    const c = check('sept', 'sept sept');
+    expect(c.ops).toEqual([{ status: 'ok', ref: 0, heard: 0 }]);
+  });
+});
+
 describe('alignment edge cases', () => {
   const ops = (e: string, h: string) => {
     const ref = tokenizeSpoken(e, R);
@@ -437,14 +466,14 @@ describe('marks never contradict the verdict (generated answers)', () => {
       expect(c.extra, ctx).toBe(st.filter((s) => s === 'extra').length);
       // Every reference token appears exactly once in the marks, every heard token too.
       expect(c.ops.filter((o) => o.ref !== undefined).map((o) => o.ref), ctx).toEqual(c.ref.map((_, i) => i));
-      expect(c.ops.filter((o) => o.heard !== undefined).map((o) => o.heard), ctx).toEqual(c.heard.map((_, i) => i));
+      if (c.repeats === 1) expect(c.ops.filter((o) => o.heard !== undefined).map((o) => o.heard), ctx).toEqual(c.heard.map((_, i) => i));
       if (c.verdict === 'correct') expect(st.every((s) => s === 'ok' || s === 'sound'), ctx).toBe(true);
       else expect(st.some((s) => s !== 'ok' && s !== 'sound'), ctx).toBe(true);
       if (c.verdict === 'almost' && c.errorType === 'extra') expect(c.unsaid, ctx).toBe(0);
       // Blocks show both lines in full, in order.
       const cells = spokenBlocks(c).flat();
       expect(cells.filter((x) => x.bottom !== null).length, ctx).toBe(c.ref.length);
-      expect(cells.filter((x) => x.top !== null).length, ctx).toBe(c.heard.length);
+      if (c.repeats === 1) expect(cells.filter((x) => x.top !== null).length, ctx).toBe(c.heard.length);
     }
   });
 });
