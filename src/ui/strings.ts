@@ -114,8 +114,6 @@ export const STRINGS = {
   // Microphone
   'mic.start': { tg: 'Гуфтан', ru: 'Говорить', en: 'Speak' },
   'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
-  'mic.listening': { tg: 'Гӯш медиҳам…', ru: 'Слушаю…', en: 'Listening…' },
-  'mic.retry': { tg: 'Талоши дубора', ru: 'Повторить', en: 'Try again' },
   'mic.unsupported': {
     tg: 'Ин мурургар шинохти гуфторро надорад — ҷавобро нависед.',
     ru: 'Этот браузер не распознаёт речь — напишите ответ.',

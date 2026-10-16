@@ -59,7 +59,7 @@ export interface Voice {
 
 /** One VoiceCapture per mounted card; aborted on unmount. */
 export function useVoice(lang: string, visibleMs: () => number, setup: RecognitionSetup = NO_HINTS): Voice {
-  const [state, setState] = useState<VoiceState>({ phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0 });
+  const [state, setState] = useState<VoiceState>({ phase: 'idle', transcript: '', error: null, fatal: false, failuresInRow: 0, activity: 'none', results: 0 });
   const setupRef = useRef(setup);
   setupRef.current = setup;
   const ref = useRef<VoiceCapture | null>(null);

@@ -17,7 +17,7 @@ import type { ManaDb } from '../platform/db';
 import type { ReviewInput } from '../platform/repo';
 import { useI18n } from './i18n';
 import { SpokenMarks } from './Marks';
-import { MicStatus } from './MicStatus';
+import { MicPanel } from './MicPanel';
 import { LANG_NAMES } from './strings';
 import { playEntry, recognitionSupported, recognizerId, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
@@ -196,10 +196,9 @@ export function SpeakCard({
     return (
       <article className="study-card">
         {prompt}
-        <p className="m">{t('speak.prompt')}</p>
-        {!typing && (
+        {!typing && recognitionSupported && (
           <>
-            <MicStatus state={voice.state} />
+            <MicPanel state={voice.state} onStart={() => voice.start()} startLabel="mic.start" />
             {listening && voice.state.transcript && (
               <p className="live" lang={pack.code}>
                 {voice.state.transcript}
@@ -237,11 +236,6 @@ export function SpeakCard({
           </form>
         )}
         <div className="row start mt">
-          {!typing && !listening && (
-            <button className="primary" type="button" onClick={() => voice.start()}>
-              🎤 {t('mic.retry')}
-            </button>
-          )}
           {!typing && (
             <button
               className="secondary"

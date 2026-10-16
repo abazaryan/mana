@@ -16,7 +16,7 @@ import { checkSpoken, liveHeard, tokenizeSpoken, type SpokenCheck } from '../cor
 import type { ManaDb } from '../platform/db';
 import { useI18n } from './i18n';
 import { CharMarks, LiveWords, SpokenMarks } from './Marks';
-import { MicStatus } from './MicStatus';
+import { MicPanel } from './MicPanel';
 import { LANG_NAMES } from './strings';
 import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
@@ -219,14 +219,9 @@ export function IntroCard({
             </button>
           </form>
         ) : (
-          <MicStatus state={voice.state} />
+          <MicPanel state={voice.state} onStart={() => voice.start()} startLabel={echo ? 'intro.again' : 'mic.start'} />
         )}
         <div className="row start">
-          {!listening && !gaveUp && (
-            <button className={echo ? 'secondary' : 'primary'} type="button" onClick={() => voice.start()}>
-              🎤 {echo || phase === 'failed' ? t('intro.again') : t('mic.start')}
-            </button>
-          )}
           {!echo && (
             <button className="ghost" type="button" onClick={() => afterEcho(true)}>
               {t('intro.skip')}

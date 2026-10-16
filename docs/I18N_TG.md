@@ -56,8 +56,6 @@
 | `speak.dontKnow` | Не знаю | I don't know | Намедонам |
 | `mic.start` | Говорить | Speak | Гуфтан |
 | `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
-| `mic.listening` | Слушаю… | Listening… | Гӯш медиҳам… |
-| `mic.retry` | Повторить | Try again | Талоши дубора |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар шинохти гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сомона иҷозат диҳед. |
 | `mic.err.service-not-allowed` | Браузер не разрешил распознавание речи. | The browser did not allow speech recognition. | Мурургар шинохти гуфторро иҷозат надод. |
