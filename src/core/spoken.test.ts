@@ -262,13 +262,18 @@ describe('verdict (Р22.2)', () => {
     expect(check('bonjour', 'euh bonjour')).toMatchObject({ verdict: 'correct', extra: 0 });
   });
 
-  it('a missing article alone → almost, if the reference has at least two words', () => {
+  it('a missing article alone, the rest said → almost', () => {
     expect(check('le nom', 'nom')).toMatchObject({ verdict: 'almost', errorType: 'article', words: 2 });
     expect(check('le nom', 'nom', { determiner: true })).toMatchObject({ verdict: 'almost', errorType: 'article' });
   });
 
-  it('a one-word reference gets no article leniency (l’ami is 1 word)', () => {
-    expect(check("l'ami", 'ami')).toMatchObject({ verdict: 'incorrect', words: 1 });
+  it("a dropped elided article counts too: l'ami ← ami → almost", () => {
+    expect(check("l'ami", "ami")).toMatchObject({ verdict: "almost", errorType: "article", words: 1 });
+  });
+
+  it("an article alone said as nothing is not almost: un ← silence", () => {
+    expect(verdict("un", "")).toBe("incorrect");
+    expect(check("un", [])).toMatchObject({ verdict: "incorrect" });
   });
 
   it('an article replaced by another word is not "almost": un → on, le nom → la nom', () => {

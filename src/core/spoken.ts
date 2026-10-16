@@ -325,9 +325,11 @@ function judge(
   }
   if (unsaid === 0 && extra === 0) return { ...base, verdict: 'correct', errorType: null };
   if (unsaid === 0) return { ...base, verdict: 'almost', errorType: 'extra' };
-  // A dropped article is "almost" (Р22.2, amended 16.10.2026): only when it is missing, not
-  // replaced by another word (un → on), and the reference has at least two words.
-  if (words >= 2 && unsaidOps.length === 1 && unsaidOps[0]!.status === 'missing' && isArticle(ref[unsaidOps[0]!.ref!]!)) {
+  // A dropped article is "almost" (Р22.2, amended 16.10.2026): only when it is absent from
+  // the answer (not replaced by another word: un → on) and the rest of the reference was
+  // said (silence for a lone article is not "almost").
+  const restSaid = ops.some((o) => o.status === 'ok' || o.status === 'sound');
+  if (restSaid && unsaidOps.length === 1 && unsaidOps[0]!.status === 'missing' && isArticle(ref[unsaidOps[0]!.ref!]!)) {
     return { ...base, verdict: 'almost', errorType: 'article' };
   }
   if (unsaid <= Math.floor(ALMOST_UNSAID_SHARE * words)) return { ...base, verdict: 'almost', errorType: 'words' };
