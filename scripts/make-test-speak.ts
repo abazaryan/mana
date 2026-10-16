@@ -16,7 +16,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 3,
+  revision: 4,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -148,6 +148,33 @@ const deck = {
       form: { determiner: 'definite' },
       tags: ['word'],
       skills: ['speak'],
+    },
+    // Revision 4: three new entries for checking introductions on the phone.
+    {
+      id: 'le-livre',
+      text: 'le livre',
+      ipa: 'lə livʁ',
+      meaning: { tg: 'китоб', ru: 'книга', en: 'the book' },
+      gender: 'm',
+      form: { determiner: 'definite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'oui',
+      text: 'oui',
+      ipa: 'wi',
+      meaning: { tg: 'ҳа', ru: 'да', en: 'yes' },
+      tags: ['word'],
+      skills: ['speak'],
+    },
+    {
+      id: 'bonne-nuit',
+      text: 'Bonne nuit !',
+      ipa: 'bɔn nɥi',
+      meaning: { tg: 'Шаб ба хайр!', ru: 'Спокойной ночи!', en: 'Good night!' },
+      tags: ['phrase'],
+      skills: ['speak', 'write'],
     },
   ],
 };
