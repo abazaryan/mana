@@ -1,12 +1,22 @@
 /**
- * Builds decks/test-speak.zip: a deck for checking stage 4.2 on the phone —
+ * Builds decks/test-speak.zip: a deck for checking stages 4.2–4.3 on the phone —
  * introductions, `speak`, sound-based matching (homophones, numbers), "almost",
- * the article rule with a form hint, and "copy it out" (entries with `write`).
- * npm run deck:test-speak. Node 24+ (runs .ts directly). No audio: the browser
- * voice stands in for it.
+ * the article rule with a form hint, "copy it out", and (revision 5) `listen` and
+ * `write`: the written article rule (Р24), diacritics, a typo, typography, forms
+ * that sound the same (Р16).
+ * npm run deck:test-speak. Node 24+ (runs .ts directly).
+ *
+ * Audio: only the `listen` entries have it, copied from the lesson-1 deck
+ * (decks/Фаронсавӣ · Дарси 01.zip, not published); without that file the deck is
+ * built without them and `listen` is not issued. The other entries have none — the
+ * browser voice stands in for it after the answer.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import JSZip from 'jszip';
+
+const LESSON_1 = new URL('../decks/Фаронсавӣ · Дарси 01.zip', import.meta.url);
+/** Entries of this deck that get `listen` with the lesson-1 audio of the same id. */
+const LISTEN_FROM_LESSON = ['le-nom', 'deux', 'un-rendez-vous', 'oui', 'je-m-appelle-nazanine'];
 
 const word = { tg: 'вожа', ru: 'слово', en: 'word' };
 const phrase = { tg: 'ибора', ru: 'фраза', en: 'phrase' };
@@ -16,7 +26,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 4,
+  revision: 5,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -176,10 +186,116 @@ const deck = {
       tags: ['phrase'],
       skills: ['speak', 'write'],
     },
+    // Revision 5 (stage 4.3): `listen` and `write`.
+    {
+      id: 'je-m-appelle-nazanine',
+      text: "Je m'appelle Nazanine.",
+      ipa: 'ʒə mapɛl nazanin',
+      meaning: { tg: 'Номи ман Нозанин.', ru: 'Меня зовут Назанин.', en: 'My name is Nazanine.' },
+      note: {
+        tg: 'Аудиои аз ҳама дароз (2,4 с): микрофон пас аз он худ аз худ фаъол мешавад',
+        ru: 'Самое длинное аудио (2,4 с): микрофон включается сам после него',
+        en: 'The longest audio (2.4 s): the microphone starts by itself after it',
+      },
+      tags: ['phrase'],
+      skills: ['speak', 'listen'],
+    },
+    {
+      id: 'la-maison',
+      text: 'la maison',
+      ipa: 'la mɛzɔ̃',
+      meaning: { tg: 'хона', ru: 'дом', en: 'the house' },
+      note: {
+        tg: '«le maison» ва «maison» — нодуруст (Р24)',
+        ru: '«le maison» и «maison» — неверно (Р24)',
+        en: '"le maison" and "maison" are incorrect (Р24)',
+      },
+      gender: 'f',
+      form: { determiner: 'definite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'l-hopital',
+      text: "l'hôpital",
+      ipa: 'lɔpital',
+      meaning: { tg: 'беморхона', ru: 'больница', en: 'the hospital' },
+      note: {
+        tg: "«le hôpital» — тақрибан дуруст (l' лозим аст); «la hôpital» — нодуруст; «l'hopital» — тақрибан дуруст",
+        ru: "«le hôpital» — почти (нужна элизия l'); «la hôpital» — неверно; «l'hopital» — почти",
+        en: "\"le hôpital\" is almost (needs l'); \"la hôpital\" is incorrect; \"l'hopital\" is almost",
+      },
+      gender: 'm',
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'beaucoup',
+      text: 'beaucoup',
+      ipa: 'boku',
+      meaning: { tg: 'бисёр', ru: 'много', en: 'a lot' },
+      note: { tg: '«beacoup» — тақрибан дуруст (як хато)', ru: '«beacoup» — почти (одна опечатка)', en: '"beacoup" is almost (one typo)' },
+      tags: ['word'],
+      skills: ['write'],
+    },
+    {
+      id: 'ca-va',
+      text: 'Ça va ?',
+      ipa: 'sa va',
+      meaning: { tg: 'Чӣ хел? (корҳо хуб?)', ru: 'Как дела?', en: 'How are you?' },
+      note: { tg: '«ça va?» бе фосила ҳам дуруст аст', ru: '«ça va?» без пробела — тоже верно', en: '"ça va?" without the space is correct too' },
+      tags: ['phrase'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'ravi',
+      text: 'ravi',
+      ipa: 'ʁavi',
+      meaning: { tg: 'шодам (мард)', ru: 'рад', en: 'glad (m.)' },
+      note: { tg: '«ravie» ҳамин тавр садо медиҳад', ru: '«ravie» звучит так же', en: '"ravie" sounds the same' },
+      form: { gender: 'm' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'ravie',
+      text: 'ravie',
+      ipa: 'ʁavi',
+      meaning: { tg: 'шодам (зан)', ru: 'рада', en: 'glad (f.)' },
+      note: {
+        tg: 'Ҳамон садо, ки «ravi»: танҳо навиштан (Р16)',
+        ru: 'Звучит как «ravi»: только письмо (Р16)',
+        en: 'Sounds like "ravi": writing only (Р16)',
+      },
+      form: { gender: 'f' },
+      tags: ['word'],
+      skills: ['write'],
+    },
   ],
 };
 
 const zip = new JSZip();
+try {
+  const lesson = await JSZip.loadAsync(await readFile(LESSON_1));
+  const lessonDeck = JSON.parse(await lesson.file('deck.json')!.async('string')) as { entries: { id: string; audio?: string }[] };
+  for (const id of LISTEN_FROM_LESSON) {
+    const path = lessonDeck.entries.find((e) => e.id === id)?.audio;
+    const file = path ? lesson.file(path) : null;
+    const target = deck.entries.find((e) => e.id === id) as { audio?: string; skills: string[] } | undefined;
+    if (!file || !path || !target) {
+      console.log(`Нет аудио для ${id} в уроке 1 — без listen.`);
+      continue;
+    }
+    zip.file(path, await file.async('nodebuffer'));
+    target.audio = path;
+    target.skills = [...target.skills, 'listen'].filter((s, k, all) => all.indexOf(s) === k);
+  }
+} catch {
+  console.log('Нет decks/Фаронсавӣ · Дарси 01.zip — колода без аудио, listen не будет выдаваться.');
+}
+for (const e of deck.entries as { audio?: string; skills: string[] }[]) {
+  if (!e.audio) e.skills = e.skills.filter((s) => s !== 'listen');
+}
 zip.file('deck.json', JSON.stringify(deck, null, 2));
 await mkdir(new URL('../decks/', import.meta.url), { recursive: true });
 const out = new URL('../decks/test-speak.zip', import.meta.url);

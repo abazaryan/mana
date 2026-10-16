@@ -54,8 +54,15 @@
 | `speak.typePlaceholder` | Напишите ответ | Type the answer | Ҷавобро нависед |
 | `speak.check` | Проверить | Check | Санҷиш |
 | `speak.dontKnow` | Не знаю | I don't know | Намедонам |
+| `listen.prompt` | Послушайте и скажите | Listen and say it | Гӯш диҳед ва бигӯед |
+| `listen.playing` | Слушайте… | Listen… | Гӯш диҳед… |
+| `listen.replay` | Прослушать ещё раз | Play again | Такрор |
+| `write.article` | Неверный артикль | Wrong article | Шиносвожаи нодуруст |
+| `write.elision` | Нужна элизия: l' | Needs the elision: l' | Ин ҷо l' лозим аст |
+| `study.returned` | Вернулась после «Снова» | Back after Again | Пас аз «Дубора» баргашт |
 | `mic.start` | Говорить | Speak | Гуфтан |
 | `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
+| `mic.hint` | Нажмите и говорите | Tap and speak | Фишор диҳед ва гӯед |
 | `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед. |
@@ -90,6 +97,7 @@
 | `reason.correct` | Верно | Correct | Дуруст |
 | `reason.correct-fast` | Верно и быстро | Correct and fast | Дуруст ва босуръат |
 | `reason.correct-retried` | Верно, но не с первой попытки | Correct, but not on the first try | Дуруст, вале бо талоши дубора |
+| `reason.listen-no-easy` | Верно и быстро | Correct and fast | Дуруст ва босуръат |
 | `reason.correct-fast-twice` | Верно и быстро второй раз подряд | Correct and fast twice in a row | Дуруст ва босуръат, ду бор паёпай |
 | `import.reading` | Читаю файл… | Reading the file… | Файл хонда мешавад… |
 | `import.rejected` | Колода не принята | Deck not accepted | Маҷмӯа қабул нашуд |
