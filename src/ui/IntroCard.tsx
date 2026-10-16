@@ -47,7 +47,10 @@ export function IntroCard({
   const voice = useVoice(locale, visibleMs, recognition);
   const [step, setStep] = useState<Step>('card');
   const [audioError, setAudioError] = useState(false);
-  const [echo, setEcho] = useState<{ check: SpokenCheck; alternatives: string[] } | null>(null);
+  const [echo, setEcho] = useState<{ check: SpokenCheck; alternatives: string[]; mode: 'voice' | 'typed' } | null>(null);
+  /** Three unrecognised attempts in a row: the microphone gives way to a large, highlighted field (as in `speak`). */
+  const gaveUp = voice.state.failuresInRow >= 3;
+  const [echoTyped, setEchoTyped] = useState('');
   const [typed, setTyped] = useState('');
   const [copy, setCopy] = useState<TypedCheck | null>(null);
   const needsCopy = entry.skills.includes('write');
@@ -66,7 +69,7 @@ export function IntroCard({
   useEffect(() => {
     if (phase !== 'done') return;
     const alternatives = voice.outcome().alternatives;
-    setEcho({ check: checkSpoken(entry.text, alternatives, pack.spoken), alternatives });
+    setEcho({ check: checkSpoken(entry.text, alternatives, pack.spoken), alternatives, mode: 'voice' });
     // On each finished attempt.
   }, [phase]);
 
@@ -84,12 +87,17 @@ export function IntroCard({
   const finish = (echoSkipped: boolean, copyResult: TypedCheck | null) => {
     voice.abort();
     stopEntryAudio();
+    const o = voice.outcome();
     onDone({
       echo: {
         answer: echoSkipped ? '' : (echo?.check.answer ?? ''),
         alternatives: echoSkipped ? [] : (echo?.alternatives ?? []),
         verdict: echoSkipped ? null : (echo?.check.verdict ?? null),
         skipped: echoSkipped || echo === null,
+        mode: echo?.mode ?? 'voice',
+        recognitionErrors: o.errors,
+        retries: o.retries,
+        repeats: echoSkipped ? 0 : (echo?.check.repeats ?? 0),
       },
       copy: copyResult ? { typed, verdict: copyResult.evaluation.verdict, errorType: copyResult.evaluation.errorType ?? null } : null,
     });
@@ -162,8 +170,13 @@ export function IntroCard({
           type="button"
           onClick={() => {
             stopEntryAudio();
-            if (recognitionSupported) setStep('echo');
-            else afterEcho(true);
+            if (recognitionSupported) {
+              setStep('echo');
+              // The microphone starts in this tap, as on a `speak` card.
+              voice.start();
+            } else {
+              afterEcho(true);
+            }
           }}
         >
           {t('common.next')}
@@ -177,10 +190,39 @@ export function IntroCard({
       <article className="study-card">
         {head}
         <h2 className="h3 step-title">{t('intro.echo')}</h2>
-        {echo && !listening && <SpokenMarks check={echo.check} lang={pack.code} source="voice" />}
-        <MicStatus state={voice.state} />
+        {echo && !listening && <SpokenMarks check={echo.check} lang={pack.code} source={echo.mode} />}
+        {gaveUp ? (
+          <form
+            className="typebox loud"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (echoTyped.trim()) setEcho({ check: checkSpoken(entry.text, [echoTyped], pack.spoken), alternatives: [], mode: 'typed' });
+            }}
+          >
+            <input
+              lang={pack.code}
+              value={echoTyped}
+              placeholder={t('speak.typePlaceholder')}
+              onChange={(e) => {
+                setEchoTyped(e.target.value);
+                setEcho(null);
+              }}
+              autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              aria-label={t('speak.typePlaceholder')}
+            />
+            <button className="primary" type="submit" disabled={!echoTyped.trim()}>
+              {t('speak.check')}
+            </button>
+          </form>
+        ) : (
+          <MicStatus state={voice.state} />
+        )}
         <div className="row start">
-          {!listening && (
+          {!listening && !gaveUp && (
             <button className={echo ? 'secondary' : 'primary'} type="button" onClick={() => voice.start()}>
               🎤 {echo || phase === 'failed' ? t('intro.again') : t('mic.start')}
             </button>

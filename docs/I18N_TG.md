@@ -68,8 +68,6 @@
 | `mic.err.language-not-supported` | Этот браузер не распознаёт этот язык. | This browser cannot recognise this language. | Ин мурургар ин забонро намешиносад. |
 | `mic.err.watchdog` | Микрофон не включился. | The microphone did not start. | Микрофон фаъол нашуд. |
 | `mic.err.other` | Ошибка распознавания: {code} | Recognition error: {code} | Хатои шинохти гуфтор: {code} |
-| `answer.heard` | Услышано: | Heard: | Шунида шуд: |
-| `answer.nothing` | (ничего) | (nothing) | (ҳеҷ чиз) |
 | `mark.heardX` | услышано: {x} | heard: {x} | шунида шуд: {x} |
 | `mark.typedX` | набрано: {x} | typed: {x} | навишта шуд: {x} |
 | `mark.sound` | засчитано по звучанию | accepted by sound | аз рӯи талаффуз қабул шуд |

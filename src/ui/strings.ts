@@ -152,8 +152,6 @@ export const STRINGS = {
   'mic.err.other': { tg: 'Хатои шинохти гуфтор: {code}', ru: 'Ошибка распознавания: {code}', en: 'Recognition error: {code}' },
 
   // Answer marks (Р22.9): the labels never promise to judge pronunciation
-  'answer.heard': { tg: 'Шунида шуд:', ru: 'Услышано:', en: 'Heard:' },
-  'answer.nothing': { tg: '(ҳеҷ чиз)', ru: '(ничего)', en: '(nothing)' },
   'mark.heardX': { tg: 'шунида шуд: {x}', ru: 'услышано: {x}', en: 'heard: {x}' },
   'mark.typedX': { tg: 'навишта шуд: {x}', ru: 'набрано: {x}', en: 'typed: {x}' },
   'mark.sound': { tg: 'аз рӯи талаффуз қабул шуд', ru: 'засчитано по звучанию', en: 'accepted by sound' },

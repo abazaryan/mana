@@ -113,12 +113,15 @@ export function SpokenMarks({ check, lang, source }: { check: SpokenCheck; lang:
   const blocks = spokenBlocks(check);
   const heardKey: StringKey = source === 'typed' ? 'mark.typedX' : 'mark.heardX';
 
-  const explain = (b: SpokenCell[]): string[] =>
-    b.flatMap((c) => {
+  const explain = (b: SpokenCell[]): string[] => [
+    ...b.flatMap((c) => {
       const key = spokenLabel(c.status, source);
       if (!key) return [];
       return [c.heard !== null && c.status !== 'missing' ? `${t(key)} — ${t(heardKey, { x: c.heard })}` : t(key)];
-    });
+    }),
+    // The reference said several times: the whole answer, on tap ("heard: 7 7").
+    ...(check.repeats > 1 ? [t(heardKey, { x: check.answer })] : []),
+  ];
 
   if (allMatched(check)) {
     return (

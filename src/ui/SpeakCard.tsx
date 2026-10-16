@@ -149,6 +149,7 @@ export function SpeakCard({
       recognitionLang: mode === 'voice' ? locale : null,
       wordCount: words,
       unsaid: check?.unsaid ?? null,
+      repeats: check?.repeats ?? null,
       extraWords: check?.extra ?? null,
       soundRules: check?.rules ?? [],
       recognizer: recognizerId,
@@ -303,12 +304,6 @@ export function SpeakCard({
       )}
 
       {check && <SpokenMarks check={check} lang={pack.code} source={mode === 'typed' ? 'typed' : 'voice'} />}
-      {mode === 'voice' && (
-        <p className="heard m">
-          <span className="lbl">{t('answer.heard')}</span>
-          <span lang={pack.code}>{check?.answer || t('answer.nothing')}</span>
-        </p>
-      )}
       {mode === 'skip' && <p className="heard m">{t('speak.dontKnow')}</p>}
 
       <p className="reason">
