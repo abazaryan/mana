@@ -262,14 +262,23 @@ describe('verdict (Р22.2)', () => {
     expect(check('bonjour', 'euh bonjour')).toMatchObject({ verdict: 'correct', extra: 0 });
   });
 
-  it('a missing article alone → almost at any N', () => {
+  it('a missing article alone → almost, if the reference has at least two words', () => {
     expect(check('le nom', 'nom')).toMatchObject({ verdict: 'almost', errorType: 'article', words: 2 });
-    expect(check("l'ami", 'ami')).toMatchObject({ verdict: 'almost', errorType: 'article', words: 1 });
     expect(check('le nom', 'nom', { determiner: true })).toMatchObject({ verdict: 'almost', errorType: 'article' });
   });
 
-  it.each(['la', "l'", 'les', 'un', 'une', 'des', 'du'])('le nom ← "%s nom": almost without the form hint, incorrect with it', (art) => {
-    expect(verdict('le nom', `${art} nom`)).toBe('almost');
+  it('a one-word reference gets no article leniency (l’ami is 1 word)', () => {
+    expect(check("l'ami", 'ami')).toMatchObject({ verdict: 'incorrect', words: 1 });
+  });
+
+  it('an article replaced by another word is not "almost": un → on, le nom → la nom', () => {
+    expect(verdict('un', 'on')).toBe('incorrect');
+    expect(verdict('le nom', 'la nom')).toBe('incorrect');
+    expect(verdict('un rendez-vous', 'le rendez-vous')).toBe('incorrect');
+  });
+
+  it.each(['la', "l'", 'les', 'un', 'une', 'des', 'du'])('le nom ← "%s nom": incorrect, with the form hint too', (art) => {
+    expect(verdict('le nom', `${art} nom`)).toBe('incorrect');
     expect(check('le nom', `${art} nom`, { determiner: true })).toMatchObject({ verdict: 'incorrect', errorType: 'article' });
   });
 
