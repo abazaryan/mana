@@ -17,6 +17,7 @@ import type { ManaDb } from '../platform/db';
 import { useI18n } from './i18n';
 import { CharMarks, LiveWords, SpokenMarks } from './Marks';
 import { MicPanel } from './MicPanel';
+import { TypeField } from './TypeField';
 import { LANG_NAMES } from './strings';
 import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
@@ -192,32 +193,21 @@ export function IntroCard({
         <h2 className="h3 step-title">{t('intro.echo')}</h2>
         {echo && !listening && <SpokenMarks check={echo.check} lang={pack.code} source={echo.mode} />}
         {gaveUp ? (
-          <form
-            className="typebox loud"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (echoTyped.trim()) setEcho({ check: checkSpoken(entry.text, [echoTyped], pack.spoken), alternatives: [], mode: 'typed' });
+          <TypeField
+            loud
+            lang={pack.code}
+            value={echoTyped}
+            placeholder={t('speak.typePlaceholder')}
+            ariaLabel={t('speak.typePlaceholder')}
+            onChange={(v) => {
+              setEchoTyped(v);
+              setEcho(null);
             }}
-          >
-            <input
-              lang={pack.code}
-              value={echoTyped}
-              placeholder={t('speak.typePlaceholder')}
-              onChange={(e) => {
-                setEchoTyped(e.target.value);
-                setEcho(null);
-              }}
-              autoFocus
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              aria-label={t('speak.typePlaceholder')}
-            />
-            <button className="primary" type="submit" disabled={!echoTyped.trim()}>
-              {t('speak.check')}
-            </button>
-          </form>
+            checked={echo !== null && echo.mode === 'typed'}
+            onCheck={() => setEcho({ check: checkSpoken(entry.text, [echoTyped], pack.spoken), alternatives: [], mode: 'typed' })}
+            onNext={() => afterEcho(false)}
+            blurOnNext={!needsCopy}
+          />
         ) : (
           <MicPanel state={voice.state} onStart={() => voice.start()} startLabel={echo ? 'intro.again' : 'mic.start'} />
         )}
@@ -239,31 +229,18 @@ export function IntroCard({
     <article className="study-card">
       {head}
       <h2 className="h3 step-title">{t('intro.copy')}</h2>
-      <form
-        className="typebox"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (typed.trim()) setCopy(checkTyped(entry.text, typed, pack.writing));
+      <TypeField
+        lang={pack.code}
+        value={typed}
+        ariaLabel={t('intro.copy')}
+        onChange={(v) => {
+          setTyped(v);
+          setCopy(null);
         }}
-      >
-        <input
-          lang={pack.code}
-          value={typed}
-          onChange={(e) => {
-            setTyped(e.target.value);
-            setCopy(null);
-          }}
-          autoFocus
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          aria-label={t('intro.copy')}
-        />
-        <button className="secondary" type="submit" disabled={!typed.trim()}>
-          {t('speak.check')}
-        </button>
-      </form>
+        checked={copy !== null}
+        onCheck={() => setCopy(checkTyped(entry.text, typed, pack.writing))}
+        onNext={() => finish(echo === null, copy)}
+      />
       {copy && (
         <>
           <CharMarks cells={copy.cells} lang={pack.code} />

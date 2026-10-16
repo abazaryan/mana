@@ -18,6 +18,7 @@ import type { ReviewInput } from '../platform/repo';
 import { useI18n } from './i18n';
 import { SpokenMarks } from './Marks';
 import { MicPanel } from './MicPanel';
+import { TypeField } from './TypeField';
 import { LANG_NAMES } from './strings';
 import { playEntry, recognitionSupported, recognizerId, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
@@ -192,150 +193,150 @@ export function SpeakCard({
     </>
   );
 
-  if (!answered) {
-    return (
-      <article className="study-card">
-        {prompt}
-        {!typing && recognitionSupported && (
-          <>
-            <MicPanel state={voice.state} onStart={() => voice.start()} startLabel="mic.start" />
-            {listening && voice.state.transcript && (
-              <p className="live" lang={pack.code}>
-                {voice.state.transcript}
-              </p>
-            )}
-          </>
-        )}
-        {!recognitionSupported && <p className="hint">{t('mic.unsupported')}</p>}
-        {typing && (
-          <form
-            className={gaveUp ? 'typebox loud' : 'typebox'}
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitTyped();
+  const typedMode = answered ? answered.mode === 'typed' : typing;
+  // One slot for the field in both states, so the same input (and the keyboard) survives the check.
+  const field = typedMode ? (
+    <TypeField
+      loud={gaveUp}
+      lang={pack.code}
+      value={typed}
+      placeholder={t('speak.typePlaceholder')}
+      ariaLabel={t('speak.typePlaceholder')}
+      onChange={setTyped}
+      onFirstKey={() => {
+        firstKey.current ??= visibleMs();
+      }}
+      checked={answered !== null}
+      frozen={answered !== null}
+      onCheck={submitTyped}
+      onNext={next}
+      // With no microphone the next card is typed too: keep the keyboard up.
+      blurOnNext={recognitionSupported}
+    />
+  ) : null;
+
+  const pendingBody = (
+    <>
+      {!typing && recognitionSupported && (
+        <>
+          <MicPanel state={voice.state} onStart={() => voice.start()} startLabel="mic.start" />
+          {listening && voice.state.transcript && (
+            <p className="live" lang={pack.code}>
+              {voice.state.transcript}
+            </p>
+          )}
+        </>
+      )}
+      {!recognitionSupported && <p className="hint">{t('mic.unsupported')}</p>}
+      <div className="row start mt">
+        {!typing && (
+          <button
+            className="secondary"
+            type="button"
+            onClick={() => {
+              voice.abort();
+              setTyping(true);
             }}
           >
-            <input
-              lang={pack.code}
-              value={typed}
-              placeholder={t('speak.typePlaceholder')}
-              onKeyDown={() => {
-                firstKey.current ??= visibleMs();
-              }}
-              onChange={(e) => setTyped(e.target.value)}
-              autoFocus
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              aria-label={t('speak.typePlaceholder')}
-            />
-            <button className="primary" type="submit" disabled={!typed.trim()}>
-              {t('speak.check')}
-            </button>
-          </form>
-        )}
-        <div className="row start mt">
-          {!typing && (
-            <button
-              className="secondary"
-              type="button"
-              onClick={() => {
-                voice.abort();
-                setTyping(true);
-              }}
-            >
-              ⌨ {t('speak.type')}
-            </button>
-          )}
-          {typing && recognitionSupported && (
-            <button
-              className="secondary"
-              type="button"
-              onClick={() => {
-                setTyping(false);
-                voice.start();
-              }}
-            >
-              🎤 {t('mic.start')}
-            </button>
-          )}
-          <button className="ghost" type="button" onClick={dontKnow}>
-            {t('speak.dontKnow')}
+            ⌨ {t('speak.type')}
           </button>
-        </div>
-      </article>
-    );
-  }
+        )}
+        {typing && recognitionSupported && (
+          <button
+            className="secondary"
+            type="button"
+            onClick={() => {
+              setTyping(false);
+              voice.start();
+            }}
+          >
+            🎤 {t('mic.start')}
+          </button>
+        )}
+        <button className="ghost" type="button" onClick={dontKnow}>
+          {t('speak.dontKnow')}
+        </button>
+      </div>
+    </>
+  );
 
-  const { suggestion, mode, check } = answered;
+  const renderAnswered = (a: Answered) => {
+  const { suggestion, mode, check } = a;
   const suggested = suggestion.rating as FinalRating;
   const note = pickLocalizedWithLang(entry.note, meaningLang);
   const misrecognizedOk = canClaimMisrecognized(suggested, mode);
   const locked = suggested === 1 && mode !== 'skip';
 
+    return (
+      <>
+        <div className="intro-head">
+          <div className="answer" lang={pack.code}>
+            {entry.text}
+          </div>
+          <button className="play" type="button" aria-label={`${t('deck.play')}: ${entry.text}`} onClick={() => void playEntry(db, entry, locale).catch(() => setAudioError(true))}>
+            ▶
+          </button>
+        </div>
+        {entry.ipa && <p className="m ipa">[{entry.ipa}]</p>}
+        {note && (
+          <p className="m note-text" lang={note.lang}>
+            {note.text}
+          </p>
+        )}
+        {audioError && (
+          <p className="hint err" role="alert">
+            {t('deck.audioError')}
+          </p>
+        )}
+
+        {check && <SpokenMarks check={check} lang={pack.code} source={mode === 'typed' ? 'typed' : 'voice'} />}
+        {mode === 'skip' && <p className="heard m">{t('speak.dontKnow')}</p>}
+
+        <p className="reason">
+          {t('rating.suggested', { rating: t(`rating.${suggested}`) })} — {t(`reason.${suggestion.reason}`)}
+        </p>
+        <div className="grades" role="group" aria-label={t('rating.suggested', { rating: t(`rating.${suggested}`) })}>
+          {GRADES.map((g) => (
+            <button
+              key={g}
+              className="grade"
+              data-g={g}
+              type="button"
+              aria-pressed={choice?.final === g}
+              disabled={!canChoose(suggested, g) && !(choice?.correction === 'misrecognized' && g === 3)}
+              onClick={() => {
+                const c = chooseRating(suggested, g);
+                if (c) setChoice(c);
+              }}
+            >
+              {t(`rating.${g}`)}
+              {g === suggested && <span className="sug" aria-hidden="true"> •</span>}
+            </button>
+          ))}
+        </div>
+        {misrecognizedOk && (
+          <button
+            className={choice?.correction === 'misrecognized' ? 'secondary on' : 'secondary'}
+            type="button"
+            aria-pressed={choice?.correction === 'misrecognized'}
+            onClick={() => setChoice(claimMisrecognized(suggested, mode))}
+          >
+            {t('rating.misrecognized')}
+          </button>
+        )}
+        {locked && <p className="hint">{t(mode === 'voice' ? 'rating.lockedVoice' : 'rating.lockedTyped')}</p>}
+        <button className="primary big mt" type="button" onClick={next}>
+          {t('common.next')}
+        </button>
+      </>
+    );
+  };
+
   return (
     <article className="study-card">
       {prompt}
-      <div className="intro-head">
-        <div className="answer" lang={pack.code}>
-          {entry.text}
-        </div>
-        <button className="play" type="button" aria-label={`${t('deck.play')}: ${entry.text}`} onClick={() => void playEntry(db, entry, locale).catch(() => setAudioError(true))}>
-          ▶
-        </button>
-      </div>
-      {entry.ipa && <p className="m ipa">[{entry.ipa}]</p>}
-      {note && (
-        <p className="m note-text" lang={note.lang}>
-          {note.text}
-        </p>
-      )}
-      {audioError && (
-        <p className="hint err" role="alert">
-          {t('deck.audioError')}
-        </p>
-      )}
-
-      {check && <SpokenMarks check={check} lang={pack.code} source={mode === 'typed' ? 'typed' : 'voice'} />}
-      {mode === 'skip' && <p className="heard m">{t('speak.dontKnow')}</p>}
-
-      <p className="reason">
-        {t('rating.suggested', { rating: t(`rating.${suggested}`) })} — {t(`reason.${suggestion.reason}`)}
-      </p>
-      <div className="grades" role="group" aria-label={t('rating.suggested', { rating: t(`rating.${suggested}`) })}>
-        {GRADES.map((g) => (
-          <button
-            key={g}
-            className="grade"
-            data-g={g}
-            type="button"
-            aria-pressed={choice?.final === g}
-            disabled={!canChoose(suggested, g) && !(choice?.correction === 'misrecognized' && g === 3)}
-            onClick={() => {
-              const c = chooseRating(suggested, g);
-              if (c) setChoice(c);
-            }}
-          >
-            {t(`rating.${g}`)}
-            {g === suggested && <span className="sug" aria-hidden="true"> •</span>}
-          </button>
-        ))}
-      </div>
-      {misrecognizedOk && (
-        <button
-          className={choice?.correction === 'misrecognized' ? 'secondary on' : 'secondary'}
-          type="button"
-          aria-pressed={choice?.correction === 'misrecognized'}
-          onClick={() => setChoice(claimMisrecognized(suggested, mode))}
-        >
-          {t('rating.misrecognized')}
-        </button>
-      )}
-      {locked && <p className="hint">{t(mode === 'voice' ? 'rating.lockedVoice' : 'rating.lockedTyped')}</p>}
-      <button className="primary big mt" type="button" onClick={next}>
-        {t('common.next')}
-      </button>
+      {field}
+      {answered ? renderAnswered(answered) : pendingBody}
     </article>
   );
 }
