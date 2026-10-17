@@ -122,7 +122,7 @@ export const STRINGS = {
   'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
   'mic.hint': { tg: 'Фишор диҳед ва бигӯед', ru: 'Нажмите и говорите', en: 'Tap and speak' },
   'write.placeholder': { tg: 'Нависед…', ru: 'Напишите…', en: 'Type…' },
-  'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
+  'mic.starting': { tg: 'Микрофон равшан мешавад…', ru: 'Микрофон включается…', en: 'Starting the microphone…' },
   'mic.unsupported': {
     tg: 'Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед.',
     ru: 'Этот браузер не распознаёт речь — напишите ответ.',
@@ -169,7 +169,7 @@ export const STRINGS = {
   'mark.wrong': { tg: 'хато', ru: 'ошибка', en: 'wrong' },
   'mark.missing': { tg: 'ҷо монд', ru: 'пропущено', en: 'missing' },
   'mark.diacritic': { tg: 'танҳо аломат (é/e)', ru: 'только диакритика (é/e)', en: 'accent only (é/e)' },
-  'mark.punct': { tg: 'аломати нигоришӣ (ба ҳисоб гирифта намешавад)', ru: 'знак препинания (не учитывается)', en: 'punctuation (not counted)' },
+  'mark.punct': { tg: 'нишонаи нигоришӣ — ба баҳо таъсир надорад', ru: 'знак препинания — на оценку не влияет', en: "punctuation — doesn't affect the grade" },
 
   // Rating (Р4)
   'rating.1': { tg: 'Дубора', ru: 'Снова', en: 'Again' },

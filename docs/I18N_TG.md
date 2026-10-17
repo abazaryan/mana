@@ -64,7 +64,7 @@
 | `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
 | `mic.hint` | Нажмите и говорите | Tap and speak | Фишор диҳед ва бигӯед |
 | `write.placeholder` | Напишите… | Type… | Нависед… |
-| `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
+| `mic.starting` | Микрофон включается… | Starting the microphone… | Микрофон равшан мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед. |
 | `mic.err.service-not-allowed` | Браузер не разрешил распознавание речи. | The browser did not allow speech recognition. | Мурургар бозшиносии гуфторро иҷозат надод. |
@@ -85,7 +85,7 @@
 | `mark.wrong` | ошибка | wrong | хато |
 | `mark.missing` | пропущено | missing | ҷо монд |
 | `mark.diacritic` | только диакритика (é/e) | accent only (é/e) | танҳо аломат (é/e) |
-| `mark.punct` | знак препинания (не учитывается) | punctuation (not counted) | аломати нигоришӣ (ба ҳисоб гирифта намешавад) |
+| `mark.punct` | знак препинания — на оценку не влияет | punctuation — doesn't affect the grade | нишонаи нигоришӣ — ба баҳо таъсир надорад |
 | `rating.1` | Снова | Again | Дубора |
 | `rating.2` | Трудно | Hard | Сахт |
 | `rating.3` | Хорошо | Good | Хуб |
