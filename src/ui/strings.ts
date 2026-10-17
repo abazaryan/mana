@@ -45,7 +45,8 @@ export const STRINGS = {
     ru: 'Скрыто: {n} — нет в новой редакции, их прогресс сохранён.',
     en: 'Hidden: {n} — not in the new revision; their progress is kept.',
   },
-  'deck.play': { tg: 'Гӯш кардан', ru: 'Слушать', en: 'Play' },
+  'deck.play': { tg: 'Пахш', ru: 'Слушать', en: 'Play' },
+  'deck.contents': { tg: 'Таркиби маҷмӯа ({n})', ru: 'Состав колоды ({n})', en: 'Deck contents ({n})' },
   'deck.noAudio': { tg: 'Садо нест', ru: 'Нет аудио', en: 'No audio' },
   'deck.audioError': {
     tg: 'Садо пахш нашуд.',
@@ -99,18 +100,17 @@ export const STRINGS = {
 
   // Introduction (Р3, Р22.5)
   'intro.label': { tg: 'Ошноӣ', ru: 'Знакомство', en: 'Introduction' },
-  'intro.echo': { tg: 'Бо садои баланд такрор кунед', ru: 'Повторите вслух', en: 'Say it aloud' },
-  'intro.copy': { tg: 'Аз рӯи намуна нависед', ru: 'Напишите по образцу', en: 'Copy it out' },
+  'intro.echo': { tg: 'Бо садои баланд хонед', ru: 'Прочитайте вслух', en: 'Read it aloud' },
   'intro.again': { tg: 'Бори дигар', ru: 'Ещё раз', en: 'Once more' },
   'intro.skip': { tg: 'Гузаштан', ru: 'Пропустить', en: 'Skip' },
 
   // Speak (Р22.6)
-  'speak.prompt': { tg: 'Ҷавобро гӯед', ru: 'Скажите ответ', en: 'Say the answer' },
+  'speak.prompt': { tg: 'Ҷавобро бигӯед', ru: 'Скажите ответ', en: 'Say the answer' },
   'speak.type': { tg: 'Навиштан', ru: 'Написать', en: 'Type' },
   'speak.typePlaceholder': { tg: 'Ҷавобро нависед', ru: 'Напишите ответ', en: 'Type the answer' },
   'speak.check': { tg: 'Санҷиш', ru: 'Проверить', en: 'Check' },
   'speak.dontKnow': { tg: 'Намедонам', ru: 'Не знаю', en: "I don't know" },
-  'listen.prompt': { tg: 'Гӯш диҳед ва бигӯед', ru: 'Послушайте и скажите', en: 'Listen and say it' },
+  'listen.say': { tg: 'Бигӯед', ru: 'Скажите', en: 'Say it' },
   'listen.playing': { tg: 'Гӯш диҳед…', ru: 'Слушайте…', en: 'Listen…' },
   'listen.replay': { tg: 'Такрор', ru: 'Прослушать ещё раз', en: 'Play again' },
   'write.article': { tg: 'Шиносвожаи нодуруст', ru: 'Неверный артикль', en: 'Wrong article' },
@@ -120,7 +120,8 @@ export const STRINGS = {
   // Microphone
   'mic.start': { tg: 'Гуфтан', ru: 'Говорить', en: 'Speak' },
   'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
-  'mic.hint': { tg: 'Фишор диҳед ва гӯед', ru: 'Нажмите и говорите', en: 'Tap and speak' },
+  'mic.hint': { tg: 'Фишор диҳед ва бигӯед', ru: 'Нажмите и говорите', en: 'Tap and speak' },
+  'write.placeholder': { tg: 'Нависед…', ru: 'Напишите…', en: 'Type…' },
   'mic.starting': { tg: 'Микрофон фаъол мешавад…', ru: 'Включаю микрофон…', en: 'Starting the microphone…' },
   'mic.unsupported': {
     tg: 'Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед.',
@@ -168,6 +169,7 @@ export const STRINGS = {
   'mark.wrong': { tg: 'хато', ru: 'ошибка', en: 'wrong' },
   'mark.missing': { tg: 'ҷо монд', ru: 'пропущено', en: 'missing' },
   'mark.diacritic': { tg: 'танҳо аломат (é/e)', ru: 'только диакритика (é/e)', en: 'accent only (é/e)' },
+  'mark.punct': { tg: 'аломати нигоришӣ (ба ҳисоб гирифта намешавад)', ru: 'знак препинания (не учитывается)', en: 'punctuation (not counted)' },
 
   // Rating (Р4)
   'rating.1': { tg: 'Дубора', ru: 'Снова', en: 'Again' },

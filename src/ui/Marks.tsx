@@ -39,6 +39,7 @@ const CHAR_LABEL: Record<CharStatus, StringKey | null> = {
   missing: 'mark.missing',
   extra: 'mark.extra',
   diacritic: 'mark.diacritic',
+  punct: 'mark.punct',
 };
 
 /**

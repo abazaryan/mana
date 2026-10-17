@@ -21,7 +21,6 @@ export function TypeField({
   checked,
   onCheck,
   onNext,
-  blurOnNext = true,
   frozen = false,
 }: {
   value: string;
@@ -36,8 +35,6 @@ export function TypeField({
   checked: boolean;
   onCheck(): void;
   onNext(): void;
-  /** Drop the focus on "Next" (the next step is the microphone or has no field). */
-  blurOnNext?: boolean;
   /** The answer is final: typing changes nothing, but the field stays focused. */
   frozen?: boolean;
 }) {
@@ -60,7 +57,6 @@ export function TypeField({
         if (act === 'check') {
           onCheck();
         } else if (act === 'next') {
-          if (blurOnNext && document.activeElement instanceof HTMLElement) document.activeElement.blur();
           onNext();
         }
       }}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkWritten, editDistance, evaluate, normalize, type ArticleForm } from './evaluate';
+import { checkWritten, editDistance, evaluate, foldShown, normalize, type ArticleForm, type CharCell } from './evaluate';
 import { FRENCH } from './languages';
 
 const fr = FRENCH.writing;
@@ -204,7 +204,7 @@ describe('checkWritten: the article in `write` (Р24)', () => {
     expect(w('le nom', 'le nom', HINT)).toEqual({ verdict: 'correct' });
     expect(w("l'hôpital", "l'hopital", HINT)).toEqual({ verdict: 'almost', errorType: 'diacritic' });
     expect(w('beaucoup', 'beacoup', NO_HINT)).toEqual({ verdict: 'almost', errorType: 'typo' });
-    expect(w('Ça va ?', 'ça va?', NO_HINT)).toEqual({ verdict: 'correct', typographyNote: true });
+    expect(w('Ça va ?', 'ça va?', NO_HINT)).toEqual({ verdict: 'correct' });
     expect(w('le nom', 'la nomx', HINT)).toEqual({ verdict: 'incorrect' });
     expect(w('le nom', '', HINT)).toEqual({ verdict: 'incorrect' });
   });
@@ -221,5 +221,98 @@ describe('checkWritten: the article in `write` (Р24)', () => {
       expect(cells.flatMap((c) => (c.bottom === null ? [] : [c.bottom])).join('').toLowerCase()).toBe(normalize(e, fr));
       expect(cells.some((c) => c.status !== 'ok')).toBe(evaluation.verdict !== 'correct');
     }
+  });
+});
+
+describe('checkWritten: punctuation is not counted (Р26)', () => {
+  const NONE: ArticleForm = { determiner: false };
+  const show = (cells: readonly CharCell[]) => cells.filter((c) => c.status !== 'ok').map((c) => `${c.status}:${c.top ?? '_'}/${c.bottom ?? '_'}`);
+
+  it('a missing question mark: correct, shown as neutral punctuation', () => {
+    const r = checkWritten('Ça va ?', 'Ça va', fr, NONE);
+    expect(r.evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(show(r.cells)).toEqual(['punct:_/?']);
+  });
+
+  it('a question without "?" is correct', () => {
+    const r = checkWritten('Est-ce que tu parles français ?', 'Est-ce que tu parles français', fr, NONE);
+    expect(r.evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(r.cells.every((c) => c.status === 'ok' || c.status === 'punct')).toBe(true);
+  });
+
+  it('extra, missing or other marks of . , ! ? ; : … « » " never change the verdict', () => {
+    expect(checkWritten('Bonne nuit !', 'Bonne nuit.', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(checkWritten('Oui, merci.', 'Oui merci', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(checkWritten('« Bonjour »', 'bonjour', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(checkWritten('Attends…', 'Attends', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(checkWritten('merci', 'merci !', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+    expect(checkWritten('Il dit : "non"', 'Il dit non', fr, NONE).evaluation).toEqual({ verdict: 'correct', punctuationNote: true });
+  });
+
+  it('apostrophe and hyphen are spelling, as before', () => {
+    expect(checkWritten("aujourd'hui", 'aujourdhui', fr, NONE).evaluation).toEqual({ verdict: 'almost', errorType: 'typo' });
+    expect(checkWritten('est-ce', 'est ce', fr, NONE).evaluation.verdict).not.toBe('correct');
+  });
+
+  it('a real error next to punctuation is still marked and counted', () => {
+    const r = checkWritten('Bonne nuit !', 'Bone nuit', fr, NONE);
+    expect(r.evaluation).toEqual({ verdict: 'almost', errorType: 'typo', punctuationNote: true });
+    expect(show(r.cells)).toEqual(['missing:_/n', 'punct:_/!']);
+  });
+
+  it('the typographic space before ? : ; ! is not shown at all', () => {
+    expect(checkWritten('Ça va ?', 'ça va?', fr, NONE).cells.every((c) => c.status === 'ok')).toBe(true);
+  });
+
+  describe('on generated pairs: the marks never contradict the verdict', () => {
+    let seed = 20261017;
+    const r = () => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return seed / 2 ** 31;
+    };
+    const WORDS = ['ça', 'va', 'le', "l'", 'nom', 'été', 'ete', 'bonjour', 'bonjuor', 'oui', 'merci', 'aujourd', "'hui", 'est-ce'];
+    const MARKS = ['', '', '', ' ?', '?', ',', '.', ' !', '…', ' :', '«', '»', '"'];
+    const phrase = () => {
+      const n = 1 + Math.floor(r() * 3);
+      let s = '';
+      for (let k = 0; k < n; k++) s += (k ? ' ' : '') + WORDS[Math.floor(r() * WORDS.length)]! + MARKS[Math.floor(r() * MARKS.length)]!;
+      return s;
+    };
+    const mutate = (s: string) => {
+      const c = s.split('');
+      const k = Math.floor(r() * Math.max(1, c.length));
+      switch (Math.floor(r() * 5)) {
+        case 0:
+          return s.replace(/[.,!?;:…«»"]/g, '');
+        case 1:
+          c.splice(k, 1);
+          return c.join('');
+        case 2:
+          c.splice(k, 0, r() < 0.5 ? 'x' : '?');
+          return c.join('');
+        case 3:
+          return s + (r() < 0.5 ? ' !' : '.');
+        default:
+          return s;
+      }
+    };
+
+    it('3000 pairs', () => {
+      for (let k = 0; k < 3000; k++) {
+        const e = phrase();
+        const a = r() < 0.2 ? phrase() : mutate(e);
+        const { evaluation, cells } = checkWritten(e, a, fr, NONE);
+        const ctx = `${JSON.stringify(e)} ← ${JSON.stringify(a)}: ${show(cells).join(' ')}`;
+        // Both lines are the shown texts (spaces that only vanished with a mark are left out).
+        const line = (cs: string[]) => cs.join('').toLowerCase().replace(/ /g, '');
+        const text = (x: string) => foldShown(x).map((ch) => ch.c).join('').replace(/ /g, '');
+        expect(line(cells.flatMap((c) => (c.top === null ? [] : [c.top]))), ctx).toBe(text(a));
+        expect(line(cells.flatMap((c) => (c.bottom === null ? [] : [c.bottom]))), ctx).toBe(text(e));
+        const errors = cells.filter((c) => c.status !== 'ok' && c.status !== 'punct');
+        if (evaluation.verdict === 'correct') expect(errors, ctx).toEqual([]);
+        else expect(errors.length, ctx).toBeGreaterThan(0);
+        expect(evaluation.punctuationNote === true, ctx).toBe(cells.some((c) => c.status === 'punct'));
+      }
+    });
   });
 });

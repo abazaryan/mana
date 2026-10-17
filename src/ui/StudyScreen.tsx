@@ -30,7 +30,7 @@ import { useI18n } from './i18n';
 import { IntroCard, type IntroResult } from './IntroCard';
 import { CopyStep, EchoStep } from './PracticeSteps';
 import { deckHref } from './Root';
-import { phrasesApiPresent, recognitionSupported, type RecognitionSetup } from './studyHooks';
+import { phrasesApiPresent, type RecognitionSetup } from './studyHooks';
 import { VoiceCard, type CardAnswer } from './VoiceCard';
 import { WriteCard } from './WriteCard';
 
@@ -258,9 +258,6 @@ export function StudyScreen({
   }
 
   const total = items.length;
-  /** The next card starts with the keyboard (`write`, or any answer without a microphone): keep it up. */
-  const nextItem = items[index + 1];
-  const nextTyped = nextItem?.kind === 'review' && (nextItem.skill === 'write' || !recognitionSupported);
   const cardKey = `${sessionId}-${index}`;
 
   let card;
@@ -273,7 +270,6 @@ export function StudyScreen({
         pack={pack}
         locale={locale}
         recognition={recognition}
-        nextTyped={nextTyped}
         onDone={onIntro(item.entry.entryId)}
       />
     );
@@ -289,7 +285,6 @@ export function StudyScreen({
           locale={locale}
           kicker={t('skill.write')}
           skippable
-          blurOnNext={!nextTyped}
           onDone={(copy) => finishDrill({ echo: null, copy, skipped: copy === null })}
         />
       ) : (
@@ -302,7 +297,6 @@ export function StudyScreen({
           recognition={recognition}
           kicker={t(`skill.${item.skill}`)}
           start="afterAudio"
-          blurOnNext={!nextTyped}
           onDone={(echo) => finishDrill({ echo, copy: null, skipped: echo.skipped })}
         />
       );
@@ -317,7 +311,6 @@ export function StudyScreen({
           locale={locale}
           previous={previous.review}
           requeue={item.requeue}
-          nextTyped={nextTyped}
           onDone={onAnswer(item, previous.review)}
         />
       ) : (
@@ -331,7 +324,6 @@ export function StudyScreen({
           previous={previous.review}
           recognition={recognition}
           requeue={item.requeue}
-          nextTyped={nextTyped}
           onDone={onAnswer(item, previous.review)}
         />
       );

@@ -69,7 +69,6 @@ export function VoiceCard({
   previous,
   recognition,
   requeue,
-  nextTyped,
   onDone,
 }: {
   db: ManaDb;
@@ -81,8 +80,6 @@ export function VoiceCard({
   previous: ReviewRecord | null;
   recognition: RecognitionSetup;
   requeue: number;
-  /** The next card starts with the keyboard: keep it up after a typed answer. */
-  nextTyped: boolean;
   onDone(a: CardAnswer): void;
 }) {
   const { t, lang, meaningLang } = useI18n();
@@ -270,7 +267,6 @@ export function VoiceCard({
       <CardKicker skill={skill} requeue={requeue} />
       {!answered && (
         <>
-          <p className="prompt">{t('listen.prompt')}</p>
           <div className="row start">
             <button className="secondary" type="button" onClick={() => playQuestion(true)}>
               ▶ {t('listen.replay')}
@@ -314,8 +310,6 @@ export function VoiceCard({
       frozen={answered !== null}
       onCheck={submitTyped}
       onNext={next}
-      // Keep the keyboard up when the next card is typed too (`write`, or no microphone).
-      blurOnNext={recognitionSupported && !nextTyped}
     />
   ) : null;
 
@@ -323,7 +317,7 @@ export function VoiceCard({
     <>
       {!typing && recognitionSupported && (
         <>
-          <MicPanel state={voice.state} onStart={listen} startLabel="mic.start" playing={playing} />
+          <MicPanel state={voice.state} onStart={listen} startLabel="mic.start" prompt={listenSkill ? 'listen.say' : 'speak.prompt'} playing={playing} />
           {listening && voice.state.transcript && (
             <p className="live" lang={pack.code}>
               {voice.state.transcript}

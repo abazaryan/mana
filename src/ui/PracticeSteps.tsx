@@ -13,6 +13,7 @@ import type { ManaDb } from '../platform/db';
 import { useI18n } from './i18n';
 import { CharMarks, LiveWords, SpokenMarks } from './Marks';
 import { MicPanel } from './MicPanel';
+import { NextButton } from './NextButton';
 import { TypeField } from './TypeField';
 import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
@@ -84,7 +85,6 @@ export function EchoStep({
   recognition,
   kicker,
   start,
-  blurOnNext,
   onDone,
 }: {
   db: ManaDb;
@@ -95,8 +95,6 @@ export function EchoStep({
   kicker: string;
   /** `now`: the microphone starts with the step (the tap on "Next" is the gesture); `afterAudio`: the audio plays first. */
   start: 'now' | 'afterAudio';
-  /** Drop the keyboard on "Next" from the typed field (the next step needs none). */
-  blurOnNext: boolean;
   onDone(echo: IntroEcho): void;
 }) {
   const { t } = useI18n();
@@ -190,7 +188,6 @@ export function EchoStep({
         audioError={audioError}
         live={listening ? { words, heard } : null}
       />
-      <h2 className="h3 step-title">{t('intro.echo')}</h2>
       {echo && !listening && <SpokenMarks check={echo.check} lang={pack.code} source={echo.mode} />}
       {gaveUp ? (
         <TypeField
@@ -206,10 +203,9 @@ export function EchoStep({
           checked={echo !== null && echo.mode === 'typed'}
           onCheck={() => setEcho({ check: checkSpoken(entry.text, [typed], pack.spoken), alternatives: [], mode: 'typed' })}
           onNext={() => finish(false)}
-          blurOnNext={blurOnNext}
         />
       ) : (
-        <MicPanel state={voice.state} onStart={listen} startLabel={echo ? 'intro.again' : 'mic.start'} playing={playing} />
+        <MicPanel state={voice.state} onStart={listen} startLabel={echo ? 'intro.again' : 'mic.start'} prompt="intro.echo" playing={playing} />
       )}
       <div className="row start">
         {!echo && (
@@ -218,9 +214,7 @@ export function EchoStep({
           </button>
         )}
       </div>
-      <button className="primary big mt" type="button" disabled={!echo} onClick={() => finish(false)}>
-        {t('common.next')}
-      </button>
+      <NextButton disabled={!echo} onNext={() => finish(false)} />
     </article>
   );
 }
@@ -232,7 +226,6 @@ export function CopyStep({
   locale,
   kicker,
   skippable = false,
-  blurOnNext = true,
   onDone,
 }: {
   db: ManaDb;
@@ -242,7 +235,6 @@ export function CopyStep({
   kicker: string;
   /** The short practice after Again may be skipped; the introduction's copy-out may not. */
   skippable?: boolean;
-  blurOnNext?: boolean;
   /** null: skipped. */
   onDone(copy: IntroCopy | null): void;
 }) {
@@ -255,7 +247,12 @@ export function CopyStep({
   const done = () => {
     if (!copy) return;
     stopEntryAudio();
-    onDone({ typed, verdict: copy.evaluation.verdict, errorType: copy.evaluation.errorType ?? null });
+    onDone({
+      typed,
+      verdict: copy.evaluation.verdict,
+      errorType: copy.evaluation.errorType ?? null,
+      ...(copy.evaluation.punctuationNote ? { punctuationNote: true } : {}),
+    });
   };
 
   return (
@@ -270,11 +267,11 @@ export function CopyStep({
         }}
         audioError={audioError}
       />
-      <h2 className="h3 step-title">{t('intro.copy')}</h2>
       <TypeField
         lang={pack.code}
         value={typed}
-        ariaLabel={t('intro.copy')}
+        placeholder={t('write.placeholder')}
+        ariaLabel={t('write.placeholder')}
         onChange={(v) => {
           setTyped(v);
           setCopy(null);
@@ -282,7 +279,6 @@ export function CopyStep({
         checked={copy !== null}
         onCheck={() => setCopy(checkWritten(entry.text, typed, pack.writing, articleForm(entry)))}
         onNext={done}
-        blurOnNext={blurOnNext}
       />
       {copy && (
         <>
@@ -304,9 +300,7 @@ export function CopyStep({
           </button>
         </div>
       )}
-      <button className="primary big mt" type="button" disabled={!copy} onClick={done}>
-        {t('common.next')}
-      </button>
+      <NextButton disabled={!copy} onNext={done} />
     </article>
   );
 }

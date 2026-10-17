@@ -27,6 +27,12 @@ export interface WritingRules {
    */
   typographicSpace: RegExp | null;
   /**
+   * Punctuation that does not count in a written answer (Р26): missing or extra, it is
+   * shown in a neutral colour and the verdict ignores it. Apostrophe and hyphen are
+   * spelling and are not here. Must have the `g` flag.
+   */
+  ignoredPunctuation: RegExp | null;
+  /**
    * A leading article/determiner. An answer equal to the reference without it is
    * "almost" with error type `article` (the article carries the gender).
    */
@@ -118,6 +124,7 @@ export const FRENCH: LanguagePack = {
     // French typography: a space before `? ! : ; »` and after `«`. Correct in print,
     // invisible on screen, not something to test the learner on.
     typographicSpace: /\s+(?=[?!:;»])|(?<=«)\s+/g,
+    ignoredPunctuation: /[.,!?;:…«»"“”„]/g,
     // Elision first so it wins over the two-letter forms.
     leadingArticle: /^(l'|le |la |les |un |une |des )/,
     // Words of 5 characters or less get no typo tolerance: one edit on a short

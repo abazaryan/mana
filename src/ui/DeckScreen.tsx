@@ -72,47 +72,50 @@ export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
         </p>
       )}
 
-      <ul className="entries">
-        {entries.map((e) => {
-          const hints = formHints(e.form, lang);
-          const meaning = pickLocalizedWithLang(e.meaning, meaningLang);
-          return (
-            <li key={e.entryId} className="entry">
-              <div className="entry-main">
-                <div className="entry-text" lang={deck.language}>
-                  {e.text}
+      <details className="deck-contents">
+        <summary>{t('deck.contents', { n: entries.length })}</summary>
+        <ul className="entries">
+          {entries.map((e) => {
+            const hints = formHints(e.form, lang);
+            const meaning = pickLocalizedWithLang(e.meaning, meaningLang);
+            return (
+              <li key={e.entryId} className="entry">
+                <div className="entry-main">
+                  <div className="entry-text" lang={deck.language}>
+                    {e.text}
+                  </div>
+                  {e.ipa && <div className="m ipa">[{e.ipa}]</div>}
+                  <div lang={meaning?.lang}>
+                    {meaning?.text}
+                    {meaning && meaning.lang !== meaningLang && (
+                      <span className="chip lang-mark" title={LANG_NAMES[meaning.lang]}>
+                        {meaning.lang}
+                      </span>
+                    )}
+                    {hints.length > 0 && <span className="m"> · {hints.join(', ')}</span>}
+                  </div>
+                  <div className="chips">
+                    {e.skills.map((s) => (
+                      <span key={s} className="chip">
+                        {t(`skill.${s}`)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                {e.ipa && <div className="m ipa">[{e.ipa}]</div>}
-                <div lang={meaning?.lang}>
-                  {meaning?.text}
-                  {meaning && meaning.lang !== meaningLang && (
-                    <span className="chip lang-mark" title={LANG_NAMES[meaning.lang]}>
-                      {meaning.lang}
-                    </span>
-                  )}
-                  {hints.length > 0 && <span className="m"> · {hints.join(', ')}</span>}
-                </div>
-                <div className="chips">
-                  {e.skills.map((s) => (
-                    <span key={s} className="chip">
-                      {t(`skill.${s}`)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <button
-                className="play"
-                type="button"
-                disabled={!e.audio}
-                aria-label={e.audio ? `${t('deck.play')}: ${e.text}` : t('deck.noAudio')}
-                onClick={() => void play(e)}
-              >
-                ▶
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                <button
+                  className="play"
+                  type="button"
+                  disabled={!e.audio}
+                  aria-label={e.audio ? `${t('deck.play')}: ${e.text}` : t('deck.noAudio')}
+                  onClick={() => void play(e)}
+                >
+                  ▶
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
     </section>
   );
 }

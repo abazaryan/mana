@@ -39,7 +39,6 @@ export function WriteCard({
   locale,
   previous,
   requeue,
-  nextTyped,
   onDone,
 }: {
   db: ManaDb;
@@ -48,8 +47,6 @@ export function WriteCard({
   locale: string;
   previous: ReviewRecord | null;
   requeue: number;
-  /** The next card starts with the keyboard: keep it up. */
-  nextTyped: boolean;
   onDone(a: CardAnswer): void;
 }) {
   const { t, lang, meaningLang } = useI18n();
@@ -83,6 +80,7 @@ export function WriteCard({
       alternatives: [],
       verdict: ev?.verdict ?? 'incorrect',
       errorType: ev?.errorType ?? null,
+      ...(ev?.punctuationNote ? { punctuationNote: true } : {}),
       latencyMs: answered.latencyMs,
       latencySource: answered.latencyMs === null ? null : 'key',
       totalMs: answered.totalMs,
@@ -126,8 +124,8 @@ export function WriteCard({
         <TypeField
           lang={pack.code}
           value={typed}
-          placeholder={t('speak.typePlaceholder')}
-          ariaLabel={t('speak.typePlaceholder')}
+          placeholder={t('write.placeholder')}
+          ariaLabel={t('write.placeholder')}
           onChange={setTyped}
           onFirstKey={() => {
             firstKey.current ??= visibleMs();
@@ -136,7 +134,6 @@ export function WriteCard({
           frozen={answered !== null}
           onCheck={() => finish('typed', checkWritten(entry.text, typed, pack.writing, articleForm(entry)))}
           onNext={next}
-          blurOnNext={!nextTyped}
         />
       )}
       {!answered && (

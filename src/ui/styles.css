@@ -130,6 +130,9 @@ a.ghost[aria-current="page"]{color:var(--ink);font-weight:600;background:var(--w
 .h2{font-size:1.15rem;margin:28px 0 6px;}
 .first-run{font-size:1.4rem;}
 .stack{display:flex;flex-direction:column;gap:10px;}
+.deck-contents{margin-top:16px;}
+.deck-contents>summary{cursor:pointer;font-weight:600;padding:10px 0;color:var(--accent);}
+.deck-contents>.entries{margin-top:4px;}
 .cards-list,.entries,.issues{list-style:none;margin:16px 0 0;padding:0;}
 .deck-card{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 10px;color:var(--ink);text-decoration:none;}
 .deck-card:hover{border-color:var(--accent);}
@@ -205,6 +208,9 @@ button.blk:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 .st-other .top,.st-wrong .top{color:var(--bad);text-decoration:underline wavy var(--bad);text-underline-offset:4px;}
 .st-extra .top{color:var(--bad);text-decoration:line-through 2px;}
 .st-diacritic .top{color:var(--hard);text-decoration:underline dotted 2px;text-underline-offset:4px;}
+/* Punctuation (Р26): neutral, not an error colour; the second sign is the dashed frame. */
+.st-punct .top,.st-punct .bot{color:var(--muted);}
+.st-punct .top:not(.gap),.st-punct .bot:not(.gap){outline:1px dashed var(--muted);outline-offset:-2px;border-radius:4px;}
 /* Corrected characters and words of the reference: bold and green. */
 .st-other .bot,.st-wrong .bot,.st-missing .bot,.st-diacritic .bot{color:var(--ok);font-weight:700;}
 .pop{position:absolute;top:calc(100% + 4px);left:0;z-index:5;display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font:400 .85rem/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.18);text-align:left;}

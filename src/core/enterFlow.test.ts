@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENTER_NEXT_DELAY_MS, enterAction } from './enterFlow';
+import { ENTER_NEXT_DELAY_MS, enterAction, nextPress } from './enterFlow';
 
 describe('Enter in a text field', () => {
   it('delay constant', () => expect(ENTER_NEXT_DELAY_MS).toBe(700));
@@ -33,5 +33,17 @@ describe('Enter in a text field', () => {
       { hasText: true, checked: true, sinceCheckedMs: 900 },
     ].map(enterAction);
     expect(steps).toEqual(['check', 'ignore', 'next']);
+  });
+});
+
+describe('"Next" after the check (Р26)', () => {
+  it('Enter on the focused button goes next only after the delay', () => {
+    expect(nextPress({ byKeyboard: true, sinceShownMs: 0 })).toBe('ignore');
+    expect(nextPress({ byKeyboard: true, sinceShownMs: 699 })).toBe('ignore');
+    expect(nextPress({ byKeyboard: true, sinceShownMs: 700 })).toBe('next');
+  });
+
+  it('a tap or a mouse click goes next at once', () => {
+    expect(nextPress({ byKeyboard: false, sinceShownMs: 0 })).toBe('next');
   });
 });

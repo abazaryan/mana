@@ -117,6 +117,8 @@ export interface IntroCopy {
   typed: string;
   verdict: Verdict;
   errorType: string | null;
+  /** Punctuation differed — shown, not counted (Р26). */
+  punctuationNote?: boolean;
 }
 
 /** Introduction of an entry (Р3): once per entry, no rating. */
@@ -194,6 +196,8 @@ export interface ReviewRecord extends LogBase {
   repeats?: number | null;
   /** Extra words heard. */
   extraWords?: number | null;
+  /** `write`: the answer differs from the reference in punctuation, which is not counted (Р26). */
+  punctuationNote?: boolean;
   /** `listen` (stage 4.3): times the audio played before the answer (1 = only the automatic play). */
   plays?: number | null;
   /** `listen`: visible ms from the card shown to the end of the last play before the answer. */

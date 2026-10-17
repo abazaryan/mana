@@ -30,7 +30,6 @@ export function IntroCard({
   pack,
   locale,
   recognition,
-  nextTyped,
   onDone,
 }: {
   db: ManaDb;
@@ -38,8 +37,6 @@ export function IntroCard({
   pack: LanguagePack;
   locale: string;
   recognition: RecognitionSetup;
-  /** The next card starts with the keyboard: keep it up after copying out. */
-  nextTyped: boolean;
   onDone(r: IntroResult): void;
 }) {
   const { t, lang, meaningLang } = useI18n();
@@ -75,7 +72,6 @@ export function IntroCard({
         recognition={recognition}
         kicker={t('intro.label')}
         start="now"
-        blurOnNext={!needsCopy && !nextTyped}
         onDone={afterEcho}
       />
     );
@@ -88,7 +84,6 @@ export function IntroCard({
         pack={pack}
         locale={locale}
         kicker={t('intro.label')}
-        blurOnNext={!nextTyped}
         onDone={(copy) => onDone({ echo, copy })}
       />
     );

@@ -7,6 +7,7 @@ import type { AnswerMode, FinalRating } from '../core/model';
 import type { RatingSuggestion } from '../core/rating';
 import { canChoose, canClaimMisrecognized, chooseRating, claimMisrecognized, type RatingChoice } from '../core/review';
 import { useI18n } from './i18n';
+import { NextButton } from './NextButton';
 
 const GRADES: FinalRating[] = [1, 2, 3, 4];
 
@@ -65,9 +66,7 @@ export function RatingPanel({
         </button>
       )}
       {locked && <p className="hint">{t(mode === 'voice' ? 'rating.lockedVoice' : 'rating.lockedTyped')}</p>}
-      <button className="primary big mt" type="button" onClick={onNext}>
-        {t('common.next')}
-      </button>
+      <NextButton onNext={onNext} />
     </>
   );
 }

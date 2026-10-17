@@ -26,6 +26,8 @@ export interface Evaluation {
    * reference carries (`ça va?` for `ça va ?`). A hint for the UI, never an error.
    */
   typographyNote?: true;
+  /** The written check (Р26): the answer differs from the reference in punctuation only there, never in the verdict. */
+  punctuationNote?: true;
 }
 
 /**
@@ -167,7 +169,8 @@ function evaluateAgainst(expected: string, actual: string, rules: WritingRules):
 
 // ---------- Character marks (Р22.9а) ----------
 
-export type CharStatus = 'ok' | 'wrong' | 'missing' | 'extra' | 'diacritic';
+/** `punct`: punctuation missing, extra or another mark — neutral, not an error (Р26, written check only). */
+export type CharStatus = 'ok' | 'wrong' | 'missing' | 'extra' | 'diacritic' | 'punct';
 
 /** One column: the typed character (top) over the reference character (bottom). */
 export interface CharCell {
@@ -374,15 +377,25 @@ function splitArticle(s: string, rules: WritingRules): { article: string; rest: 
  * Stricter than the voice rule (Р22.2), which stays as it is.
  */
 export function checkWritten(expected: string, actual: string, rules: WritingRules, form: ArticleForm): TypedCheck {
-  const base = checkTyped(expected, actual, rules);
+  // Р26: punctuation never counts; the verdict is taken on both texts without it
+  // (the spaces left around a removed mark fold as usual).
+  const strip = (s: string) => (rules.ignoredPunctuation ? s.replace(rules.ignoredPunctuation, '') : s);
+  const evaluation = writtenVerdict(strip(expected), strip(actual), rules, form);
+  // A space that only vanished with a mark is not worth a cell of its own.
+  const cells = alignShown(foldShown(expected), foldShown(actual), rules.ignoredPunctuation).filter(
+    (c) => !(c.status === 'punct' && (c.top ?? ' ') === ' ' && (c.bottom ?? ' ') === ' '),
+  );
+  const punct = cells.some((c) => c.status === 'punct');
+  return { evaluation: punct ? { ...evaluation, punctuationNote: true } : evaluation, cells };
+}
+
+/** Р24 on top of the ported cascade, on texts already without ignored punctuation. */
+function writtenVerdict(expected: string, actual: string, rules: WritingRules, form: ArticleForm): Evaluation {
+  const base = evaluate(expected, actual, rules);
   const e = normalize(expected, rules);
   const a = normalize(actual, rules);
   const re = splitArticle(e, rules);
   if (!re || a.length === 0) return base;
-  const align = (evaluation: Evaluation): TypedCheck => ({
-    evaluation,
-    cells: alignChars(foldTraced(expected, rules), foldTraced(actual, rules)),
-  });
   const ra = splitArticle(a, rules);
   if (ra) {
     if (ra.article === re.article) return base;
@@ -390,14 +403,119 @@ export function checkWritten(expected: string, actual: string, rules: WritingRul
     if (ra.rest === re.rest) {
       const typedGender = ELIDABLE[ra.article];
       if (re.article === ELIDED && typedGender && (!form.gender || form.gender === typedGender)) {
-        return align({ verdict: 'almost', errorType: 'elision' });
+        return { verdict: 'almost', errorType: 'elision' };
       }
-      if (ra.article === ELIDED && ELIDABLE[re.article]) return align({ verdict: 'almost', errorType: 'elision' });
+      if (ra.article === ELIDED && ELIDABLE[re.article]) return { verdict: 'almost', errorType: 'elision' };
     }
-    return align(restOk ? { verdict: 'incorrect', errorType: 'article' } : { verdict: 'incorrect' });
+    return restOk ? { verdict: 'incorrect', errorType: 'article' } : { verdict: 'incorrect' };
   }
-  if (base.evaluation.errorType === 'article' && form.determiner) {
-    return { evaluation: { verdict: 'incorrect', errorType: 'article' }, cells: base.cells };
-  }
+  if (base.errorType === 'article' && form.determiner) return { verdict: 'incorrect', errorType: 'article' };
   return base;
+}
+
+/**
+ * The text as shown in the written marks (Р26): case, apostrophes, no-break and
+ * repeated spaces folded as in the compared text, but the punctuation and the spaces
+ * around it kept, so a missing or extra mark can be shown.
+ */
+export function foldShown(s: string): FoldedChar[] {
+  let chars: FoldedChar[] = s
+    .normalize('NFC')
+    .split('')
+    .map((ch) => {
+      const space = /[\u00A0\u202F]/.test(ch);
+      return { c: space ? ' ' : ch, d: space ? ' ' : ch };
+    });
+  chars = chars.map((x) => {
+    const low = x.c.toLowerCase();
+    return { c: low.length === 1 ? low : x.c, d: x.d };
+  });
+  chars = chars.map((x) => (/[’ʼ]/.test(x.c) ? { c: "'", d: x.d } : x));
+  chars = replaceFolded(chars, /\s+/g, ' ');
+  chars = replaceFolded(chars, /^\s+|\s+$/g, '');
+  return chars;
+}
+
+/**
+ * Which shown characters do not count: the punctuation marks, and every space that
+ * would vanish once they are removed and the spaces folded (a second space of a run,
+ * a space at either end). The verdict sees exactly the rest.
+ */
+function freeChars(xs: readonly FoldedChar[], isP: (c: string) => boolean): boolean[] {
+  const free = xs.map((x) => isP(x.c));
+  let afterSpace = true; // the start counts as a space: a leading space vanishes
+  xs.forEach((x, k) => {
+    if (free[k]) return;
+    if (x.c === ' ') {
+      free[k] = afterSpace;
+      afterSpace = true;
+    } else afterSpace = false;
+  });
+  for (let k = xs.length - 1; k >= 0 && (free[k] || xs[k]!.c === ' '); k--) free[k] = true;
+  return free;
+}
+
+/**
+ * Character alignment for the written marks (Р26): as `alignChars`, but a punctuation
+ * mark — and a space next to one — costs nothing to add, drop or replace by another
+ * mark, and is marked `punct`. So the other marked edits are exactly the ones the
+ * verdict counted, and a correct answer never shows an error colour.
+ */
+export function alignShown(e: FoldedChar[], a: FoldedChar[], punct: RegExp | null): CharCell[] {
+  const one = punct ? new RegExp(punct.source) : null;
+  const isP = (ch: string) => !!one && one.test(ch);
+  const er = [...e].reverse();
+  const ar = [...a].reverse();
+  const eFree = freeChars(e, isP).reverse();
+  const aFree = freeChars(a, isP).reverse();
+  const n = er.length;
+  const m = ar.length;
+  const same = (i: number, j: number) => er[i]!.c === ar[j]!.c;
+  // One mark against another is free too (and shown as one neutral cell).
+  const punctPair = (i: number, j: number) => isP(er[i]!.c) && isP(ar[j]!.c);
+  const subCost = (i: number, j: number) => (same(i, j) || punctPair(i, j) ? 0 : 1);
+  const swap = (i: number, j: number) =>
+    i > 1 && j > 1 && er[i - 1]!.c === ar[j - 2]!.c && er[i - 2]!.c === ar[j - 1]!.c && !same(i - 1, j - 1);
+  const d: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = 1; i <= n; i++) d[i]![0] = d[i - 1]![0]! + (eFree[i - 1] ? 0 : 1);
+  for (let j = 1; j <= m; j++) d[0]![j] = d[0]![j - 1]! + (aFree[j - 1] ? 0 : 1);
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      let v = Math.min(
+        d[i - 1]![j]! + (eFree[i - 1] ? 0 : 1),
+        d[i]![j - 1]! + (aFree[j - 1] ? 0 : 1),
+        d[i - 1]![j - 1]! + subCost(i - 1, j - 1),
+      );
+      if (swap(i, j)) v = Math.min(v, d[i - 2]![j - 2]! + 1);
+      d[i]![j] = v;
+    }
+  }
+  const cells: CharCell[] = [];
+  let i = n;
+  let j = m;
+  while (i > 0 || j > 0) {
+    const here = d[i]![j]!;
+    if (i > 0 && j > 0 && same(i - 1, j - 1) && here === d[i - 1]![j - 1]!) {
+      cells.push(pairCell(ar[j - 1]!, er[i - 1]!));
+      i--;
+      j--;
+    } else if (i > 0 && j > 0 && here === d[i - 1]![j - 1]! + subCost(i - 1, j - 1)) {
+      const p = punctPair(i - 1, j - 1);
+      cells.push(p ? { status: 'punct', top: ar[j - 1]!.d, bottom: er[i - 1]!.d } : pairCell(ar[j - 1]!, er[i - 1]!));
+      i--;
+      j--;
+    } else if (swap(i, j) && here === d[i - 2]![j - 2]! + 1) {
+      cells.push({ status: 'wrong', top: ar[j - 1]!.d, bottom: er[i - 1]!.d });
+      cells.push({ status: 'wrong', top: ar[j - 2]!.d, bottom: er[i - 2]!.d });
+      i -= 2;
+      j -= 2;
+    } else if (i > 0 && here === d[i - 1]![j]! + (eFree[i - 1] ? 0 : 1)) {
+      cells.push({ status: eFree[i - 1] ? 'punct' : 'missing', top: null, bottom: er[i - 1]!.d });
+      i--;
+    } else {
+      cells.push({ status: aFree[j - 1] ? 'punct' : 'extra', top: ar[j - 1]!.d, bottom: null });
+      j--;
+    }
+  }
+  return cells;
 }
