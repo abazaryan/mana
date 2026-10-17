@@ -25,7 +25,8 @@
 | `decks.revision` | Редакция: {n} | Revision: {n} | Нусха: {n} |
 | `decks.audio` | Аудио: {mb} МБ | Audio: {mb} MB | Садо: {mb} МБ |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
-| `deck.play` | Слушать | Play | Гӯш кардан |
+| `deck.play` | Слушать | Play | Пахш |
+| `deck.contents` | Состав колоды ({n}) | Deck contents ({n}) | Таркиби маҷмӯа ({n}) |
 | `deck.noAudio` | Нет аудио | No audio | Садо нест |
 | `deck.audioError` | Не удалось воспроизвести аудио. | Could not play the audio. | Садо пахш нашуд. |
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
@@ -45,16 +46,15 @@
 | `study.noLanguage` | Язык {lang} пока не поддерживается. | The language {lang} is not supported yet. | Барнома ҳанӯз бо забони {lang} кор намекунад. |
 | `study.saveError` | Ответ не сохранён: {error} | The answer was not saved: {error} | Ҷавоб захира нашуд: {error} |
 | `intro.label` | Знакомство | Introduction | Ошноӣ |
-| `intro.echo` | Повторите вслух | Say it aloud | Бо садои баланд такрор кунед |
-| `intro.copy` | Напишите по образцу | Copy it out | Аз рӯи намуна нависед |
+| `intro.echo` | Прочитайте вслух | Read it aloud | Бо садои баланд хонед |
 | `intro.again` | Ещё раз | Once more | Бори дигар |
 | `intro.skip` | Пропустить | Skip | Гузаштан |
-| `speak.prompt` | Скажите ответ | Say the answer | Ҷавобро гӯед |
+| `speak.prompt` | Скажите ответ | Say the answer | Ҷавобро бигӯед |
 | `speak.type` | Написать | Type | Навиштан |
 | `speak.typePlaceholder` | Напишите ответ | Type the answer | Ҷавобро нависед |
 | `speak.check` | Проверить | Check | Санҷиш |
 | `speak.dontKnow` | Не знаю | I don't know | Намедонам |
-| `listen.prompt` | Послушайте и скажите | Listen and say it | Гӯш диҳед ва бигӯед |
+| `listen.say` | Скажите | Say it | Бигӯед |
 | `listen.playing` | Слушайте… | Listen… | Гӯш диҳед… |
 | `listen.replay` | Прослушать ещё раз | Play again | Такрор |
 | `write.article` | Неверный артикль | Wrong article | Шиносвожаи нодуруст |
@@ -62,7 +62,8 @@
 | `study.returned` | Вернулась после «Снова» | Back after Again | Пас аз «Дубора» баргашт |
 | `mic.start` | Говорить | Speak | Гуфтан |
 | `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
-| `mic.hint` | Нажмите и говорите | Tap and speak | Фишор диҳед ва гӯед |
+| `mic.hint` | Нажмите и говорите | Tap and speak | Фишор диҳед ва бигӯед |
+| `write.placeholder` | Напишите… | Type… | Нависед… |
 | `mic.starting` | Включаю микрофон… | Starting the microphone… | Микрофон фаъол мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед. |
@@ -84,6 +85,7 @@
 | `mark.wrong` | ошибка | wrong | хато |
 | `mark.missing` | пропущено | missing | ҷо монд |
 | `mark.diacritic` | только диакритика (é/e) | accent only (é/e) | танҳо аломат (é/e) |
+| `mark.punct` | знак препинания (не учитывается) | punctuation (not counted) | аломати нигоришӣ (ба ҳисоб гирифта намешавад) |
 | `rating.1` | Снова | Again | Дубора |
 | `rating.2` | Трудно | Hard | Сахт |
 | `rating.3` | Хорошо | Good | Хуб |
