@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  introHints,
   AUDIO_EXTENSIONS,
   checkDeckArchive,
   DETERMINERS,
@@ -587,5 +588,18 @@ describe('validateDeck: rejected Tajik terms in deck text', () => {
   it('is quiet for ru text and for the approved term', () => {
     expect(termWarnings({ hint: { ru: 'с артиклем', tg: 'на ном' } })).toEqual([]);
     expect(termWarnings({ note: { tg: 'шиносвожаи муайян' } })).toEqual([]);
+  });
+});
+
+describe('introHints (Р16, 18.10.2026)', () => {
+  it('leaves out the word gender when the form shows the same gender', () => {
+    expect(introHints('m', { determiner: 'indefinite', gender: 'm' }, 'tg')).toEqual(['номуай.', 'музак.']);
+  });
+
+  it('shows the word gender when the form has none or another one', () => {
+    expect(introHints('m', { determiner: 'definite' }, 'tg')).toEqual(['музак.', 'муай.']);
+    expect(introHints('m', undefined, 'ru')).toEqual(['м. р.']);
+    expect(introHints('f', { gender: 'm' }, 'tg')).toEqual(['муан.', 'музак.']);
+    expect(introHints(undefined, { gender: 'f' }, 'tg')).toEqual(['муан.']);
   });
 });

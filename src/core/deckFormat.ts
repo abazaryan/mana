@@ -184,6 +184,16 @@ export function formHints(form: EntryForm | undefined, lang: UiLang): string[] {
   return out;
 }
 
+/**
+ * Labels of an introduction (Р16, amendment of 18.10.2026): the gender of the word,
+ * then the form hints. The word's gender is left out when the form already shows the
+ * same gender («un ami»: «номуай. · музак.», not «музак. · номуай. · музак.»).
+ */
+export function introHints(gender: Gender | undefined, form: EntryForm | undefined, lang: UiLang): string[] {
+  const word = gender && form?.gender !== gender ? [FORM_LABELS.gender[gender][lang]] : [];
+  return [...word, ...formHints(form, lang)];
+}
+
 const HTML_LEFTOVER = /<\/?[a-z!][^>]*>|&[a-z]+;|&#\d+;|\[sound:/i;
 
 type Json = Record<string, unknown>;

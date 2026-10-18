@@ -8,7 +8,7 @@
  * Nothing goes to FSRS; the journal gets one introduction record at the end.
  */
 import { useEffect, useState } from 'react';
-import { FORM_LABELS, formHints, pickLocalizedWithLang } from '../core/deckFormat';
+import { introHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { LanguagePack } from '../core/languages';
 import type { EntryRow, IntroCopy, IntroEcho } from '../core/model';
 import type { ManaDb } from '../platform/db';
@@ -92,7 +92,7 @@ export function IntroCard({
   const meaning = pickLocalizedWithLang(entry.meaning, meaningLang);
   const hint = pickLocalizedWithLang(entry.hint, meaningLang);
   const note = pickLocalizedWithLang(entry.note, meaningLang);
-  const hints = [...(entry.gender ? [FORM_LABELS.gender[entry.gender][lang]] : []), ...formHints(entry.form, lang)];
+  const hints = introHints(entry.gender, entry.form, lang);
   return (
     <article className="study-card">
       <p className="kicker">{t('intro.label')}</p>
