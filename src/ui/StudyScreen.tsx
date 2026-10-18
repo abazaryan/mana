@@ -3,15 +3,29 @@
  * introduction, answer and practice is written to the journal as soon as it is
  * finished, so leaving in the middle loses nothing already done. An answer rated
  * Again is written first, then its short practice follows, and the card comes back
- * at the end of the portion (requeueAfterAgain).
+ * at the end of the portion (requeueAfterAgain). Every record carries the zone of the
+ * device (Р29.3). After the portion — or when there is nothing to issue — the figures
+ * of Р29.6 and the reason why no new entries came (Р17.7).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findLanguagePack, speechLocale, type LanguagePack } from '../core/languages';
 import type { DeckRow, EntryRow, FinalRating, IntroCopy, IntroEcho, ReviewRecord } from '../core/model';
 import { createScheduler } from '../core/scheduler';
-import { buildSession, requeueAfterAgain, sinceEntry, type ReviewItem, type SessionItem, type SessionPlan } from '../core/session';
+import {
+  buildSession,
+  capped,
+  outlook,
+  requeueAfterAgain,
+  sinceEntry,
+  type Outlook,
+  type ReviewItem,
+  type SessionItem,
+  type SessionPlan,
+} from '../core/session';
 import { biasPhrases } from '../core/spoken';
+import { zoneStamp } from '../core/zone';
 import type { ManaDb } from '../platform/db';
+import { deviceZone } from '../platform/device';
 import {
   entryTextsForLanguage,
   getDeck,
@@ -23,13 +37,14 @@ import {
   recordReview,
   setPhrasesUnsupported,
   type Actor,
+  type SessionData,
 } from '../platform/repo';
 import { speechPackState } from '../platform/speechPack';
 import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { IntroCard, type IntroResult } from './IntroCard';
 import { CopyStep, EchoStep } from './PracticeSteps';
-import { deckHref } from './Root';
+import { deckHref, studyHref } from './Root';
 import { phrasesApiPresent, type RecognitionSetup } from './studyHooks';
 import { VoiceCard, type CardAnswer } from './VoiceCard';
 import { WriteCard } from './WriteCard';
@@ -37,7 +52,12 @@ import { WriteCard } from './WriteCard';
 const scheduler = createScheduler();
 
 type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
-type Round = { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints } | 'missing' | null;
+/** What comes after this portion (Р29.6): the figures and the portion "Another round" would build. */
+type After = { outlook: Outlook; next: SessionPlan; names: Map<string, string> };
+type Round =
+  | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; names: Map<string, string>; after: After | null }
+  | 'missing'
+  | null;
 type DrillResult = { echo: IntroEcho | null; copy: IntroCopy | null; skipped: boolean };
 
 const OFF: Hints = { options: {}, biasing: 'off', speechPack: null };
@@ -64,41 +84,63 @@ function sameSoundOf(pack: LanguagePack | undefined) {
   return same ? (a: EntryRow, b: EntryRow) => same(a.text, b.text) : undefined;
 }
 
+function planFor(data: SessionData, deck: DeckRow, newPerDay: number, addAnyway: boolean): SessionPlan {
+  return buildSession({
+    now: new Date(),
+    tz: deviceZone(),
+    deckId: deck.id,
+    ...data,
+    newPerDay,
+    addAnyway,
+    sameSound: sameSoundOf(findLanguagePack(deck.language)),
+  });
+}
+
+function lookAhead(data: SessionData, deck: DeckRow, newPerDay: number): After {
+  const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards };
+  return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), names: new Map(data.decks.map((d) => [d.id, d.name])) };
+}
+
 export function StudyScreen({
   db,
   deckId,
   actor,
   newPerDay,
   biasing,
+  addAnyway = false,
 }: {
   db: ManaDb;
   deckId: string;
   actor: Actor;
   newPerDay: number;
   biasing: boolean;
+  /** Opened with "add anyway" (Р29.5): the first portion only. */
+  addAnyway?: boolean;
 }) {
   const { t, lang } = useI18n();
   const [round, setRound] = useState<Round>(null);
   const [index, setIndex] = useState(0);
   const [ratings, setRatings] = useState<FinalRating[]>([]);
-  const [previous, setPrevious] = useState<{ index: number; review: ReviewRecord | null } | null>(null);
+  /** `review`: the previous answer for the Easy rule (returns skipped, Р29.2); `last`: the previous answer of any kind, for `sincePairSec`. */
+  const [previous, setPrevious] = useState<{ index: number; review: ReviewRecord | null; last: ReviewRecord | null } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   /** The short practice after Again of the card at `index`, answered in the record `reviewId`. */
   const [drill, setDrill] = useState<{ index: number; reviewId: string } | null>(null);
   /** When each item of the portion was finished (for the spacing figures in the journal). */
   const finishedAt = useRef(new Map<number, Date>());
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (force: boolean) => {
     const deck = await getDeck(db, deckId);
     if (!deck) {
       setRound('missing');
       return;
     }
-    const all = await loadSessionData(db, actor.userId);
-    const data = { entries: all.entries.filter((e) => e.deckId === deckId), cards: all.cards.filter((c) => c.deckId === deckId), log: all.log };
-    const plan = buildSession({ now: new Date(), ...data, newPerDay, sameSound: sameSoundOf(findLanguagePack(deck.language)) });
+    const data = await loadSessionData(db, actor.userId);
+    const p = planFor(data, deck, newPerDay, force);
     const hints = await prepareHints(db, deck, biasing);
-    setRound({ deck, plan, items: plan.items, sessionId: randomId(), hints });
+    const names = new Map(data.decks.map((d) => [d.id, d.name]));
+    const after = p.items.length === 0 ? lookAhead(data, deck, newPerDay) : null;
+    setRound({ deck, plan: p, items: p.items, sessionId: randomId(), hints, names, after });
     setIndex(0);
     setRatings([]);
     setPrevious(null);
@@ -107,8 +149,10 @@ export function StudyScreen({
   }, [db, deckId, actor.userId, newPerDay, biasing]);
 
   useEffect(() => {
-    void start();
-  }, [start]);
+    void start(addAnyway);
+    // "Add anyway" is for this portion only: a reload or "Another round" builds without it.
+    if (addAnyway) history.replaceState(null, '', studyHref(deckId));
+  }, [start, addAnyway, deckId]);
 
   const item = round && round !== 'missing' ? round.items[index] : undefined;
 
@@ -116,13 +160,28 @@ export function StudyScreen({
   useEffect(() => {
     if (!item || item.kind !== 'review') return;
     let live = true;
-    void lastReview(db, actor.userId, item.entry.deckId, item.entry.entryId, item.skill).then((review) => {
-      if (live) setPrevious({ index, review });
+    const { deckId: d, entryId: e } = item.entry;
+    void Promise.all([lastReview(db, actor.userId, d, e, item.skill, true), lastReview(db, actor.userId, d, e, item.skill)]).then(([review, last]) => {
+      if (live) setPrevious({ index, review, last });
     });
     return () => {
       live = false;
     };
   }, [db, actor.userId, item, index]);
+
+  // The portion is done: the figures and the next portion, from the journal as it is now.
+  const finished = !!round && round !== 'missing' && round.items.length > 0 && index >= round.items.length;
+  const finishedDeck = finished ? round.deck : null;
+  useEffect(() => {
+    if (!finishedDeck) return;
+    let live = true;
+    void loadSessionData(db, actor.userId).then((data) => {
+      if (live) setRound((r) => (r && r !== 'missing' ? { ...r, after: lookAhead(data, finishedDeck, newPerDay) } : r));
+    });
+    return () => {
+      live = false;
+    };
+  }, [db, actor.userId, finishedDeck, newPerDay]);
 
   const pack = useMemo(() => (round && round !== 'missing' ? findLanguagePack(round.deck.language) : undefined), [round]);
 
@@ -158,14 +217,48 @@ export function StudyScreen({
     );
   }
   const locale = speechLocale(deck.language) ?? pack.defaultLocale;
-  const noNewLine =
-    plan.noNew === 'dailyLimit'
-      ? t('study.noNew.dailyLimit', { n: newPerDay })
-      : plan.noNew === 'portionFull'
-        ? t('study.noNew.portionFull')
-        : plan.noNew === 'noMaterial'
-          ? t('study.noNew.noMaterial')
-          : null;
+  /** One line: why no new entries came (Р17.7). Debts elsewhere name the deck (Р29.5). */
+  const noNewText = (p: SessionPlan): string | null => {
+    if (p.noNew === 'dailyLimit') return t('study.noNew.dailyLimit', { n: newPerDay });
+    if (p.noNew === 'portionFull') return t('study.noNew.portionFull');
+    if (p.noNew === 'noMaterial') return t('study.noNew.noMaterial');
+    if (p.noNew !== 'overdue') return null;
+    const first = p.debts[0];
+    if (!first || first.deckId === deck.id) return t('study.noNew.overdue');
+    const more = p.debts.length > 1 ? t('study.noNew.overdueMore', { n: p.debts.length - 1 }) : '';
+    return t('study.noNew.overdueIn', { deck: round.names.get(first.deckId) ?? first.deckId, more });
+  };
+  const noNewLine = noNewText(plan);
+
+  /** The figures, the reason and the buttons after a portion or instead of an empty one (Р29.6). */
+  const ahead = (after: After | null) => {
+    if (!after) return <p className="m">{t('common.loading')}</p>;
+    const why = noNewText(after.next);
+    return (
+      <>
+        <p className="m">{t('study.left.today', { n: capped(after.outlook.today) })}</p>
+        <p className="m">
+          {t('study.left.tomorrow', { n: capped(after.outlook.tomorrow) })} · {t('study.left.week', { n: capped(after.outlook.week) })}
+        </p>
+        {why && <p className="hint">{why}</p>}
+        <div className="stack mt">
+          {after.next.items.length > 0 && (
+            <button className="primary big" type="button" onClick={() => void start(false)}>
+              {t('study.more')}
+            </button>
+          )}
+          {after.next.noNew === 'overdue' && (
+            <button className={after.next.items.length > 0 ? 'secondary big' : 'primary big'} type="button" onClick={() => void start(true)}>
+              {t('study.addAnyway')}
+            </button>
+          )}
+          <a className="secondary big center" href={deckHref(deck.id)}>
+            {t('common.back')}
+          </a>
+        </div>
+      </>
+    );
+  };
 
   if (items.length === 0) {
     return (
@@ -173,12 +266,15 @@ export function StudyScreen({
         {back}
         <h1>{deck.name}</h1>
         <p className="lead">{t('study.nothing')}</p>
-        {noNewLine && <p className="hint">{noNewLine}</p>}
+        {ahead(round.after)}
       </section>
     );
   }
 
-  const base = (entryId: string) => ({ at: new Date(), deckId: deck.id, entryId, deckRevision: deck.revision, sessionId });
+  const base = (entryId: string) => {
+    const at = new Date();
+    return { at, deckId: deck.id, entryId, deckRevision: deck.revision, sessionId, ...zoneStamp(deviceZone(), at) };
+  };
   const save = async (write: () => Promise<unknown>) => {
     setSaveError(null);
     try {
@@ -195,6 +291,7 @@ export function StudyScreen({
       finishedAt.current.set(index, b.at);
     });
   const onAnswer = (it: ReviewItem, prev: ReviewRecord | null) => (a: CardAnswer) => {
+    // `prev`: the previous answer of any kind, returns included (seconds since it, as before Р29).
     setSaveError(null);
     void (async () => {
       try {
@@ -245,20 +342,14 @@ export function StudyScreen({
           ))}
         </div>
         {plan.introduced > 0 && <p className="m">{t('study.introduced', { n: plan.introduced })}</p>}
-        {noNewLine && <p className="hint">{noNewLine}</p>}
-        <div className="stack mt">
-          <button className="primary big" type="button" onClick={() => void start()}>
-            {t('study.more')}
-          </button>
-          <a className="secondary big center" href={deckHref(deck.id)}>
-            {t('common.back')}
-          </a>
-        </div>
+        {ahead(round.after)}
       </section>
     );
   }
 
-  const total = items.length;
+  // "X of N" counts cards to answer, not introductions (Р29.6); N still grows after Again.
+  const total = items.filter((i) => i.kind === 'review').length;
+  const done = items.slice(0, index).filter((i) => i.kind === 'review').length;
   const cardKey = `${sessionId}-${index}`;
 
   let card;
@@ -312,7 +403,7 @@ export function StudyScreen({
           locale={locale}
           previous={previous.review}
           requeue={item.requeue}
-          onDone={onAnswer(item, previous.review)}
+          onDone={onAnswer(item, previous.last)}
         />
       ) : (
         <VoiceCard
@@ -325,7 +416,7 @@ export function StudyScreen({
           previous={previous.review}
           recognition={recognition}
           requeue={item.requeue}
-          onDone={onAnswer(item, previous.review)}
+          onDone={onAnswer(item, previous.last)}
         />
       );
   } else {
@@ -336,9 +427,9 @@ export function StudyScreen({
     <section>
       {back}
       <div className="progress">
-        <span>{t('study.progress', { i: index + 1, n: total })}</span>
+        <span>{item.kind === 'intro' ? t('intro.label') : t('study.progress', { i: done + 1, n: total })}</span>
         <span className="bar">
-          <i style={{ width: `${(index / total) * 100}%` }} />
+          <i style={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }} />
         </span>
       </div>
       {index === 0 && noNewLine && <p className="hint">{noNewLine}</p>}

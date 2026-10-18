@@ -40,6 +40,17 @@ export const STRINGS = {
   'decks.audio': { tg: 'Садо: {mb} МБ', ru: 'Аудио: {mb} МБ', en: 'Audio: {mb} MB' },
 
   // One deck
+  'deck.dueToday': { tg: 'Имрӯз барои такрор: {n}', ru: 'К повторению сегодня: {n}', en: 'Due today: {n}' },
+  'deck.overdue': {
+    tg: 'Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо',
+    ru: 'С прошлых дней: {n} — новые записи после них',
+    en: 'From earlier days: {n} — new entries after them',
+  },
+  'deck.overdueIn': {
+    tg: 'Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо',
+    ru: 'В колоде «{deck}» с прошлых дней: {n} — новые записи после них',
+    en: 'In “{deck}”: {n} from earlier days — new entries after them',
+  },
   'deck.hidden': {
     tg: 'Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст.',
     ru: 'Скрыто: {n} — нет в новой редакции, их прогресс сохранён.',
@@ -64,11 +75,7 @@ export const STRINGS = {
   'common.next': { tg: 'Баъдӣ', ru: 'Дальше', en: 'Next' },
   'study.start': { tg: 'Тамрин', ru: 'Заниматься', en: 'Study' },
   'study.progress': { tg: '{i} аз {n}', ru: '{i} из {n}', en: '{i} of {n}' },
-  'study.nothing': {
-    tg: 'Ҳоло чизе барои такрор нест ва омӯзбарги нав ҳам нест.',
-    ru: 'Сейчас нечего повторять, и новых записей нет.',
-    en: 'Nothing to review and no new entries right now.',
-  },
+  'study.nothing': { tg: 'Ҳоло чизе барои такрор нест.', ru: 'Сейчас повторять нечего.', en: 'Nothing to review right now.' },
   'study.noNew.noMaterial': {
     tg: 'Дар ин маҷмӯа омӯзбарги нав намонд.',
     ru: 'Новых записей в колоде не осталось.',
@@ -87,6 +94,22 @@ export const STRINGS = {
   'study.done': { tg: 'Давр тамом шуд', ru: 'Порция пройдена', en: 'Round done' },
   'study.more': { tg: 'Даври дигар', ru: 'Ещё порция', en: 'Another round' },
   'study.introduced': { tg: 'Ошноӣ: {n}', ru: 'Знакомств: {n}', en: 'Introductions: {n}' },
+  // Debts and the end of a portion (Р29.5, Р29.6; tg approved 18.10.2026)
+  'study.noNew.overdue': {
+    tg: 'Аввал такрорҳои рӯзҳои гузашта, баъд омӯзбаргҳои нав.',
+    ru: 'Сначала — повторения с прошлых дней, потом новые записи.',
+    en: 'Reviews from earlier days first, then new entries.',
+  },
+  'study.noNew.overdueIn': {
+    tg: 'Аввал такрорҳои рӯзҳои гузашта дар маҷмӯаи «{deck}»{more}, баъд омӯзбаргҳои нав.',
+    ru: 'Сначала — повторения с прошлых дней в колоде «{deck}»{more}, потом новые записи.',
+    en: 'First the reviews from earlier days in “{deck}”{more}, then new entries.',
+  },
+  'study.noNew.overdueMore': { tg: ' ва {n} маҷмӯаи дигар', ru: ' и ещё в {n}', en: ' and {n} more' },
+  'study.addAnyway': { tg: 'Ба ҳар ҳол илова', ru: 'Всё равно добавить', en: 'Add anyway' },
+  'study.left.today': { tg: 'Имрӯз мондааст: {n}', ru: 'Сегодня ещё: {n}', en: 'Still today: {n}' },
+  'study.left.tomorrow': { tg: 'Фардо: {n}', ru: 'Завтра: {n}', en: 'Tomorrow: {n}' },
+  'study.left.week': { tg: 'Дар 7 рӯзи оянда: {n}', ru: 'За 7 дней: {n}', en: 'Next 7 days: {n}' },
   'study.noLanguage': {
     tg: 'Барнома ҳанӯз бо забони {lang} кор намекунад.',
     ru: 'Язык {lang} пока не поддерживается.',
@@ -352,6 +375,15 @@ export const STRINGS = {
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
   'backup.error.failed': { tg: 'Хато: {error}', ru: 'Ошибка: {error}', en: 'Error: {error}' },
+
+  // New scheduling rules: one-time rebuild (Р29.7; tg approved 18.10.2026)
+  'migrate.title': { tg: 'Қоидаҳои такрор барӯз шуданд', ru: 'Правила повторений обновлены', en: 'Review rules updated' },
+  'migrate.text': {
+    tg: 'Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад.',
+    ru: 'Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется.',
+    en: 'Review dates will be recalculated with the new rules. First the journal is saved to a file, just in case; the journal itself does not change.',
+  },
+  'migrate.go': { tg: 'Захира ва идома', ru: 'Сохранить и продолжить', en: 'Save and continue' },
 
   // Storage persistence
   'storage.title': { tg: 'Захирагоҳ', ru: 'Хранилище', en: 'Storage' },

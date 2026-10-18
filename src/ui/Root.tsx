@@ -6,13 +6,14 @@ import { RecordLab } from './RecordLab';
 export type Route =
   | { name: 'decks' }
   | { name: 'deck'; deckId: string }
-  | { name: 'study'; deckId: string }
+  /** `addAnyway`: one portion with new entries in spite of debts (Р29.5). */
+  | { name: 'study'; deckId: string; addAnyway?: boolean }
   | { name: 'settings' }
   | { name: 'prototype' }
   | { name: 'lab' };
 
 /**
- * Hash routes: #/, #/deck/<id>, #/study/<id>, #/settings, #/prototype, and the hidden
+ * Hash routes: #/, #/deck/<id>, #/study/<id> (#/study/<id>/new: "add anyway"), #/settings, #/prototype, and the hidden
  * #/lab/record (recognizer experiment, in no menu). Hashes work under any GitHub Pages path.
  */
 export function parseRoute(hash: string): Route {
@@ -21,7 +22,10 @@ export function parseRoute(hash: string): Route {
   if (parts[0] === 'prototype') return { name: 'prototype' };
   if (parts[0] === 'settings') return { name: 'settings' };
   if (parts[0] === 'deck' && parts[1]) return { name: 'deck', deckId: decodeURIComponent(parts[1]) };
-  if (parts[0] === 'study' && parts[1]) return { name: 'study', deckId: decodeURIComponent(parts[1]) };
+  if (parts[0] === 'study' && parts[1]) {
+    const deckId = decodeURIComponent(parts[1]);
+    return parts[2] === 'new' ? { name: 'study', deckId, addAnyway: true } : { name: 'study', deckId };
+  }
   return { name: 'decks' };
 }
 
@@ -29,8 +33,8 @@ export function deckHref(deckId: string): string {
   return `#/deck/${encodeURIComponent(deckId)}`;
 }
 
-export function studyHref(deckId: string): string {
-  return `#/study/${encodeURIComponent(deckId)}`;
+export function studyHref(deckId: string, addAnyway = false): string {
+  return `#/study/${encodeURIComponent(deckId)}${addAnyway ? '/new' : ''}`;
 }
 
 function useRoute(): Route {

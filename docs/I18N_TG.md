@@ -24,6 +24,9 @@
 | `decks.entries` | Записей: {n} | Entries: {n} | Омӯзбаргҳо: {n} |
 | `decks.revision` | Редакция: {n} | Revision: {n} | Нусха: {n} |
 | `decks.audio` | Аудио: {mb} МБ | Audio: {mb} MB | Садо: {mb} МБ |
+| `deck.dueToday` | К повторению сегодня: {n} | Due today: {n} | Имрӯз барои такрор: {n} |
+| `deck.overdue` | С прошлых дней: {n} — новые записи после них | From earlier days: {n} — new entries after them | Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
+| `deck.overdueIn` | В колоде «{deck}» с прошлых дней: {n} — новые записи после них | In “{deck}”: {n} from earlier days — new entries after them | Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
 | `deck.play` | Слушать | Play | Пахш |
 | `deck.contents` | Состав колоды ({n}) | Deck contents ({n}) | Таркиби маҷмӯа ({n}) |
@@ -36,13 +39,20 @@
 | `common.next` | Дальше | Next | Баъдӣ |
 | `study.start` | Заниматься | Study | Тамрин |
 | `study.progress` | {i} из {n} | {i} of {n} | {i} аз {n} |
-| `study.nothing` | Сейчас нечего повторять, и новых записей нет. | Nothing to review and no new entries right now. | Ҳоло чизе барои такрор нест ва омӯзбарги нав ҳам нест. |
+| `study.nothing` | Сейчас повторять нечего. | Nothing to review right now. | Ҳоло чизе барои такрор нест. |
 | `study.noNew.noMaterial` | Новых записей в колоде не осталось. | No new entries left in this deck. | Дар ин маҷмӯа омӯзбарги нав намонд. |
 | `study.noNew.dailyLimit` | Новые записи на сегодня закончились: лимит — {n} в день. | No more new entries today: the limit is {n} a day. | Омӯзбаргҳои нави имрӯз тамом шуданд: ҳадди рӯзона — {n}. |
 | `study.noNew.portionFull` | Эту порцию заняли повторения; новые записи — в следующей. | Reviews filled this round; new entries come in the next one. | Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар. |
 | `study.done` | Порция пройдена | Round done | Давр тамом шуд |
 | `study.more` | Ещё порция | Another round | Даври дигар |
 | `study.introduced` | Знакомств: {n} | Introductions: {n} | Ошноӣ: {n} |
+| `study.noNew.overdue` | Сначала — повторения с прошлых дней, потом новые записи. | Reviews from earlier days first, then new entries. | Аввал такрорҳои рӯзҳои гузашта, баъд омӯзбаргҳои нав. |
+| `study.noNew.overdueIn` | Сначала — повторения с прошлых дней в колоде «{deck}»{more}, потом новые записи. | First the reviews from earlier days in “{deck}”{more}, then new entries. | Аввал такрорҳои рӯзҳои гузашта дар маҷмӯаи «{deck}»{more}, баъд омӯзбаргҳои нав. |
+| `study.noNew.overdueMore` |  и ещё в {n} |  and {n} more |  ва {n} маҷмӯаи дигар |
+| `study.addAnyway` | Всё равно добавить | Add anyway | Ба ҳар ҳол илова |
+| `study.left.today` | Сегодня ещё: {n} | Still today: {n} | Имрӯз мондааст: {n} |
+| `study.left.tomorrow` | Завтра: {n} | Tomorrow: {n} | Фардо: {n} |
+| `study.left.week` | За 7 дней: {n} | Next 7 days: {n} | Дар 7 рӯзи оянда: {n} |
 | `study.noLanguage` | Язык {lang} пока не поддерживается. | The language {lang} is not supported yet. | Барнома ҳанӯз бо забони {lang} кор намекунад. |
 | `study.saveError` | Ответ не сохранён: {error} | The answer was not saved: {error} | Ҷавоб захира нашуд: {error} |
 | `intro.label` | Знакомство | Introduction | Ошноӣ |
@@ -144,6 +154,9 @@
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |
 | `backup.error.failed` | Ошибка: {error} | Error: {error} | Хато: {error} |
+| `migrate.title` | Правила повторений обновлены | Review rules updated | Қоидаҳои такрор барӯз шуданд |
+| `migrate.text` | Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется. | Review dates will be recalculated with the new rules. First the journal is saved to a file, just in case; the journal itself does not change. | Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад. |
+| `migrate.go` | Сохранить и продолжить | Save and continue | Захира ва идома |
 | `storage.title` | Хранилище | Storage | Захирагоҳ |
 | `storage.persisted` | Постоянное: браузер не удалит данные сам. | Persistent: the browser will not clear the data on its own. | Доимӣ: мурургар додаҳоро худ аз худ пок намекунад. |
 | `storage.notPersisted` | При нехватке места браузер может удалить данные. Сохраняйте резервную копию. | The browser may clear the data when space runs low. Keep a backup. | Ҳангоми камбуди ҷой мурургар метавонад додаҳоро пок кунад. Нусхаи пуштибон гиред. |

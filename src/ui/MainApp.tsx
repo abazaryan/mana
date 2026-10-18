@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { getDb } from '../platform/db';
-import { ensureDevice, getSettings, putSettings, setPhrasesUnsupported } from '../platform/repo';
+import { ensureDevice, getSettings, needsRulesUpdate, putSettings, setPhrasesUnsupported } from '../platform/repo';
 import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
 import type { Route } from './Root';
+import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
@@ -14,13 +15,15 @@ import { translate, type Lang } from './strings';
 type Boot =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
-  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null };
+  /** `rulesUpdate`: the cards must be rebuilt with the new rules before any study (Р29.7). */
+  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean };
 
 const db = getDb();
 
 async function load(): Promise<Boot> {
   const meta = await ensureDevice(db);
-  return { phase: 'ready', meta, settings: (await getSettings(db, meta.userId)) ?? null };
+  const rulesUpdate = await needsRulesUpdate(db, meta);
+  return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate };
 }
 
 export function MainApp({ route }: { route: Route }) {
@@ -47,12 +50,12 @@ export function MainApp({ route }: { route: Route }) {
     );
   }
 
-  const { meta, settings } = boot;
+  const { meta, settings, rulesUpdate } = boot;
   if (!settings) {
     const choose = async (l: Lang) => {
       const s = defaultSettings(meta.userId, l, new Date());
       await putSettings(db, s);
-      setBoot({ phase: 'ready', meta, settings: s });
+      setBoot({ phase: 'ready', meta, settings: s, rulesUpdate });
     };
     return <FirstRun onChoose={(l) => void choose(l)} />;
   }
@@ -63,24 +66,26 @@ export function MainApp({ route }: { route: Route }) {
     const freshMeta = patch.biasing === true ? await setPhrasesUnsupported(db, false) : meta;
     const s = { ...settings, ...patch, updatedAt: new Date() };
     await putSettings(db, s);
-    setBoot({ phase: 'ready', meta: freshMeta, settings: s });
+    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate });
   };
 
   return (
     <I18nProvider lang={settings.uiLang} meaningLang={settings.meaningLang}>
       <Shell route={route}>
-        {route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} />}
-        {route.name === 'study' && (
+        {rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
+        {!rulesUpdate && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} />}
+        {!rulesUpdate && route.name === 'study' && (
           <StudyScreen
-            key={route.deckId}
+            key={`${route.deckId}${route.addAnyway ? '/new' : ''}`}
             db={db}
             deckId={route.deckId}
             actor={meta}
             newPerDay={settings.newPerDay}
             biasing={settings.biasing === true}
+            addAnyway={route.addAnyway === true}
           />
         )}
-        {route.name === 'settings' && (
+        {!rulesUpdate && route.name === 'settings' && (
           <SettingsScreen
             db={db}
             meta={meta}
@@ -88,7 +93,7 @@ export function MainApp({ route }: { route: Route }) {
             biasing={settings.biasing === true}
             onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
         )}
-        {route.name === 'decks' && <DecksScreen db={db} />}
+        {!rulesUpdate && route.name === 'decks' && <DecksScreen db={db} />}
       </Shell>
     </I18nProvider>
   );

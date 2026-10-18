@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { DeckRow, EntryRow } from '../core/model';
+import { buildSession, capped, outlook } from '../core/session';
 import { playAudio, stopAudio } from '../platform/audio';
 import type { ManaDb } from '../platform/db';
-import { getDeck, getMedia, listEntries } from '../platform/repo';
+import { deviceZone } from '../platform/device';
+import { getDeck, getMedia, listEntries, loadSessionData } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { studyHref } from './Root';
 import { LANG_NAMES } from './strings';
 
-type Loaded = { deck: DeckRow; entries: EntryRow[] } | 'missing' | null;
+/**
+ * `due`: reviews due today in this deck (debts included); `debt`: the first deck with
+ * debts (this one first) and how many decks have them; `held`: debts hold back new
+ * entries now, so "add anyway" is offered (Р29.5, Р29.6).
+ */
+type Day = { due: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
+type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day } | 'missing' | null;
 
-export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
+export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deckId: string; userId: string; newPerDay: number }) {
   const { t, lang, meaningLang } = useI18n();
   const [data, setData] = useState<Loaded>(null);
   const [audioError, setAudioError] = useState(false);
@@ -20,14 +28,24 @@ export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
     let live = true;
     void (async () => {
       const deck = await getDeck(db, deckId);
-      const entries = deck ? await listEntries(db, deckId) : [];
-      if (live) setData(deck ? { deck, entries } : 'missing');
+      if (!deck) {
+        if (live) setData('missing');
+        return;
+      }
+      const [entries, all] = await Promise.all([listEntries(db, deckId), loadSessionData(db, userId)]);
+      const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards };
+      const o = outlook(input);
+      const first = o.debts[0];
+      const name = (id: string) => all.decks.find((d) => d.id === id)?.name ?? id;
+      const held = buildSession({ ...input, log: all.log, newPerDay }).noNew === 'overdue';
+      const day: Day = { due: o.today, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
+      if (live) setData({ deck, entries, day });
     })();
     return () => {
       live = false;
       stopAudio();
     };
-  }, [db, deckId]);
+  }, [db, deckId, userId, newPerDay]);
 
   const play = async (e: EntryRow) => {
     if (!e.audio) return;
@@ -51,7 +69,7 @@ export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
     );
   }
 
-  const { deck, entries } = data;
+  const { deck, entries, day } = data;
   return (
     <section>
       <a className="back-link" href="#/">
@@ -63,9 +81,24 @@ export function DeckScreen({ db, deckId }: { db: ManaDb; deckId: string }) {
         {t('decks.revision', { n: deck.revision })} · {t('decks.audio', { mb: formatMb(deck.audioBytes, lang) })}
       </p>
       {deck.hiddenCount > 0 && <p className="hint">{t('deck.hidden', { n: deck.hiddenCount })}</p>}
-      <a className="primary big center" href={studyHref(deck.id)}>
-        {t('study.start')}
-      </a>
+      <p className="m">{t('deck.dueToday', { n: capped(day.due) })}</p>
+      {day.debt && (
+        <p className="hint">
+          {day.debt.deckId === deck.id
+            ? t('deck.overdue', { n: capped(day.debt.count) })
+            : t('deck.overdueIn', { deck: day.debt.name, n: capped(day.debt.count) })}
+        </p>
+      )}
+      <div className="stack">
+        <a className="primary big center" href={studyHref(deck.id)}>
+          {t('study.start')}
+        </a>
+        {day.held && (
+          <a className="secondary big center" href={studyHref(deck.id, true)}>
+            {t('study.addAnyway')}
+          </a>
+        )}
+      </div>
       {audioError && (
         <p className="hint err" role="alert">
           {t('deck.audioError')}
