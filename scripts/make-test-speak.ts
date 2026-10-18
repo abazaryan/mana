@@ -8,6 +8,8 @@
  * Revision 7 (Р28): one answer per card — form.gender for l'ami and «ils parlent»,
  * indefinite pairs for the nouns with l', write on every noun with form.determiner;
  * `npm run deck:check` without warnings.
+ * Revision 8 (stage 4.4a): six new entries, so that new entries remain and the soft
+ * ban on them while reviews from earlier days wait (Р29.5) can be seen on the phone.
  * npm run deck:test-speak. Node 24+ (runs .ts directly).
  *
  * Audio: only the `listen` entries have it, copied from the lesson-1 deck
@@ -30,7 +32,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 7,
+  revision: 8,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -308,6 +310,59 @@ const deck = {
       form: { determiner: 'indefinite' },
       tags: ['word'],
       skills: ['speak', 'write'],
+    },
+    // Revision 8 (stage 4.4a): new entries left to introduce, for the soft ban while debts wait (Р29.5).
+    {
+      id: 'le-pain',
+      text: 'le pain',
+      ipa: 'lə pɛ̃',
+      meaning: { tg: 'нон', ru: 'хлеб', en: 'the bread' },
+      gender: 'm',
+      form: { determiner: 'definite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'la-porte',
+      text: 'la porte',
+      ipa: 'la pɔʁt',
+      meaning: { tg: 'дар', ru: 'дверь', en: 'the door' },
+      gender: 'f',
+      form: { determiner: 'definite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'aujourd-hui',
+      text: "aujourd'hui",
+      ipa: 'oʒuʁdɥi',
+      meaning: { tg: 'имрӯз', ru: 'сегодня', en: 'today' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'trente',
+      text: 'trente',
+      ipa: 'tʁɑ̃t',
+      meaning: { tg: 'сӣ (30)', ru: 'тридцать (30)', en: 'thirty (30)' },
+      tags: ['number'],
+      skills: ['speak'],
+    },
+    {
+      id: 'j-ai-faim',
+      text: "J'ai faim.",
+      ipa: 'ʒe fɛ̃',
+      meaning: { tg: 'Гуруснаам.', ru: 'Я хочу есть.', en: "I'm hungry." },
+      tags: ['phrase'],
+      skills: ['speak'],
+    },
+    {
+      id: 'merci-beaucoup',
+      text: 'Merci beaucoup !',
+      ipa: 'mɛʁsi boku',
+      meaning: { tg: 'Ташаккури зиёд!', ru: 'Большое спасибо!', en: 'Thank you very much!' },
+      tags: ['phrase'],
+      skills: ['speak'],
     },
   ],
 };
