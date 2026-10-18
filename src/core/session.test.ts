@@ -4,16 +4,22 @@ import type { Skill } from './deckFormat';
 import type { CardRow, EntryRow, IntroRecord, LogRecord, ReviewRecord } from './model';
 import {
   buildSession,
+  capped,
   CATCH_UP_PER_DAY,
   catchUpToday,
-  dayStart,
+  dueDay,
   introsToday,
   MAX_REQUEUES,
+  outlook,
   PORTION_SIZE,
   requeueAfterAgain,
   sinceEntry,
   type SessionItem,
 } from './session';
+import { appDay, offsetAt } from './zone';
+
+const LUX = 'Europe/Luxembourg';
+const DAY = 86_400_000;
 
 function entry(id: string, position: number, extra: Partial<EntryRow> = {}): EntryRow {
   return {
@@ -29,10 +35,12 @@ function entry(id: string, position: number, extra: Partial<EntryRow> = {}): Ent
   } as EntryRow;
 }
 
-function card(entryId: string, due: Date, skill: Skill = 'speak'): CardRow {
+/** A card in review due at `due`: answered one day earlier in Luxembourg with a one-day interval. */
+function card(entryId: string, due: Date, skill: Skill = 'speak', deckId = 'd'): CardRow {
+  const lastReview = new Date(due.getTime() - DAY);
   return {
     userId: 'u',
-    deckId: 'd',
+    deckId,
     entryId,
     skill,
     due,
@@ -44,7 +52,8 @@ function card(entryId: string, due: Date, skill: Skill = 'speak'): CardRow {
     lapses: 0,
     learningSteps: 0,
     state: State.Review,
-    lastReview: due,
+    lastReview,
+    lastReviewOffsetMin: offsetAt(LUX, lastReview),
     lastLogId: 'x',
   } as CardRow;
 }
@@ -65,7 +74,13 @@ function intro(entryId: string, at: Date, deckId = 'd'): IntroRecord {
   };
 }
 
-const local = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m);
+/** October 2026, Luxembourg local time, whatever the zone of the machine running the tests. */
+function local(d: number, h: number, m = 0): Date {
+  const wall = Date.UTC(2026, 9, d, h, m);
+  let t = wall - offsetAt(LUX, new Date(wall)) * 60_000;
+  t = wall - offsetAt(LUX, new Date(t)) * 60_000;
+  return new Date(t);
+}
 const NOW = local(14, 10);
 const shape = (items: SessionItem[]) =>
   items.map((i) => (i.kind === 'intro' ? `intro:${i.entry.entryId}` : `${i.skill}:${i.entry.entryId}${i.card === null ? '*' : ''}${i.requeue ? `↻${i.requeue}` : ''}`));
@@ -87,20 +102,13 @@ function firstAnswer(entryId: string, at: Date, skill: Skill = 'write', deckId =
   } as ReviewRecord;
 }
 const run = (over: Partial<Parameters<typeof buildSession>[0]> = {}) =>
-  buildSession({ now: NOW, entries: [], cards: [], log: [], newPerDay: 5, ...over });
-
-describe('dayStart (04:00 local)', () => {
-  it('after 04:00 → today 04:00', () => expect(dayStart(local(14, 10))).toEqual(local(14, 4)));
-  it('before 04:00 → yesterday 04:00', () => expect(dayStart(local(14, 3, 59))).toEqual(local(13, 4)));
-  it('exactly 04:00 → today', () => expect(dayStart(local(14, 4))).toEqual(local(14, 4)));
-  it('across a month', () => expect(dayStart(new Date(2026, 10, 1, 1))).toEqual(new Date(2026, 9, 31, 4)));
-});
+  buildSession({ now: NOW, tz: LUX, deckId: 'd', entries: [], cards: [], log: [], newPerDay: 5, ...over });
 
 describe('introsToday', () => {
   it('counts every deck and stops at the 04:00 boundary', () => {
     const log: LogRecord[] = [intro('a', local(14, 3, 59)), intro('b', local(14, 4)), intro('c', local(14, 9), 'other')];
-    expect(introsToday(log, NOW)).toBe(2);
-    expect(introsToday(log, local(14, 3, 59, ))).toBe(1);
+    expect(introsToday(log, NOW, LUX)).toBe(2);
+    expect(introsToday(log, local(14, 3, 59), LUX)).toBe(1);
   });
 });
 
@@ -113,11 +121,17 @@ describe('buildSession', () => {
     expect(plan).toMatchObject({ introduced: 2, due: 0, noNew: null, newLeft: 3 });
   });
 
-  it('order: introductions → overdue (oldest first) → recalls', () => {
+  it('order: introductions → due today (oldest first) → recalls', () => {
     const entries = five.slice(0, 4);
-    const cards = [card('a', local(14, 9)), card('b', local(12, 9)), card('c', local(15, 9))];
+    const cards = [card('a', local(14, 9)), card('b', local(14, 5)), card('c', local(15, 9))];
     const plan = run({ entries, cards });
     expect(shape(plan.items)).toEqual(['intro:d', 'speak:b', 'speak:a', 'speak:d*']);
+  });
+
+  it('a card is due all of its due day, even later than now (Р29.3)', () => {
+    const plan = run({ entries: five.slice(0, 2), cards: [card('a', local(14, 23)), card('b', local(15, 3, 30))], newPerDay: 0 });
+    expect(shape(plan.items)).toEqual(['speak:a', 'speak:b']);
+    expect(run({ entries: five.slice(0, 2), cards: [card('a', local(15, 4))], newPerDay: 0 }).items).toEqual([]);
   });
 
   it('daily limit by the journal, not by the session; a reload gives nothing new', () => {
@@ -163,17 +177,17 @@ describe('buildSession', () => {
     expect(shape(plan.items)).toEqual(['intro:a', 'intro:b', 'speak:b*', 'write:a*']);
   });
 
-  it('a portion holds 15 cards; overdue fill it first', () => {
+  it('a portion holds 15 cards; due cards fill it first', () => {
     const entries = Array.from({ length: 30 }, (_, k) => entry(`e${k}`, k));
-    const cards = entries.slice(0, 20).map((e, k) => card(e.entryId, local(1, 0, k)));
+    const cards = entries.slice(0, 20).map((e, k) => card(e.entryId, local(14, 5, k)));
     const plan = run({ entries, cards });
     expect(plan.items).toHaveLength(PORTION_SIZE);
-    expect(plan).toMatchObject({ due: 15, introduced: 0, noNew: 'portionFull' });
+    expect(plan).toMatchObject({ due: 15, introduced: 0, noNew: 'portionFull', debts: [] });
   });
 
-  it('room left after overdue goes to new entries', () => {
+  it('room left after due cards goes to new entries', () => {
     const entries = Array.from({ length: 30 }, (_, k) => entry(`e${k}`, k));
-    const cards = entries.slice(0, 12).map((e, k) => card(e.entryId, local(1, 0, k)));
+    const cards = entries.slice(0, 12).map((e, k) => card(e.entryId, local(14, 5, k)));
     const plan = run({ entries, cards, newPerDay: 5 });
     expect(plan).toMatchObject({ due: 12, introduced: 3, newLeft: 2 });
     expect(plan.items.filter((i) => i.kind === 'review')).toHaveLength(15);
@@ -287,12 +301,12 @@ describe('catchUpToday', () => {
       firstAnswer('c', local(14, 6), 'speak', 'other'),
       firstAnswer('a', local(13, 10), 'speak'),
     ];
-    expect(catchUpToday(log, NOW)).toBe(2);
+    expect(catchUpToday(log, NOW, LUX)).toBe(2);
   });
 
   it('an answer that is not the first on its pair does not count', () => {
     const later = { ...firstAnswer('a', local(14, 6)), fsrs: { stateBefore: State.Review } } as ReviewRecord;
-    expect(catchUpToday([intro('a', local(13, 9)), later], NOW)).toBe(0);
+    expect(catchUpToday([intro('a', local(13, 9)), later], NOW, LUX)).toBe(0);
   });
 });
 
@@ -331,5 +345,157 @@ describe('sinceEntry', () => {
     const done = new Map([[0, local(14, 10, 0)], [1, local(14, 10, 1)]]);
     expect(sinceEntry(items, done, 2, local(14, 10, 2))).toEqual({ cards: 1, sec: 120 });
     expect(sinceEntry(items, done, 1, local(14, 10, 2))).toEqual({ cards: null, sec: null });
+  });
+});
+
+describe('due day (Р29.3)', () => {
+  const at = (iso: string) => new Date(iso);
+  const answered = (iso: string, days: number, offsetMin: number) => ({ due: new Date(at(iso).getTime() + days * DAY), lastReview: at(iso), lastReviewOffsetMin: offsetMin, scheduledDays: days });
+
+  it('= the app day of the last answer + the interval', () => {
+    const c = answered('2026-10-18T08:00:00Z', 2, 120);
+    expect(dueDay(c)).toBe(appDay(at('2026-10-20T08:00:00Z'), 120));
+  });
+  it('an answer at 03:30 belongs to the day before: one day later it is due the next app day', () => {
+    const c = answered('2026-10-18T01:30:00Z', 1, 120);
+    expect(dueDay(c)).toBe(appDay(at('2026-10-18T12:00:00Z'), 120));
+  });
+  it('27.03.2027 03:30 + 1 day is due on 27.03 app day + 1, not two days later (the 23-hour day)', () => {
+    const c = answered('2027-03-27T02:30:00Z', 1, 60);
+    expect(dueDay(c) - appDay(at('2027-03-27T02:30:00Z'), 60)).toBe(1);
+    // "Due before the next 04:00" would have said two days: +24 h lands at 04:30 summer time.
+    expect(appDay(c.due, offsetAt(LUX, c.due)) - appDay(at('2027-03-27T02:30:00Z'), 60)).toBe(2);
+  });
+  it('24.10.2026 04:10 + 1 day is not due the same night (the 25-hour day)', () => {
+    const c = answered('2026-10-24T02:10:00Z', 1, 120);
+    expect(dueDay(c) - appDay(at('2026-10-24T02:10:00Z'), 120)).toBe(1);
+    expect(appDay(c.due, offsetAt(LUX, c.due)) - appDay(at('2026-10-24T02:10:00Z'), 120)).toBe(0);
+  });
+  it('records before stage 4.4a (no offset) count as Luxembourg', () => {
+    const c = { ...answered('2026-10-18T08:00:00Z', 2, 120), lastReviewOffsetMin: null };
+    expect(dueDay(c)).toBe(appDay(at('2026-10-20T08:00:00Z'), 120));
+  });
+});
+
+describe('debts hold back new entries (Р17.4, Р29.5)', () => {
+  const five = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => entry(id, k));
+  const other = (id: string, k: number, extra: Partial<EntryRow> = {}) => entry(id, k, { deckId: 'o', ...extra });
+
+  it('a debt in this deck: no introductions, the reason, the debt first', () => {
+    const plan = run({ entries: five, cards: [card('a', local(12, 9)), card('b', local(14, 9))] });
+    expect(shape(plan.items)).toEqual(['speak:a', 'speak:b']);
+    expect(plan).toMatchObject({ introduced: 0, noNew: 'overdue', debts: [{ deckId: 'd', count: 1 }] });
+  });
+
+  it('a debt in another deck holds back new entries here too and is named', () => {
+    const entries = [...five, other('x', 0)];
+    const plan = run({ entries, cards: [card('x', local(13, 9), 'speak', 'o')] });
+    expect(plan).toMatchObject({ items: [], noNew: 'overdue', debts: [{ deckId: 'o', count: 1 }] });
+  });
+
+  it('this deck comes first in the list of debts, then by count', () => {
+    const entries = [...five, other('x', 0), other('y', 1), entry('z', 0, { deckId: 'p' }), entry('w', 1, { deckId: 'p' }), entry('v', 2, { deckId: 'p' })];
+    const cards = [card('a', local(13, 9)), card('x', local(13, 9), 'speak', 'o'), ...['z', 'w', 'v'].map((id) => card(id, local(12, 9), 'speak', 'p'))];
+    expect(run({ entries, cards }).debts).toEqual([{ deckId: 'd', count: 1 }, { deckId: 'p', count: 3 }, { deckId: 'o', count: 1 }]);
+  });
+
+  it('cards of hidden entries, of dropped skills and of decks that are gone are no debts', () => {
+    const entries = [entry('a', 0, { hidden: 1 }), entry('b', 1), entry('c', 2)];
+    const cards = [card('a', local(10, 9)), card('b', local(10, 9), 'write'), card('q', local(10, 9), 'speak', 'gone')];
+    expect(run({ entries, cards, newPerDay: 1 })).toMatchObject({ introduced: 1, noNew: null, debts: [] });
+  });
+
+  it('the recalls of today\'s introductions are never held back (Р17.3); catch-up is', () => {
+    const entries = [entry('a', 0), entry('b', 1, { skills: ['speak', 'write'] }), entry('c', 2)];
+    const log = [intro('a', local(14, 5)), intro('b', local(10, 9))];
+    const cards = [card('b', local(12, 9))];
+    const plan = run({ entries, cards, log });
+    expect(shape(plan.items)).toEqual(['speak:b', 'speak:a*']);
+    expect(plan).toMatchObject({ pending: 1, catchUp: 0, introduced: 0, noNew: 'overdue' });
+  });
+
+  it('order of checks: material → limit → debts → room', () => {
+    const debt = card('a', local(12, 9));
+    expect(run({ entries: five.slice(0, 1), cards: [debt] }).noNew).toBe('noMaterial');
+    expect(run({ entries: five, cards: [debt], newPerDay: 0 }).noNew).toBe('dailyLimit');
+    expect(run({ entries: five, cards: [debt] }).noNew).toBe('overdue');
+  });
+
+  it('done with the debts: the next portion has new entries again', () => {
+    const answered = { ...card('a', local(16, 9)), lastReview: local(14, 9) , scheduledDays: 2 };
+    const plan = run({ entries: five, cards: [answered], newPerDay: 2 });
+    expect(plan).toMatchObject({ introduced: 2, noNew: null, debts: [] });
+  });
+
+  it('"add anyway": new entries for one portion; their recalls take places first, debts the rest', () => {
+    const entries = Array.from({ length: 30 }, (_, k) => entry(`e${k}`, k));
+    const cards = entries.slice(0, 20).map((e, k) => card(e.entryId, local(10, 5, k)));
+    const held = run({ entries, cards });
+    expect(held).toMatchObject({ due: 15, introduced: 0, noNew: 'overdue' });
+    const forced = run({ entries, cards, addAnyway: true });
+    expect(forced).toMatchObject({ due: 10, introduced: 5, noNew: null, newLeft: 0 });
+    // Shown as before: introductions → reviews → first cards.
+    expect(shape(forced.items).slice(0, 5)).toEqual(['intro:e20', 'intro:e21', 'intro:e22', 'intro:e23', 'intro:e24']);
+    expect(shape(forced.items).slice(-5)).toEqual(['speak:e20*', 'speak:e21*', 'speak:e22*', 'speak:e23*', 'speak:e24*']);
+  });
+
+  it('"add anyway" still keeps the daily limit; without debts it changes nothing', () => {
+    const entries = Array.from({ length: 10 }, (_, k) => entry(`e${k}`, k));
+    const cards = [card('e0', local(12, 9))];
+    const log = ['x1', 'x2', 'x3', 'x4', 'x5'].map((id) => intro(id, local(14, 6), 'o'));
+    expect(run({ entries, cards, log, addAnyway: true }).noNew).toBe('dailyLimit');
+    const clean = run({ entries, cards: [card('e0', local(14, 9))] });
+    expect(run({ entries, cards: [card('e0', local(14, 9))], addAnyway: true })).toEqual(clean);
+  });
+});
+
+describe('outlook (Р29.6)', () => {
+  const entries = ['a', 'b', 'c', 'd', 'e'].map((id, k) => entry(id, k));
+  const others = ['x', 'y'].map((id, k) => entry(id, k, { deckId: 'o' }));
+  const day = { now: NOW, tz: LUX, deckId: 'd', entries: [...entries, ...others] };
+
+  it('today (this deck, debts included), tomorrow and 7 days from tomorrow (every deck)', () => {
+    const cards = [
+      card('a', local(12, 9)), // debt
+      card('b', local(14, 22)), // today
+      card('c', local(15, 3)), // still today: before 04:00
+      card('d', local(15, 9)), // tomorrow
+      card('e', local(21, 9)), // in 7 days
+      card('x', local(13, 9), 'speak', 'o'), // a debt elsewhere: not in "today"
+      card('y', local(15, 10), 'speak', 'o'), // tomorrow elsewhere
+    ];
+    expect(outlook({ ...day, cards })).toEqual({ today: 3, tomorrow: 2, week: 3, debts: [{ deckId: 'd', count: 1 }, { deckId: 'o', count: 1 }] });
+    expect(outlook({ ...day, cards: [card('e', local(22, 9))] }).week).toBe(0);
+  });
+
+  it('counts are shown up to 25+', () => {
+    expect(capped(25)).toBe('25');
+    expect(capped(26)).toBe('25+');
+    expect(capped(0)).toBe('0');
+  });
+});
+
+describe('today is counted in the zone of the device (Р29.3)', () => {
+  const five = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => entry(id, k));
+  const at = (iso: string) => new Date(iso);
+  const intros = (iso: string) => five.slice(0, 5).map((e, k) => intro(e.entryId, new Date(at(iso).getTime() + k * 60_000), 'old'));
+
+  it('east: 5 introductions in Luxembourg at 20:00, Dushanbe at 07:00 the next morning — a new day', () => {
+    const log = intros('2026-10-26T19:00:00Z');
+    expect(introsToday(log, at('2026-10-27T02:00:00Z'), 'Asia/Dushanbe')).toBe(0);
+    expect(introsToday(log, at('2026-10-27T02:00:00Z'), LUX)).toBe(5);
+    expect(introsToday(log, at('2026-10-26T22:30:00Z'), 'Asia/Dushanbe')).toBe(5);
+  });
+
+  it('west: introductions in Luxembourg at 07:30 are "yesterday" in New York at 15:00; at 10:00 they are today', () => {
+    expect(introsToday(intros('2026-10-27T06:30:00Z'), at('2026-10-27T19:00:00Z'), 'America/New_York')).toBe(0);
+    expect(introsToday(intros('2026-10-27T09:00:00Z'), at('2026-10-27T19:00:00Z'), 'America/New_York')).toBe(5);
+  });
+
+  it('a card due on Monday in Luxembourg is a debt in Dushanbe on Tuesday morning, not yet at home', () => {
+    const c = { ...card('a', at('2026-10-26T22:30:00Z')), lastReview: at('2026-10-25T22:30:00Z'), lastReviewOffsetMin: 60, scheduledDays: 1 };
+    const input = { entries: five, cards: [c], newPerDay: 5, log: [] as LogRecord[], deckId: 'd' };
+    expect(buildSession({ ...input, now: at('2026-10-27T01:00:00Z'), tz: LUX }).debts).toEqual([]);
+    expect(buildSession({ ...input, now: at('2026-10-27T01:00:00Z'), tz: 'Asia/Dushanbe' }).debts).toEqual([{ deckId: 'd', count: 1 }]);
   });
 });
