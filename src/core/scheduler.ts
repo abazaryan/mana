@@ -5,6 +5,11 @@
  * `last_review?: Date`), and turns one review into the new state plus a review
  * log snapshot. Ported from LivreVivant (src/lib/learning/fsrs.ts @ 503f4af);
  * storage (Dexie transaction) is stage 4.
+ *
+ * Stage 4.4a (Р29): no steps in minutes — every answer sets a due date in days — and
+ * ts-fsrs counts app days (local, from 04:00, in the zone of each answer) instead of
+ * UTC dates. The time shift that does it lives here and nowhere else; stored dates
+ * are real moments.
  */
 import {
   createEmptyCard,
@@ -16,6 +21,7 @@ import {
   type State,
 } from 'ts-fsrs';
 import { believableLatency } from './latency';
+import { fsrsShiftMs, LEGACY_ZONE, offsetAt } from './zone';
 
 export type Skill = 'listen' | 'speak' | 'write';
 
@@ -32,11 +38,24 @@ export interface CardState {
   learningSteps: number;
   state: State;
   lastReview: Date | null;
+  /** Zone offset (minutes east of UTC) of the last answer: its app day (Р29.3). Null before the first one. */
+  lastReviewOffsetMin: number | null;
 }
 
-/** Default scheduler. Fuzz off keeps due dates (and tests) deterministic. */
+/**
+ * Version of the scheduling rules written into every answer (Р29.4). A replay applies
+ * the rules of each record's version; records without one get the current rules.
+ * 2 = stage 4.4a: no steps in minutes, app days by the zone of the answer.
+ */
+export const RULES_VERSION = 2;
+
+/**
+ * Default scheduler (Р29.1): no learning or relearning steps, short-term stability on
+ * (an answer on the same app day), target retention 0.9 and FSRS-6 parameters by
+ * default. Fuzz off keeps due dates (and tests) deterministic.
+ */
 export function createScheduler(): FSRS {
-  return fsrs({ enable_fuzz: false });
+  return fsrs({ enable_fuzz: false, learning_steps: [], relearning_steps: [], enable_short_term: true });
 }
 
 export function newCardState(now: Date): CardState {
@@ -58,7 +77,7 @@ export function toFsrsCard(s: CardState): FsrsCard {
   };
 }
 
-export function fromFsrsCard(c: FsrsCard): CardState {
+export function fromFsrsCard(c: FsrsCard, lastReviewOffsetMin: number | null = null): CardState {
   return {
     due: c.due,
     stability: c.stability,
@@ -70,6 +89,7 @@ export function fromFsrsCard(c: FsrsCard): CardState {
     learningSteps: c.learning_steps,
     state: c.state,
     lastReview: c.last_review ?? null,
+    lastReviewOffsetMin,
   };
 }
 
@@ -100,9 +120,21 @@ export interface ReviewSnapshot {
 export interface ReviewMeta {
   responseTimeMs?: number | null;
   errorType?: string | null;
+  /** Zone offset of this answer (minutes east of UTC); default: Luxembourg at `now` (Р29.3). */
+  offsetMin?: number;
 }
 
-/** Apply one review: the new card state and the log snapshot. Pure. */
+const shift = (d: Date, ms: number) => new Date(d.getTime() + ms);
+
+/**
+ * Apply one review: the new card state and the log snapshot. Pure.
+ *
+ * ts-fsrs counts days between UTC dates. Each moment it sees is moved by
+ * (its zone offset − 04:00) — the last answer by its own offset, this one by its
+ * own — so its UTC date is the app day of the answer; the result is moved back.
+ * Elapsed days are then app days, and the due date is the real moment of this
+ * answer + the interval.
+ */
 export function applyReview(
   scheduler: FSRS,
   card: CardState,
@@ -110,15 +142,29 @@ export function applyReview(
   now: Date,
   meta: ReviewMeta = {},
 ): { card: CardState; log: ReviewSnapshot } {
-  const next = scheduler.next(toFsrsCard(card), now, grade);
+  const offNow = meta.offsetMin ?? offsetAt(LEGACY_ZONE, now);
+  const offLast = card.lastReviewOffsetMin ?? (card.lastReview ? offsetAt(LEGACY_ZONE, card.lastReview) : offNow);
+  const sNow = fsrsShiftMs(offNow);
+  const fc = toFsrsCard(card);
+  const input: FsrsCard = {
+    ...fc,
+    due: shift(fc.due, sNow),
+    last_review: fc.last_review ? shift(fc.last_review, fsrsShiftMs(offLast)) : undefined,
+  };
+  const next = scheduler.next(input, shift(now, sNow), grade);
+  const out: FsrsCard = {
+    ...next.card,
+    due: shift(next.card.due, -sNow),
+    last_review: next.card.last_review ? shift(next.card.last_review, -sNow) : undefined,
+  };
   const log = next.log;
   return {
-    card: fromFsrsCard(next.card),
+    card: fromFsrsCard(out, offNow),
     log: {
       rating: log.rating,
       state: log.state,
-      reviewedAt: log.review,
-      due: log.due,
+      reviewedAt: now,
+      due: card.lastReview ?? card.due,
       stability: log.stability,
       difficulty: log.difficulty,
       elapsedDays: log.elapsed_days,

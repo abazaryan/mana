@@ -14,6 +14,8 @@ import {
   exportJournal,
   getMedia,
   lastReview,
+  applyRulesUpdate,
+  needsRulesUpdate,
   recordDrill,
   listDecks,
   loadSessionData,
@@ -286,16 +288,44 @@ describe('session data (stage 4.2)', () => {
     expect(await lastReview(db, 'someone-else', 'fr-test-01', 'a', 'speak')).toBeNull();
   });
 
-  it('loadSessionData: entries with hidden ones, the deck cards, the whole journal', async () => {
+  it('loadSessionData: entries of every deck with hidden ones, all the cards, the whole journal (Р29.5)', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
     await importDeck(db);
     await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip');
     await someProgress(db, actor);
-    const data = await loadSessionData(db, actor.userId, 'fr-test-01');
-    expect(data.entries.map((e) => [e.entryId, e.hidden])).toEqual([['a', 0], ['b', 0], ['c', 1]]);
+    const data = await loadSessionData(db, actor.userId);
+    expect(data.entries.map((e) => [e.entryId, e.hidden]).sort()).toEqual([['a', 0], ['b', 0], ['c', 1]]);
     expect(data.cards).toHaveLength(3);
     expect(data.log).toHaveLength(6);
+    expect(data.decks.map((d) => d.id)).toEqual(['fr-test-01']);
+  });
+
+  it('a return after Again is journaled with its rating and leaves the card as it was (Р29.2)', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    const scheduler = createScheduler();
+    const first = await recordReview(db, scheduler, actor, answer('a', T0, Rating.Again));
+    const back = await recordReview(db, scheduler, actor, { ...answer('a', T0 + 120_000, Rating.Good), requeue: 1 });
+    expect(back.record).toMatchObject({ requeue: 1, final: Rating.Good, rules: 2 });
+    expect(back.card).toEqual(first.card);
+    expect(await db.cards.get([actor.userId, 'fr-test-01', 'a', 'speak'])).toEqual(first.card);
+    // The Easy rule looks past the return; the seconds since the previous answer do not.
+    expect((await lastReview(db, actor.userId, 'fr-test-01', 'a', 'speak'))?.id).toBe(back.record.id);
+    expect((await lastReview(db, actor.userId, 'fr-test-01', 'a', 'speak', true))?.id).toBe(first.record.id);
+    // A rebuild gives the same card.
+    expect(await rebuildUserCards(db, scheduler, actor.userId)).toEqual([first.card]);
+  });
+
+  it('records keep their zone (Р29.3)', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    const zone = { tz: 'Asia/Dushanbe', tzOffsetMin: 300 };
+    const intro = await recordIntro(db, actor, { at: new Date(T0), deckId: 'd', entryId: 'a', deckRevision: 1, sessionId: 's', ...zone });
+    const { record, card } = await recordReview(db, createScheduler(), actor, { ...answer('a', T0, Rating.Good), ...zone });
+    const drill = await recordDrill(db, actor, { at: new Date(T0), deckId: 'd', entryId: 'a', deckRevision: 1, sessionId: 's', skill: 'speak', reviewId: record.id, skipped: true, echo: null, copy: null, ...zone });
+    for (const id of [intro.id, record.id, drill.id]) expect(await db.log.get(id)).toMatchObject(zone);
+    expect(card.lastReviewOffsetMin).toBe(300);
   });
 
   it('an introduction keeps its "say it aloud" and "copy it out" results', async () => {
@@ -410,5 +440,32 @@ describe('drill records (Р25)', () => {
     expect(count).toBe(7);
     const parsed = parseBackup(json);
     expect(parsed.ok && parsed.backup.records.find((r) => r.type === 'drill')).toMatchObject({ reviewId: answered!.id, skill: 'speak' });
+  });
+});
+
+describe('new scheduling rules (Р29.7)', () => {
+  it('no answers: nothing to rebuild, the version is remembered', async () => {
+    const db = freshDb();
+    const meta = await ensureDevice(db);
+    expect(await needsRulesUpdate(db, meta)).toBe(false);
+    expect((await db.meta.get('device'))?.rulesVersion).toBe(2);
+  });
+
+  it('answers under old rules: a rebuild is needed; it rewrites the cards only and is remembered', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await someProgress(db, actor);
+    // An old card left in learning with a due date in minutes (stage 4.3 rules).
+    const key: [string, string, string, string] = [actor.userId, 'fr-test-01', 'b', 'speak'];
+    const stored = (await db.cards.get(key))!;
+    await db.cards.put({ ...stored, state: 1, due: new Date(T0 + 2 * D + 600_000), scheduledDays: 0, learningSteps: 1 });
+    const meta = (await db.meta.get('device'))!;
+    expect(await needsRulesUpdate(db, meta)).toBe(true);
+    const logBefore = await userLog(db, actor.userId);
+    const after = await applyRulesUpdate(db, createScheduler(), actor.userId);
+    expect(after.rulesVersion).toBe(2);
+    expect(await userLog(db, actor.userId)).toEqual(logBefore);
+    expect((await db.cards.get(key))!.state).toBe(2);
+    expect(await needsRulesUpdate(db, after)).toBe(false);
   });
 });

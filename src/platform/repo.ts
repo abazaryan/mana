@@ -6,7 +6,7 @@
 import Dexie from 'dexie';
 import type { FSRS } from 'ts-fsrs';
 import { parseBackup, planRestore, serializeBackup, type BackupError } from '../core/backup';
-import { rebuildCards, stepCard } from '../core/cards';
+import { answerCard, rebuildCards } from '../core/cards';
 import type { DeckArchive, DeckAudio } from '../core/deckArchive';
 import type { Skill } from '../core/deckFormat';
 import { planImport, type ImportPlan, type InstalledDeck } from '../core/deckImport';
@@ -22,6 +22,7 @@ import type {
   ReviewRecord,
   SettingsRow,
 } from '../core/model';
+import { RULES_VERSION } from '../core/scheduler';
 import type { ManaDb } from './db';
 
 export type NewId = () => string;
@@ -139,8 +140,8 @@ export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly 
 // ---------- Journal ----------
 
 export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRevision' | 'sessionId'> &
-  Partial<Pick<IntroRecord, 'echo' | 'copy'>>;
-export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs'>;
+  Partial<Pick<IntroRecord, 'echo' | 'copy' | 'tz' | 'tzOffsetMin'>>;
+export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs' | 'rules'>;
 
 export async function recordIntro(
   db: ManaDb,
@@ -153,7 +154,6 @@ export async function recordIntro(
   return record;
 }
 
-/** Appends an answer and updates its card in one transaction. */
 export type DrillInput = Omit<DrillRecord, 'id' | 'type' | 'userId' | 'deviceId'>;
 
 /** Appends the short practice after Again (Р25); never touches the card. */
@@ -163,6 +163,10 @@ export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, n
   return record;
 }
 
+/**
+ * Appends an answer and updates its card in one transaction. A return after Again
+ * (Р29.2) is journaled, and the card stays as the first Again left it.
+ */
 export async function recordReview(
   db: ManaDb,
   scheduler: FSRS,
@@ -173,8 +177,12 @@ export async function recordReview(
   return db.transaction('rw', db.log, db.cards, async () => {
     const key: [string, string, string, string] = [actor.userId, input.deckId, input.entryId, input.skill];
     const prev = (await db.cards.get(key)) ?? null;
-    const step = stepCard(scheduler, prev, input.final, input.at);
-    const record: ReviewRecord = { ...input, id: newId(), type: 'review', ...who(actor), fsrs: step.fsrs };
+    const step = answerCard(scheduler, prev, input);
+    const record: ReviewRecord = { ...input, id: newId(), type: 'review', ...who(actor), rules: RULES_VERSION, fsrs: step.fsrs };
+    if (!step.changed && prev) {
+      await db.log.add(record);
+      return { record, card: prev };
+    }
     const card: CardRow = {
       ...step.card,
       userId: actor.userId,
@@ -196,36 +204,47 @@ export async function userLog(db: ManaDb, userId: string): Promise<LogRecord[]> 
     .toArray();
 }
 
-/** The last answer on one card (entry × skill), for the Easy rule (Р4); null if none. */
+/**
+ * The last answer on one card (entry × skill); null if none. `skipReturns`: leave out
+ * returns after Again — the Easy rule looks past them (Р29.2); the seconds since the
+ * previous answer (`sincePairSec`) do not.
+ */
 export async function lastReview(
   db: ManaDb,
   userId: string,
   deckId: string,
   entryId: string,
   skill: Skill,
+  skipReturns = false,
 ): Promise<ReviewRecord | null> {
-  // Drills after Again share the index (they have a skill); the Easy rule skips them (Р25).
+  // Drills after Again share the index (they have a skill); they are no answers (Р25).
   const last = await db.log
     .where('[userId+deckId+entryId+skill+at]')
     .between([userId, deckId, entryId, skill, Dexie.minKey], [userId, deckId, entryId, skill, Dexie.maxKey])
     .reverse()
-    .filter((r) => r.type === 'review')
+    .filter((r) => r.type === 'review' && !(skipReturns && (r.requeue ?? 0) > 0))
     .first();
   return last && last.type === 'review' ? last : null;
 }
 
-/** What buildSession needs for one deck: its entries (hidden included), the user's cards in it, the user's journal. */
-export async function loadSessionData(
-  db: ManaDb,
-  userId: string,
-  deckId: string,
-): Promise<{ entries: EntryRow[]; cards: CardRow[]; log: LogRecord[] }> {
-  const [entries, cards, log] = await Promise.all([
-    listEntries(db, deckId, true),
-    db.cards.where('[userId+deckId]').equals([userId, deckId]).toArray(),
+export interface SessionData {
+  /** Entries of every installed deck, hidden ones included. */
+  entries: EntryRow[];
+  /** The user's cards in every deck: debts and the outlook count all decks (Р29.5, Р29.6). */
+  cards: CardRow[];
+  log: LogRecord[];
+  decks: DeckRow[];
+}
+
+/** What buildSession and the outlook need: every deck, since debts and the daily limits span them all. */
+export async function loadSessionData(db: ManaDb, userId: string): Promise<SessionData> {
+  const [entries, cards, log, decks] = await Promise.all([
+    db.entries.toArray(),
+    db.cards.where('[userId+deckId]').between([userId, Dexie.minKey], [userId, Dexie.maxKey]).toArray(),
     userLog(db, userId),
+    db.decks.toArray(),
   ]);
-  return { entries, cards, log };
+  return { entries, cards, log, decks };
 }
 
 async function replaceUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
@@ -241,6 +260,41 @@ async function replaceUserCards(db: ManaDb, scheduler: FSRS, userId: string): Pr
 /** Throws away the stored cards of `userId` and rebuilds them from the journal. */
 export async function rebuildUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {
   return db.transaction('rw', db.log, db.cards, () => replaceUserCards(db, scheduler, userId));
+}
+
+// ---------- New scheduling rules (Р29.7) ----------
+
+/**
+ * The stored cards were built with older rules and the user has answers: the app
+ * saves the journal and rebuilds the cards before any study. Without answers there
+ * is nothing to rebuild, and the new version is simply remembered.
+ */
+export async function needsRulesUpdate(db: ManaDb, meta: MetaRow): Promise<boolean> {
+  if ((meta.rulesVersion ?? 0) >= RULES_VERSION) return false;
+  const any = await db.log
+    .where('[userId+at]')
+    .between([meta.userId, Dexie.minKey], [meta.userId, Dexie.maxKey])
+    .filter((r) => r.type === 'review')
+    .first();
+  if (any) return true;
+  await db.transaction('rw', db.meta, () => markRules(db));
+  return false;
+}
+
+async function markRules(db: ManaDb): Promise<MetaRow> {
+  const row = await db.meta.get('device');
+  if (!row) throw new Error('markRules: no device row');
+  const next: MetaRow = { ...row, rulesVersion: RULES_VERSION };
+  await db.meta.put(next);
+  return next;
+}
+
+/** Rebuilds the cards of the user with the current rules and remembers it. The journal is not touched. */
+export async function applyRulesUpdate(db: ManaDb, scheduler: FSRS, userId: string): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, db.log, db.cards, async () => {
+    await replaceUserCards(db, scheduler, userId);
+    return markRules(db);
+  });
 }
 
 // ---------- Backup ----------

@@ -1,6 +1,6 @@
 import { fsrs, Rating, type Grade } from 'ts-fsrs';
 import { describe, expect, it } from 'vitest';
-import { rebuildCards, stepCard } from './cards';
+import { answerCard, rebuildCards, stepCard } from './cards';
 import { cardKey, type DrillRecord, type IntroRecord, type LogRecord, type ReviewRecord } from './model';
 import { createScheduler, type CardState } from './scheduler';
 
@@ -158,5 +158,95 @@ describe('drill records (Р25)', () => {
     const withDrills = rebuildCards(createScheduler(), [...log, ...drills], USER);
     expect(withDrills).toEqual(plain);
     for (const c of withDrills) expect(c.due).toEqual(log.find((r) => r.id === c.lastLogId)!.fsrs.nextDue);
+  });
+});
+
+describe('returns after Again do not change FSRS (Р29.2)', () => {
+  const s = createScheduler();
+  const days = (c: { due: Date }, from: number) => Math.round((c.due.getTime() - from) / D);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const ret = (r: Omit<ReviewRecord, 'fsrs'>, requeue: number): Omit<ReviewRecord, 'fsrs'> => ({ ...r, requeue });
+  /** Records answers the way the app does (answerCard), then rebuilds. */
+  function play(answers: Omit<ReviewRecord, 'fsrs'>[]) {
+    let card: CardState | null = null;
+    const log: ReviewRecord[] = [];
+    for (const a of answers) {
+      const step = answerCard(s, card, a);
+      card = step.card;
+      log.push({ ...a, fsrs: step.fsrs });
+    }
+    return { card: card!, log, rebuilt: rebuildCards(s, log, USER)[0]! };
+  }
+
+  it('new card: Again, return Good → 1 day, S 0.21 (as after the first Again)', () => {
+    const { card, log, rebuilt } = play([review('a1', 'a', 'speak', T0, Rating.Again), ret(review('a2', 'a', 'speak', T0 + 120_000, Rating.Good), 1)]);
+    expect(days(card, T0)).toBe(1);
+    expect(r2(card.stability)).toBe(0.21);
+    expect(r2(card.difficulty)).toBe(6.41);
+    expect(rebuilt.lastLogId).toBe('a1');
+    expect(rebuilt.due).toEqual(card.due);
+    // The return's snapshot shows the card unchanged.
+    expect(log[1]!.fsrs.nextDue).toEqual(log[1]!.fsrs.dueBefore);
+    expect(log[1]!.fsrs.nextState).toBe(log[1]!.fsrs.stateBefore);
+  });
+
+  it('new card: Again, return Again, second return Good → still 1 day, D not raised', () => {
+    const { card } = play([
+      review('b1', 'a', 'speak', T0, Rating.Again),
+      ret(review('b2', 'a', 'speak', T0 + 120_000, Rating.Again), 1),
+      ret(review('b3', 'a', 'speak', T0 + 240_000, Rating.Good), 2),
+    ]);
+    expect(days(card, T0)).toBe(1);
+    expect(r2(card.difficulty)).toBe(6.41);
+  });
+
+  it('a card in review: Again on time, return Good → 2 days, S 1.54; then Good on time → 5 days', () => {
+    const lapse = T0 + 13 * D;
+    const { card } = play([
+      review('c1', 'a', 'speak', T0, Rating.Good),
+      review('c2', 'a', 'speak', T0 + 2 * D, Rating.Good),
+      review('c3', 'a', 'speak', lapse, Rating.Again),
+      ret(review('c4', 'a', 'speak', lapse + 120_000, Rating.Good), 1),
+    ]);
+    expect(days(card, lapse)).toBe(2);
+    expect(r2(card.stability)).toBe(1.54);
+    const next = answerCard(s, card, { final: Rating.Good, at: card.due }).card;
+    expect(days(next, card.due.getTime())).toBe(5);
+    expect(r2(next.stability)).toBe(4.88);
+  });
+
+  it('a return with no card yet (cannot happen in the app) counts as an ordinary first answer', () => {
+    const step = answerCard(s, null, { final: Rating.Good, at: new Date(T0), requeue: 1 });
+    expect(step.changed).toBe(true);
+    expect(days(step.card, T0)).toBe(2);
+  });
+
+  it('the replay skips returns in records of any version (old ones have no `rules`)', () => {
+    const old = [review('d1', 'a', 'speak', T0, Rating.Again), ret(review('d2', 'a', 'speak', T0 + 120_000, Rating.Good), 1)];
+    const rebuilt = rebuildCards(s, old.map((r) => ({ ...r, fsrs: stepCard(s, null, r.final, r.at).fsrs })), USER)[0]!;
+    expect(rebuilt.lastLogId).toBe('d1');
+    expect(days(rebuilt, T0)).toBe(1);
+  });
+});
+
+describe('zones in the replay (Р29.3)', () => {
+  const s = createScheduler();
+  it('records without a zone count as Luxembourg; with one, its offset is used', () => {
+    // 23:45Z → 00:05Z: 01:45 → 02:05 in Luxembourg (one app day), 04:45 → 05:05 in Dushanbe (one too),
+    // 19:45 → 20:05 in New York; a record at 03:50Z in Dushanbe (08:50) after one at 22:30Z (03:30) is the next day.
+    const a = review('z1', 'a', 'speak', Date.parse('2026-10-17T23:45:00Z'), Rating.Good);
+    const b = review('z2', 'a', 'speak', Date.parse('2026-10-18T00:05:00Z'), Rating.Good);
+    const legacy = rebuildCards(s, [a, b].map((r) => ({ ...r, fsrs: stepCard(s, null, r.final, r.at).fsrs })), USER)[0]!;
+    expect(legacy.elapsedDays).toBe(0);
+    expect(legacy.lastReviewOffsetMin).toBe(120);
+
+    const c = { ...review('z3', 'b', 'speak', Date.parse('2026-10-17T22:30:00Z'), Rating.Good), tz: 'Asia/Dushanbe', tzOffsetMin: 300 };
+    const d = { ...review('z4', 'b', 'speak', Date.parse('2026-10-18T03:50:00Z'), Rating.Good), tz: 'Asia/Dushanbe', tzOffsetMin: 300 };
+    const dushanbe = rebuildCards(s, [c, d].map((r) => ({ ...r, fsrs: stepCard(s, null, r.final, r.at).fsrs })), USER)[0]!;
+    expect(dushanbe.elapsedDays).toBe(1);
+    expect(dushanbe.lastReviewOffsetMin).toBe(300);
+    // The same two moments as Luxembourg records: 00:30 → 05:50, also the next day; as New York (-240): 18:30 → 23:50, the same day.
+    const ny = rebuildCards(s, [c, d].map((r) => ({ ...r, tz: 'America/New_York', tzOffsetMin: -240, fsrs: stepCard(s, null, r.final, r.at).fsrs })), USER)[0]!;
+    expect(ny.elapsedDays).toBe(0);
   });
 });

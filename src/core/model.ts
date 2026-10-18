@@ -19,6 +19,11 @@ export interface MetaRow {
   deviceId: string;
   createdAt: Date;
   /**
+   * Scheduling rules the stored cards were rebuilt with (Р29.7). Below RULES_VERSION,
+   * the app saves the journal to a file and rebuilds the cards before any study.
+   */
+  rulesVersion?: number;
+  /**
    * This browser answered `phrases-not-supported` to recognizer hints: they are not
    * sent again until the setting is switched off and on (device-only, never synced).
    */
@@ -92,6 +97,10 @@ interface LogBase {
   deckRevision: number;
   /** One session (a portion, Р17.1). */
   sessionId: string;
+  /** Zone of the device at the moment (IANA), from stage 4.4a (Р29.3); absent in older records = Europe/Luxembourg. */
+  tz?: string;
+  /** Minutes east of UTC at the moment in that zone; the app day of the record is counted with it. */
+  tzOffsetMin?: number;
 }
 
 /** "Say it aloud" during an introduction (Р22.5): recognised, never rated. */
@@ -150,7 +159,9 @@ export type FinalRating = 1 | 2 | 3 | 4;
 
 /**
  * FSRS figures computed when the answer was recorded. For analysis only: the card
- * state is rebuilt from the journal, and a test checks the rebuild gives the same dates.
+ * state is rebuilt from the journal, and a test checks the rebuild gives the same
+ * dates for records of the current rules version. A return after Again shows the
+ * state unchanged (Р29.2).
  */
 export interface ReviewFsrs {
   stateBefore: State;
@@ -204,7 +215,10 @@ export interface ReviewRecord extends LogBase {
   audioEndMs?: number | null;
   /** `listen`: visible ms from the card shown to the microphone ready after that play; latency counts from here. */
   micReadyMs?: number | null;
-  /** 0 = the card as planned; 1 or 2 = it came back in the portion after Again (Р25). */
+  /**
+   * 0 = the card as planned; 1 or 2 = it came back in the portion after Again (Р25).
+   * A return is journaled with its rating but does not change FSRS (Р29.2).
+   */
   requeue?: number;
   /** Seconds since the previous answer on this pair (any day); null for the first one. */
   sincePairSec?: number | null;
@@ -227,6 +241,8 @@ export interface ReviewRecord extends LogBase {
   /** Goes to FSRS (Р4). */
   final: FinalRating;
   correction: Correction | null;
+  /** Version of the scheduling rules (Р29.4, `RULES_VERSION`); absent before stage 4.4a. */
+  rules?: number;
   fsrs: ReviewFsrs;
 }
 

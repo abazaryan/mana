@@ -94,7 +94,8 @@ export function StudyScreen({
       setRound('missing');
       return;
     }
-    const data = await loadSessionData(db, actor.userId, deckId);
+    const all = await loadSessionData(db, actor.userId);
+    const data = { entries: all.entries.filter((e) => e.deckId === deckId), cards: all.cards.filter((c) => c.deckId === deckId), log: all.log };
     const plan = buildSession({ now: new Date(), ...data, newPerDay, sameSound: sameSoundOf(findLanguagePack(deck.language)) });
     const hints = await prepareHints(db, deck, biasing);
     setRound({ deck, plan, items: plan.items, sessionId: randomId(), hints });
