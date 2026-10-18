@@ -105,6 +105,12 @@ export interface LanguagePack extends LanguageSupport {
   defaultLocale: string;
   /** Language name in each interface language. */
   name: Record<UiLang, string>;
+  /**
+   * "In this language", ready-made for each interface language (Р27): put into the
+   * `speak` instruction and field ("Ба фаронсавӣ бигӯед"). Never built from `name`:
+   * the grammar differs. Absent → the plain "Say it" / "Type…".
+   */
+  inLanguage?: Record<UiLang, string>;
   /** Extra letters for the custom phone keyboard (Р6). */
   keyboardRow: readonly string[];
   /** Rules for the written answer (skill `write`, Р5). */
@@ -117,6 +123,7 @@ export const FRENCH: LanguagePack = {
   code: 'fr',
   defaultLocale: 'fr-FR',
   name: { tg: 'фаронсавӣ', ru: 'французский', en: 'French' },
+  inLanguage: { tg: 'ба фаронсавӣ', ru: 'по-французски', en: 'in French' },
   genders: ['m', 'f'],
   sameSound: (a, b) => soundsSame(a, b, FRENCH_SPOKEN),
   keyboardRow: ['é', 'è', 'ê', 'ë', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ü', 'œ', 'æ', "'", '-'],

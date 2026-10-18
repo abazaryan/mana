@@ -49,9 +49,9 @@
 | `intro.echo` | Прочитайте вслух | Read it aloud | Бо садои баланд хонед |
 | `intro.again` | Ещё раз | Once more | Бори дигар |
 | `intro.skip` | Пропустить | Skip | Гузаштан |
-| `speak.prompt` | Скажите ответ | Say the answer | Ҷавобро бигӯед |
+| `speak.sayIn` | Скажите {inLang} | Say it {inLang} | {inLang} бигӯед |
+| `speak.typeIn` | Напишите {inLang}… | Type it {inLang}… | {inLang} нависед… |
 | `speak.type` | Написать | Type | Навиштан |
-| `speak.typePlaceholder` | Напишите ответ | Type the answer | Ҷавобро нависед |
 | `speak.check` | Проверить | Check | Санҷиш |
 | `speak.dontKnow` | Не знаю | I don't know | Намедонам |
 | `listen.say` | Скажите | Say it | Бигӯед |
@@ -85,7 +85,7 @@
 | `mark.wrong` | ошибка | wrong | хато |
 | `mark.missing` | пропущено | missing | ҷо монд |
 | `mark.diacritic` | только диакритика (é/e) | accent only (é/e) | танҳо аломат (é/e) |
-| `mark.punct` | знак препинания — на оценку не влияет | punctuation — doesn't affect the grade | нишонаи нигоришӣ — ба баҳо таъсир надорад |
+| `mark.punct` | знак препинания — на оценку не влияет | punctuation — doesn't affect the grade | нишонаи нигоришӣ — ба арзёбӣ таъсир надорад |
 | `rating.1` | Снова | Again | Дубора |
 | `rating.2` | Трудно | Hard | Сахт |
 | `rating.3` | Хорошо | Good | Хуб |

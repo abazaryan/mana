@@ -16,13 +16,13 @@ export function MicPanel({
   onStart,
   startLabel,
   playing = false,
-  prompt = 'speak.prompt',
+  prompt,
 }: {
   state: VoiceState;
   onStart(): void;
   startLabel: StringKey;
-  /** The one instruction of the step (Р26), under the circle while it listens. */
-  prompt?: StringKey;
+  /** The one instruction of the step (Р26), under the circle while it listens; already translated. */
+  prompt: string;
   /** The question's audio is playing (`listen`); the microphone starts when it ends. */
   playing?: boolean;
 }) {
@@ -34,7 +34,7 @@ export function MicPanel({
     state.phase === 'starting'
       ? t('mic.starting')
       : listening
-        ? t(prompt)
+        ? prompt
         : playing
           ? t('listen.playing')
           : t('mic.hint');

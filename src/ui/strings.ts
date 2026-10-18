@@ -105,9 +105,9 @@ export const STRINGS = {
   'intro.skip': { tg: 'Гузаштан', ru: 'Пропустить', en: 'Skip' },
 
   // Speak (Р22.6)
-  'speak.prompt': { tg: 'Ҷавобро бигӯед', ru: 'Скажите ответ', en: 'Say the answer' },
+  'speak.sayIn': { tg: '{inLang} бигӯед', ru: 'Скажите {inLang}', en: 'Say it {inLang}' },
+  'speak.typeIn': { tg: '{inLang} нависед…', ru: 'Напишите {inLang}…', en: 'Type it {inLang}…' },
   'speak.type': { tg: 'Навиштан', ru: 'Написать', en: 'Type' },
-  'speak.typePlaceholder': { tg: 'Ҷавобро нависед', ru: 'Напишите ответ', en: 'Type the answer' },
   'speak.check': { tg: 'Санҷиш', ru: 'Проверить', en: 'Check' },
   'speak.dontKnow': { tg: 'Намедонам', ru: 'Не знаю', en: "I don't know" },
   'listen.say': { tg: 'Бигӯед', ru: 'Скажите', en: 'Say it' },
@@ -169,7 +169,7 @@ export const STRINGS = {
   'mark.wrong': { tg: 'хато', ru: 'ошибка', en: 'wrong' },
   'mark.missing': { tg: 'ҷо монд', ru: 'пропущено', en: 'missing' },
   'mark.diacritic': { tg: 'танҳо аломат (é/e)', ru: 'только диакритика (é/e)', en: 'accent only (é/e)' },
-  'mark.punct': { tg: 'нишонаи нигоришӣ — ба баҳо таъсир надорад', ru: 'знак препинания — на оценку не влияет', en: "punctuation — doesn't affect the grade" },
+  'mark.punct': { tg: 'нишонаи нигоришӣ — ба арзёбӣ таъсир надорад', ru: 'знак препинания — на оценку не влияет', en: "punctuation — doesn't affect the grade" },
 
   // Rating (Р4)
   'rating.1': { tg: 'Дубора', ru: 'Снова', en: 'Again' },

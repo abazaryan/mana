@@ -194,8 +194,8 @@ export function EchoStep({
           loud={recognitionSupported}
           lang={pack.code}
           value={typed}
-          placeholder={t('speak.typePlaceholder')}
-          ariaLabel={t('speak.typePlaceholder')}
+          placeholder={t('write.placeholder')}
+          ariaLabel={t('write.placeholder')}
           onChange={(v) => {
             setTyped(v);
             setEcho(null);
@@ -205,7 +205,7 @@ export function EchoStep({
           onNext={() => finish(false)}
         />
       ) : (
-        <MicPanel state={voice.state} onStart={listen} startLabel={echo ? 'intro.again' : 'mic.start'} prompt="intro.echo" playing={playing} />
+        <MicPanel state={voice.state} onStart={listen} startLabel={echo ? 'intro.again' : 'mic.start'} prompt={t('intro.echo')} playing={playing} />
       )}
       <div className="row start">
         {!echo && (

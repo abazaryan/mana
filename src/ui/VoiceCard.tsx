@@ -249,6 +249,12 @@ export function VoiceCard({
   const note = pickLocalizedWithLang(entry.note, meaningLang);
   const hints = formHints(entry.form, lang);
   const listening = phase === 'starting' || phase === 'listening';
+  // Р27: `speak` names the language of the answer ("Say it in French"); `listen` and a
+  // language without the ready-made form say just "Say it" / "Type…".
+  const inLang = listenSkill ? undefined : pack.inLanguage?.[lang];
+  const capital = (s: string) => s.charAt(0).toLocaleUpperCase(lang) + s.slice(1);
+  const sayText = inLang ? capital(t('speak.sayIn', { inLang })) : t('listen.say');
+  const typeText = inLang ? capital(t('speak.typeIn', { inLang })) : t('write.placeholder');
 
   const meaningLine = meaning && (
     <p className={listenSkill ? 'meaning' : 'prompt'} lang={meaning.lang}>
@@ -300,8 +306,8 @@ export function VoiceCard({
       loud={gaveUp}
       lang={pack.code}
       value={typed}
-      placeholder={t('speak.typePlaceholder')}
-      ariaLabel={t('speak.typePlaceholder')}
+      placeholder={typeText}
+      ariaLabel={typeText}
       onChange={setTyped}
       onFirstKey={() => {
         firstKey.current ??= visibleMs();
@@ -317,7 +323,7 @@ export function VoiceCard({
     <>
       {!typing && recognitionSupported && (
         <>
-          <MicPanel state={voice.state} onStart={listen} startLabel="mic.start" prompt={listenSkill ? 'listen.say' : 'speak.prompt'} playing={playing} />
+          <MicPanel state={voice.state} onStart={listen} startLabel="mic.start" prompt={sayText} playing={playing} />
           {listening && voice.state.transcript && (
             <p className="live" lang={pack.code}>
               {voice.state.transcript}
