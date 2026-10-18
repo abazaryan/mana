@@ -427,7 +427,8 @@ export function StudyScreen({
     <section>
       {back}
       <div className="progress">
-        <span>{item.kind === 'intro' ? t('intro.label') : t('study.progress', { i: done + 1, n: total })}</span>
+        {/* An introduction has no number (Р29.6): the place stays empty, the card shows its own title. */}
+        <span>{item.kind === 'intro' ? '' : t('study.progress', { i: done + 1, n: total })}</span>
         <span className="bar">
           <i style={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }} />
         </span>
