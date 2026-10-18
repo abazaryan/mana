@@ -6,6 +6,7 @@
  * Language-specific rules come from language packs (./languages.ts) via options.
  * Messages are in Russian — they are shown to the deck author.
  */
+import { contentWarnings } from './deckContent.ts';
 
 export const DECK_FORMAT = 'mana-deck';
 /** Former identifier (working name "Sluh", Р20): still accepted, with a warning. */
@@ -91,6 +92,31 @@ export interface LanguageSupport {
   genders: readonly Gender[];
   /** Two texts sound the same (ravi / ravie): each one, said, is accepted for the other (Р16). */
   sameSound?(a: string, b: string): boolean;
+  /** Lists for the deck content checks (Р28); absent → only the language-neutral checks. */
+  deckRules?: DeckRules;
+}
+
+/** Language lists for the deck content checks (Р28, src/core/deckContent.ts). */
+export interface DeckRules {
+  /** Articles that can open a noun entry; an elided one ends with an apostrophe (`l'`). */
+  articles: readonly string[];
+  /** Articles that do not show the gender (`l'`): such a noun needs its indefinite pair. */
+  genderlessArticles: readonly string[];
+  /** Indefinite articles that show the gender (`un`, `une`). */
+  indefiniteArticles: readonly string[];
+  /** Subject pronouns whose gender the meaning may hide (`il`, `elle`, `ils`, `elles`). */
+  subjectPronouns: readonly string[];
+  /** Impersonal starts that need no gender (`il y a`, `il faut`, `il pleut`…), lower case. */
+  impersonal: readonly string[];
+  /** Numbers with a gender, as whole entries (`un`, `une`). */
+  genderedNumbers: readonly string[];
+  /** Masculine → feminine endings (`''` → `'e'`, `'eux'` → `'euse'`…): two entries that differ only so are a gender pair. */
+  genderEndings: readonly (readonly [string, string])[];
+  /** Words of informal / formal address (`tu`, `t'`, `ton`… / `vous`, `votre`…). */
+  informal: readonly string[];
+  formal: readonly string[];
+  /** Hyphenated words that contain an address word but are not address (`rendez-vous`). */
+  notAddress: readonly string[];
 }
 
 export interface DeckCheckOptions {
@@ -601,34 +627,6 @@ function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): Lan
   return pack;
 }
 
-/**
- * Tajik words the glossary rejects for deck text (docs/GLOSSARY_TG.md): a warning
- * with the approved term. Kept short on purpose — only words with no other use.
- */
-const TG_REJECTED: readonly { re: RegExp; word: string; use: string }[] = [
-  { re: /артикл/iu, word: 'артикл', use: 'шиносвожа (а лучше — form.determiner вместо текста)' },
-];
-
-/** Warns about rejected Tajik terms in the `tg` texts of meaning, hint and note. */
-function tgTermWarnings(c: Collector, entries: readonly unknown[]): void {
-  entries.forEach((raw, i) => {
-    if (!isObject(raw)) return;
-    for (const field of ['meaning', 'hint', 'note'] as const) {
-      const v = raw[field];
-      const tg = isObject(v) && typeof v.tg === 'string' ? v.tg : null;
-      if (!tg) continue;
-      for (const t of TG_REJECTED) {
-        if (t.re.test(tg)) {
-          c.warn(
-            `entries[${i}].${field}.tg`,
-            `Запись ${i + 1}: в ${field}.tg слово ${q(t.word)} (${q(tg)}) — по глоссарию: ${t.use}. Грамматику указывайте в form, не текстом.`,
-          );
-        }
-      }
-    }
-  });
-}
-
 const VOICE_SKILLS: readonly string[] = ['speak', 'listen'];
 
 /**
@@ -740,7 +738,8 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
       for (const t of e.tags) tagUse.set(t, [...(tagUse.get(t) ?? []), i + 1]);
     });
     if (lang?.sameSound) sameSoundWarnings(c, entries, lang.sameSound);
-    tgTermWarnings(c, entries);
+    // Р28: one answer per card, and what the app needs to check it.
+    c.warnings.push(...contentWarnings(entries, lang?.deckRules));
     for (const [t, nums] of tagUse) {
       if (tagCodes.has(t)) continue;
       const shown = nums.slice(0, 5).join(', ') + (nums.length > 5 ? '…' : '');

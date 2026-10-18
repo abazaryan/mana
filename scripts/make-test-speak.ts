@@ -5,6 +5,9 @@
  * `write`: the written article rule (Р24), diacritics, a typo, typography, forms
  * that sound the same (Р16). Revision 6: grammar only through `form`, no grammar words
  * in hint / meaning (the article was «бо артикл», the gender «(мард)» / «(зан)»).
+ * Revision 7 (Р28): one answer per card — form.gender for l'ami and «ils parlent»,
+ * indefinite pairs for the nouns with l', write on every noun with form.determiner;
+ * `npm run deck:check` without warnings.
  * npm run deck:test-speak. Node 24+ (runs .ts directly).
  *
  * Audio: only the `listen` entries have it, copied from the lesson-1 deck
@@ -27,7 +30,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 6,
+  revision: 7,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -65,6 +68,7 @@ const deck = {
       ipa: 'il paʁl fʁɑ̃sɛ',
       meaning: { tg: 'онҳо фаронсавӣ гап мезананд', ru: 'они говорят по-французски', en: 'they speak French' },
       note: { tg: '«il parle français» ҳамин тавр садо медиҳад', ru: '«il parle français» звучит так же', en: '"il parle français" sounds the same' },
+      form: { gender: 'm' },
       tags: ['phrase'],
       skills: ['speak'],
     },
@@ -89,7 +93,7 @@ const deck = {
       gender: 'm',
       form: { determiner: 'indefinite' },
       tags: ['word'],
-      skills: ['speak'],
+      skills: ['speak', 'write'],
     },
     {
       id: 'quatre-vingts',
@@ -157,9 +161,9 @@ const deck = {
       ipa: 'lami',
       meaning: { tg: 'дӯст', ru: 'друг', en: 'the friend' },
       gender: 'm',
-      form: { determiner: 'definite' },
+      form: { determiner: 'definite', gender: 'm' },
       tags: ['word'],
-      skills: ['speak'],
+      skills: ['speak', 'write'],
     },
     // Revision 4: three new entries for checking introductions on the phone.
     {
@@ -228,6 +232,7 @@ const deck = {
         en: "\"le hôpital\" is almost (needs l'); \"la hôpital\" is incorrect; \"l'hopital\" is almost",
       },
       gender: 'm',
+      form: { determiner: 'definite' },
       tags: ['word'],
       skills: ['speak', 'write'],
     },
@@ -272,6 +277,37 @@ const deck = {
       form: { gender: 'f' },
       tags: ['word'],
       skills: ['write'],
+    },
+    // Revision 7 (Р28): the indefinite pairs of the nouns with l' (only `write` checks the gender).
+    {
+      id: 'un-ami',
+      text: 'un ami',
+      ipa: 'œ̃n‿ami',
+      meaning: { tg: 'дӯст', ru: 'друг', en: 'a friend' },
+      gender: 'm',
+      form: { determiner: 'indefinite', gender: 'm' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'un-eleve',
+      text: 'un élève',
+      ipa: 'œ̃n‿elɛv',
+      meaning: { tg: 'шогирд', ru: 'ученик', en: 'a pupil' },
+      gender: 'm',
+      form: { determiner: 'indefinite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
+    },
+    {
+      id: 'un-hopital',
+      text: 'un hôpital',
+      ipa: 'œ̃n‿ɔpital',
+      meaning: { tg: 'беморхона', ru: 'больница', en: 'a hospital' },
+      gender: 'm',
+      form: { determiner: 'indefinite' },
+      tags: ['word'],
+      skills: ['speak', 'write'],
     },
   ],
 };

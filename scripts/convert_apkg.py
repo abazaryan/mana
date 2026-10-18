@@ -10,6 +10,8 @@ Mapping (docs/DECK_FORMAT.md):
   Аудио [sound:x.wav] -> audio/<id>.wav; Навиштан = "y" -> skills include "write";
   article le/la/l'/les -> form.determiner definite, un/une/des -> indefinite;
   le/un -> gender m, la/une -> f; Anki tags -> tag codes (TAGS; lesson tag U01 dropped).
+Revision 2 (Р28, 18.10.2026): FORM_GENDER adds form.gender where the meaning alone
+allows two answers ("1" = un / une; "Ман тоҷик ҳастам." = tadjik / tadjike).
 The deck name is the ZIP file name (docs/DECK_FORMAT.md).
 Entry ids are made from the French text once and must stay the same afterwards.
 Check the result with: npm run deck:check -- "decks/Фаронсавӣ · Дарси 01.zip"
@@ -57,6 +59,9 @@ def slug(fr: str) -> str:
 ARTICLE = re.compile(r"(le|la|les|un|une|des)\s+(?=\S)|l'(?=\S)", flags=re.I)
 DEFINITE = {"le", "la", "les", "l'"}
 GENDER = {"le": "m", "un": "m", "la": "f", "une": "f"}
+# Р28: the gender of the answer where the meaning does not show it (revision 2).
+FORM_GENDER = {"un": "m", "je-suis-tadjike": "f"}
+REVISION = 2
 
 
 def article(fr: str) -> str | None:
@@ -120,6 +125,8 @@ def main() -> int:
                 entry["gender"] = GENDER[art]
             if art:
                 entry["form"] = {"determiner": "definite" if art in DEFINITE else "indefinite"}
+            if entry_id in FORM_GENDER:
+                entry.setdefault("form", {})["gender"] = FORM_GENDER[entry_id]
             tags = []
             for t in anki_tags.split():
                 if LESSON_TAG.fullmatch(t):
@@ -137,7 +144,7 @@ def main() -> int:
         "format": "mana-deck",
         "version": 1,
         "id": args.id,
-        "revision": 1,
+        "revision": REVISION,
         "language": args.language,
         "tags": {code: name for code, name in TAGS.values() if any(code in e.get("tags", []) for e in entries)},
         "entries": entries,

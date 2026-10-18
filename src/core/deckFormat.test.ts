@@ -80,8 +80,8 @@ describe('validateDeck: valid decks', () => {
             form: { determiner: 'definite', number: 'singular' },
             tags: ['word', 'form'],
           }),
-          entry({ id: 'un-nom', text: 'un nom', meaning: { tg: 'насаб', ru: 'фамилия' }, audio: undefined, gender: 'm', form: { determiner: 'indefinite' } }),
-          entry({ id: 'ravie', text: 'ravie', meaning: { tg: 'хурсанд', ru: 'рада' }, audio: undefined, form: { gender: 'f' } }),
+          entry({ id: 'un-nom', text: 'un nom', meaning: { tg: 'насаб', ru: 'фамилия' }, audio: undefined, gender: 'm', form: { determiner: 'indefinite' }, skills: ['speak', 'write'] }),
+          entry({ id: 'ravie', text: 'ravie', meaning: { tg: 'хурсанд', ru: 'рада' }, audio: undefined, form: { gender: 'f' }, skills: ['write'] }),
         ],
       }),
       withPacks,
@@ -323,7 +323,7 @@ describe('validateDeck: entry errors', () => {
     const r = validateDeck(
       deck({
         tags: { word: { ru: 'слово' }, verb: { ru: 'глагол' } },
-        entries: [entry({ tags: ['word', 'kor'] }), entry({ id: 'merci', text: 'merci', audio: undefined, tags: ['kor'] })],
+        entries: [entry({ tags: ['word', 'kor'] }), entry({ id: 'merci', text: 'merci', audio: undefined, meaning: { tg: 'ташаккур', ru: 'спасибо' }, skills: ['speak'], tags: ['kor'] })],
       }),
       withPacks,
     );
@@ -356,12 +356,13 @@ describe('validateDeck: warnings', () => {
       'Запись 1 (id «bonjour»): неизвестное поле «comment» — будет пропущено.',
       'Запись 2: тот же текст «Bonjour», что у записи 1.',
       'Запись 2: файл «audio/bonjour.mp3» уже используется в записи 1.',
+      'Записи 1 и 2 («bonjour», «Bonjour»): одинаковое значение (tg) «салом», а form и hint их не различают — у карточки два правильных ответа. Разведите значения или добавьте hint / form (Р28).',
     ]);
   });
 
   it('warns when a meaning language is missing for some entries', () => {
     const r = validateDeck(
-      deck({ entries: [entry(), entry({ id: 'merci', text: 'merci', audio: undefined, meaning: { tg: 'ташаккур' } })] }),
+      deck({ entries: [entry(), entry({ id: 'merci', text: 'merci', audio: undefined, meaning: { tg: 'ташаккур' }, skills: ['speak'] })] }),
       withPacks,
     );
     expect(messages(r.warnings)).toEqual([

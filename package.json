@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "deck:check": "node scripts/validate-deck.ts",
     "i18n:table": "node scripts/i18n-table.ts",
+    "glossary:terms": "node scripts/glossary-terms.ts",
     "deck:test-meanings": "node scripts/make-test-meanings.ts",
     "deck:test-speak": "node scripts/make-test-speak.ts"
   },
