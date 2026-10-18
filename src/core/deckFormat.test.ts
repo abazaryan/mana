@@ -570,3 +570,21 @@ describe('validateDeck: forms that sound the same (Р16)', () => {
     expect(sameSound(pair(['write']))).toEqual([]);
   });
 });
+
+describe('validateDeck: rejected Tajik terms in deck text', () => {
+  const termWarnings = (over: Record<string, unknown>) =>
+    messages(validateDeck(deck({ entries: [entry(over)] }), withPacks).warnings).filter((m) => m.includes('по глоссарию'));
+
+  it('warns about «артикл» in a tg hint, meaning or note, naming the approved term', () => {
+    const w = termWarnings({ hint: { tg: 'бо артикл', ru: 'с артиклем' } });
+    expect(w).toHaveLength(1);
+    expect(w[0]).toContain('hint.tg');
+    expect(w[0]).toContain('шиносвожа');
+    expect(termWarnings({ note: { tg: 'Артикли муайян' } })).toHaveLength(1);
+  });
+
+  it('is quiet for ru text and for the approved term', () => {
+    expect(termWarnings({ hint: { ru: 'с артиклем', tg: 'на ном' } })).toEqual([]);
+    expect(termWarnings({ note: { tg: 'шиносвожаи муайян' } })).toEqual([]);
+  });
+});

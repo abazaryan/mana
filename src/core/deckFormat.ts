@@ -601,6 +601,34 @@ function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): Lan
   return pack;
 }
 
+/**
+ * Tajik words the glossary rejects for deck text (docs/GLOSSARY_TG.md): a warning
+ * with the approved term. Kept short on purpose — only words with no other use.
+ */
+const TG_REJECTED: readonly { re: RegExp; word: string; use: string }[] = [
+  { re: /артикл/iu, word: 'артикл', use: 'шиносвожа (а лучше — form.determiner вместо текста)' },
+];
+
+/** Warns about rejected Tajik terms in the `tg` texts of meaning, hint and note. */
+function tgTermWarnings(c: Collector, entries: readonly unknown[]): void {
+  entries.forEach((raw, i) => {
+    if (!isObject(raw)) return;
+    for (const field of ['meaning', 'hint', 'note'] as const) {
+      const v = raw[field];
+      const tg = isObject(v) && typeof v.tg === 'string' ? v.tg : null;
+      if (!tg) continue;
+      for (const t of TG_REJECTED) {
+        if (t.re.test(tg)) {
+          c.warn(
+            `entries[${i}].${field}.tg`,
+            `Запись ${i + 1}: в ${field}.tg слово ${q(t.word)} (${q(tg)}) — по глоссарию: ${t.use}. Грамматику указывайте в form, не текстом.`,
+          );
+        }
+      }
+    }
+  });
+}
+
 const VOICE_SKILLS: readonly string[] = ['speak', 'listen'];
 
 /**
@@ -712,6 +740,7 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
       for (const t of e.tags) tagUse.set(t, [...(tagUse.get(t) ?? []), i + 1]);
     });
     if (lang?.sameSound) sameSoundWarnings(c, entries, lang.sameSound);
+    tgTermWarnings(c, entries);
     for (const [t, nums] of tagUse) {
       if (tagCodes.has(t)) continue;
       const shown = nums.slice(0, 5).join(', ') + (nums.length > 5 ? '…' : '');

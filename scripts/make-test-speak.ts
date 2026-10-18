@@ -3,7 +3,8 @@
  * introductions, `speak`, sound-based matching (homophones, numbers), "almost",
  * the article rule with a form hint, "copy it out", and (revision 5) `listen` and
  * `write`: the written article rule (Р24), diacritics, a typo, typography, forms
- * that sound the same (Р16).
+ * that sound the same (Р16). Revision 6: grammar only through `form`, no grammar words
+ * in hint / meaning (the article was «бо артикл», the gender «(мард)» / «(зан)»).
  * npm run deck:test-speak. Node 24+ (runs .ts directly).
  *
  * Audio: only the `listen` entries have it, copied from the lesson-1 deck
@@ -26,7 +27,7 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 5,
+  revision: 6,
   language: 'fr-FR',
   tags: { word, phrase, number },
   entries: [
@@ -35,7 +36,7 @@ const deck = {
       text: 'le nom',
       ipa: 'lə nɔ̃',
       meaning: { tg: 'насаб', ru: 'фамилия', en: 'surname' },
-      hint: { tg: 'бо артикл', ru: 'с артиклем', en: 'with the article' },
+      hint: { tg: 'на ном', ru: 'не имя', en: 'not the first name' },
       gender: 'm',
       form: { determiner: 'definite' },
       tags: ['word'],
@@ -136,7 +137,8 @@ const deck = {
       id: 'elle-est-seule',
       text: 'elle est seule',
       ipa: 'ɛl ɛ sœl',
-      meaning: { tg: 'ӯ танҳост (зан)', ru: 'она одна', en: 'she is alone' },
+      meaning: { tg: 'ӯ танҳост', ru: 'она одна', en: 'she is alone' },
+      form: { gender: 'f' },
       note: { tg: '«seul» ва «seule» ҳамон тавр садо медиҳанд', ru: '«seul» и «seule» звучат одинаково', en: '"seul" and "seule" sound the same' },
       tags: ['phrase'],
       skills: ['speak'],
@@ -251,7 +253,7 @@ const deck = {
       id: 'ravi',
       text: 'ravi',
       ipa: 'ʁavi',
-      meaning: { tg: 'шодам (мард)', ru: 'рад', en: 'glad (m.)' },
+      meaning: { tg: 'шодам', ru: 'рад', en: 'glad' },
       note: { tg: '«ravie» ҳамин тавр садо медиҳад', ru: '«ravie» звучит так же', en: '"ravie" sounds the same' },
       form: { gender: 'm' },
       tags: ['word'],
@@ -261,7 +263,7 @@ const deck = {
       id: 'ravie',
       text: 'ravie',
       ipa: 'ʁavi',
-      meaning: { tg: 'шодам (зан)', ru: 'рада', en: 'glad (f.)' },
+      meaning: { tg: 'шодам', ru: 'рада', en: 'glad' },
       note: {
         tg: 'Ҳамон садо, ки «ravi»: танҳо навиштан (Р16)',
         ru: 'Звучит как «ravi»: только письмо (Р16)',
