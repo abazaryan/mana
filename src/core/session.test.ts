@@ -499,3 +499,55 @@ describe('today is counted in the zone of the device (Р29.3)', () => {
     expect(buildSession({ ...input, now: at('2026-10-27T01:00:00Z'), tz: 'Asia/Dushanbe' }).debts).toEqual([{ deckId: 'd', count: 1 }]);
   });
 });
+
+describe('last places keep the cards of one entry apart at the tail (Р25.8, phone check 19.10.2026)', () => {
+  const speakOnly = (n: number) => Array.from({ length: n }, (_, k) => entry(`r${k}`, k));
+  const dueToday = (ids: string[]) => ids.map((id) => card(id, local(14, 5)));
+  /** Known since an earlier day, `speak` answered (due later), `write` and `listen` still to come: catch-up. */
+  const known = (id: string, k: number) => entry(id, 20 + k, { skills: ['speak', 'write', 'listen'], audio: `audio/${id}.wav` });
+  const knownCard = (id: string) => card(id, local(25, 9));
+  const gaps = (items: SessionItem[], id: string) => {
+    const at = items.flatMap((i, k) => (i.entry.entryId === id ? [k] : []));
+    return at.slice(1).map((k, j) => k - at[j]! - 1);
+  };
+
+  it('19.10: 12 reviews and one catch-up entry with write + listen — two cards between them', () => {
+    const due = speakOnly(12);
+    const plan = run({ entries: [...due, known('oui', 0)], cards: [...dueToday(due.map((e) => e.entryId)), knownCard('oui')], log: [intro('oui', local(10, 9))] });
+    expect(plan.catchUp).toBe(1);
+    expect(plan.items).toHaveLength(14);
+    expect(shape(plan.items).slice(-4)).toEqual(['write:oui*', 'speak:r10', 'speak:r11', 'listen:oui*']);
+    expect(gaps(plan.items, 'oui')).toEqual([2]);
+  });
+
+  it('one new entry with three skills after 10 reviews: speak → write → listen, each two cards apart', () => {
+    const due = speakOnly(10);
+    const neu = entry('neu', 30, { skills: ['speak', 'write', 'listen'], audio: 'audio/neu.wav' });
+    const plan = run({ entries: [...due, neu], cards: dueToday(due.map((e) => e.entryId)) });
+    expect(shape(plan.items)[0]).toBe('intro:neu');
+    expect(shape(plan.items).filter((s) => s.endsWith(':neu*'))).toEqual(['speak:neu*', 'write:neu*', 'listen:neu*']);
+    expect(gaps(plan.items, 'neu').every((g) => g >= 2)).toBe(true);
+  });
+
+  it('two entries reach their last places together: the one planned first starts a place earlier, both stay apart', () => {
+    const due = speakOnly(10);
+    const plan = run({
+      entries: [...due, known('a', 0), known('b', 1)],
+      cards: [...dueToday(due.map((e) => e.entryId)), knownCard('a'), knownCard('b')],
+      log: [intro('a', local(10, 9)), intro('b', local(10, 9))],
+    });
+    expect(plan.items).toHaveLength(14);
+    expect(shape(plan.items).slice(-5)).toEqual(['write:a*', 'write:b*', 'speak:r9', 'listen:a*', 'listen:b*']);
+    expect(gaps(plan.items, 'a')).toEqual([2]);
+    expect(gaps(plan.items, 'b')).toEqual([2]);
+  });
+
+  it('too few places: no error, the plain order as before', () => {
+    const plan = run({
+      entries: [known('a', 0), known('b', 1)],
+      cards: [knownCard('a'), knownCard('b')],
+      log: [intro('a', local(10, 9)), intro('b', local(10, 9))],
+    });
+    expect(shape(plan.items)).toEqual(['write:a*', 'write:b*', 'listen:a*', 'listen:b*']);
+  });
+});

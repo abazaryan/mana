@@ -352,20 +352,65 @@ export function soundGroups(entries: readonly EntryRow[], sameSound?: (a: EntryR
  * next card is the first one whose entry has no card of an earlier skill still
  * waiting (speak → write → listen, always) and whose spacing key is not among the
  * last ENTRY_GAP items; if every waiting card is that close, the first allowed one.
+ *
+ * Last places (Р25.8, fixed after the phone check of 19.10.2026): the greedy order
+ * alone left the cards of one entry for the tail, where nothing was left to put
+ * between them (oui/write, oui/listen after 12 reviews). A spacing key with k cards
+ * left must start no later than place L − 1 − (k − 1)·(ENTRY_GAP + 1), L being the
+ * length of the portion. Keys whose last places fall together are served in that
+ * order, one place earlier each (counted back from the latest). A key at its last
+ * place goes first; when it is too close to its previous card, nothing is forced —
+ * with too few places the result is the plain greedy order.
  */
 export function arrange(intros: readonly SessionItem[], reviews: readonly ReviewItem[], groups: ReadonlyMap<string, string>): SessionItem[] {
   const key = (i: SessionItem) => groups.get(i.entry.entryId) ?? i.entry.entryId;
   const rank = (s: Skill) => SKILL_ORDER.indexOf(s);
   const out: SessionItem[] = [...intros];
   const left = [...reviews];
+  const total = intros.length + reviews.length;
   while (left.length > 0) {
     const allowed = left.filter(
       (c) => !left.some((o) => o !== c && o.entry.entryId === c.entry.entryId && rank(o.skill) < rank(c.skill)),
     );
     const recent = new Set(out.slice(-ENTRY_GAP).map(key));
-    const pick = allowed.find((c) => !recent.has(key(c))) ?? allowed[0]!;
+    const urgent = lastPlaces(left, key, total);
+    const place = out.length;
+    const pressing = allowed
+      .filter((c) => !recent.has(key(c)) && urgent.get(key(c))! <= place)
+      .sort((a, b) => urgent.get(key(a))! - urgent.get(key(b))!);
+    const pick = pressing[0] ?? allowed.find((c) => !recent.has(key(c))) ?? allowed[0]!;
     out.push(pick);
     left.splice(left.indexOf(pick), 1);
+  }
+  return out;
+}
+
+/**
+ * The last place where the next card of each spacing key may stand so that its
+ * remaining cards still fit ENTRY_GAP apart before the end of the portion; keys with
+ * the same or crowding last places are moved earlier one by one (latest first).
+ * A key with one card left has no last place (Infinity): it never presses.
+ */
+function lastPlaces(left: readonly ReviewItem[], key: (i: SessionItem) => string, total: number): Map<string, number> {
+  const count = new Map<string, number>();
+  const firstAt = new Map<string, number>();
+  left.forEach((c, k) => {
+    const g = key(c);
+    count.set(g, (count.get(g) ?? 0) + 1);
+    if (!firstAt.has(g)) firstAt.set(g, k);
+  });
+  const own = [...count].map(([g, n]) => ({ g, last: total - 1 - (n - 1) * (ENTRY_GAP + 1) }));
+  // Latest first; on a tie the key planned later keeps the later place.
+  own.sort((a, b) => b.last - a.last || firstAt.get(b.g)! - firstAt.get(a.g)!);
+  const out = new Map<string, number>();
+  let bound = Infinity;
+  for (const { g, last } of own) {
+    if (count.get(g)! < 2) {
+      out.set(g, Infinity);
+      continue;
+    }
+    bound = Math.min(last, bound - 1);
+    out.set(g, bound);
   }
   return out;
 }
