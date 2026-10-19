@@ -25,6 +25,7 @@
 | `decks.revision` | Редакция: {n} | Revision: {n} | Нусха: {n} |
 | `decks.audio` | Аудио: {mb} МБ | Audio: {mb} MB | Садо: {mb} МБ |
 | `deck.dueToday` | К повторению сегодня: {n} | Due today: {n} | Имрӯз барои такрор: {n} |
+| `deck.dueNew` |  · новых: {m} |  · new: {m} |  · нав: {m} |
 | `deck.overdue` | С прошлых дней: {n} — новые записи после них | From earlier days: {n} — new entries after them | Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
 | `deck.overdueIn` | В колоде «{deck}» с прошлых дней: {n} — новые записи после них | In “{deck}”: {n} from earlier days — new entries after them | Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
@@ -41,7 +42,7 @@
 | `study.progress` | {i} из {n} | {i} of {n} | {i} аз {n} |
 | `study.nothing` | Сейчас повторять нечего. | Nothing to review right now. | Ҳоло чизе барои такрор нест. |
 | `study.noNew.noMaterial` | Новых записей в колоде не осталось. | No new entries left in this deck. | Дар ин маҷмӯа омӯзбарги нав намонд. |
-| `study.noNew.dailyLimit` | Новые записи на сегодня закончились: лимит — {n} в день. | No more new entries today: the limit is {n} a day. | Омӯзбаргҳои нави имрӯз тамом шуданд: ҳадди рӯзона — {n}. |
+| `study.noNew.dailyLimit` | Новые на сегодня закончились: дневной лимит. | No more new cards today: the daily limit. | Навҳои имрӯз тамом шуданд: ҳадди рӯзона. |
 | `study.noNew.portionFull` | Эту порцию заняли повторения; новые записи — в следующей. | Reviews filled this round; new entries come in the next one. | Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар. |
 | `study.done` | Порция пройдена | Round done | Давр тамом шуд |
 | `study.more` | Ещё порция | Another round | Даври дигар |

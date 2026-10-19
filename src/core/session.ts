@@ -59,7 +59,11 @@ export type SessionItem =
 
 export type ReviewItem = Extract<SessionItem, { kind: 'review' }>;
 
-/** Why no new entry was added (Р17.7): no material / the daily limit / debts / reviews took the places. */
+/**
+ * Why no new card was added (Р17.7): no material / a daily limit / debts / reviews took
+ * the places. "New" = first cards of new entries and of skills of known entries
+ * (catch-up, Р25.9); one line for both daily limits (phone check 19.10.2026).
+ */
 export type NoNewReason = 'noMaterial' | 'dailyLimit' | 'overdue' | 'portionFull';
 
 /** Debts of one deck. */
@@ -159,10 +163,16 @@ export interface Outlook {
   tomorrow: number;
   /** Reviews due from tomorrow over 7 days, every deck; only the due dates set so far. */
   week: number;
+  /**
+   * New cards this deck may still give today: recalls of entries introduced today,
+   * catch-up within its daily limit and new entries within theirs, every skill
+   * counted. Debts do not lower it (they only hold the new cards back, Р29.5).
+   */
+  fresh: number;
   debts: DeckCount[];
 }
 
-export function outlook(input: DayInput): Outlook {
+export function outlook(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>): Outlook {
   const { today, cards } = dueCards(input);
   let here = 0;
   let tomorrow = 0;
@@ -172,7 +182,10 @@ export function outlook(input: DayInput): Outlook {
     if (c.day === today + 1) tomorrow++;
     if (c.day > today && c.day <= today + 7) week++;
   }
-  return { today: here, tomorrow, week, debts: debtsOf(cards, today, input.deckId) };
+  const m = newMaterial(input);
+  const skills = (list: readonly Recall[]) => list.reduce((n, r) => n + r.skills.length, 0);
+  const fresh = skills(m.startedToday) + skills(m.startedBefore.slice(0, m.catchBudget)) + skills(m.notIntroduced.slice(0, m.budget));
+  return { today: here, tomorrow, week, fresh, debts: debtsOf(cards, today, input.deckId) };
 }
 
 /** True when `at` falls in the app day of `now` in `tz`. */
@@ -223,6 +236,43 @@ function fit(list: readonly Recall[], room: number, maxEntries = Infinity): Reca
   return out;
 }
 
+/** First cards this deck could give: today's introductions, catch-up, new entries; with the room the daily limits leave. */
+interface NewMaterial {
+  /** Entries introduced today with skills still unanswered (Р17.3): always issued. */
+  startedToday: Recall[];
+  /** Entries known from an earlier day with skills never answered: catch-up (Р25.9). */
+  startedBefore: Recall[];
+  notIntroduced: Recall[];
+  /** Introductions left today (Р17.5). */
+  budget: number;
+  /** Catch-up entries left today. */
+  catchBudget: number;
+}
+
+function newMaterial(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>): NewMaterial {
+  const { deckId } = input;
+  const entries = input.entries.filter((e) => e.deckId === deckId);
+  const cards = input.cards.filter((c) => c.deckId === deckId);
+  const has = new Set(cards.map((c) => `${c.entryId}/${c.skill}`));
+  const start = dayStart(input.now, input.tz).getTime();
+  const introAt = new Map<string, number>();
+  for (const r of input.log) {
+    if (r.type === 'intro' && r.deckId === deckId) introAt.set(r.entryId, Math.min(introAt.get(r.entryId) ?? Infinity, r.at.getTime()));
+  }
+  // An entry with a card but no introduction in this journal (an old or restored one) is known already.
+  for (const c of cards) if (!introAt.has(c.entryId)) introAt.set(c.entryId, -Infinity);
+  const ordered = [...entries].filter((e) => issuableSkills(e).length > 0).sort((a, b) => a.position - b.position);
+  const missing = (e: EntryRow): Recall => ({ entry: e, skills: issuableSkills(e).filter((s) => !has.has(`${e.entryId}/${s}`)) });
+  const started = ordered.filter((e) => introAt.has(e.entryId)).map(missing).filter((r) => r.skills.length > 0);
+  return {
+    startedToday: started.filter((r) => introAt.get(r.entry.entryId)! >= start),
+    startedBefore: started.filter((r) => introAt.get(r.entry.entryId)! < start),
+    notIntroduced: ordered.filter((e) => !introAt.has(e.entryId)).map((e) => ({ entry: e, skills: issuableSkills(e) })),
+    budget: Math.max(0, input.newPerDay - introsToday(input.log, input.now, input.tz)),
+    catchBudget: Math.max(0, CATCH_UP_PER_DAY - catchUpToday(input.log, input.now, input.tz)),
+  };
+}
+
 /**
  * One portion.
  *
@@ -249,28 +299,10 @@ export function buildSession(input: SessionInput): SessionPlan {
   const blocked = anyDebt && !forced;
 
   const entries = input.entries.filter((e) => e.deckId === deckId);
-  const cards = input.cards.filter((c) => c.deckId === deckId);
-  const has = new Set(cards.map((c) => `${c.entryId}/${c.skill}`));
-  const start = dayStart(input.now, input.tz).getTime();
-  const introAt = new Map<string, number>();
-  for (const r of input.log) {
-    if (r.type === 'intro' && r.deckId === deckId) introAt.set(r.entryId, Math.min(introAt.get(r.entryId) ?? Infinity, r.at.getTime()));
-  }
-  // An entry with a card but no introduction in this journal (an old or restored one) is known already.
-  for (const c of cards) if (!introAt.has(c.entryId)) introAt.set(c.entryId, -Infinity);
-
   const due = allDue
     .filter((c) => c.card.deckId === deckId && c.day <= today)
     .sort((a, b) => a.card.due.getTime() - b.card.due.getTime());
-
-  const ordered = [...entries].filter((e) => issuableSkills(e).length > 0).sort((a, b) => a.position - b.position);
-  const missing = (e: EntryRow): Recall => ({ entry: e, skills: issuableSkills(e).filter((s) => !has.has(`${e.entryId}/${s}`)) });
-  const started = ordered.filter((e) => introAt.has(e.entryId)).map(missing).filter((r) => r.skills.length > 0);
-  const startedToday = started.filter((r) => introAt.get(r.entry.entryId)! >= start);
-  const startedBefore = started.filter((r) => introAt.get(r.entry.entryId)! < start);
-  const notIntroduced = ordered.filter((e) => !introAt.has(e.entryId)).map((e) => ({ entry: e, skills: issuableSkills(e) }));
-  const budget = Math.max(0, input.newPerDay - introsToday(input.log, input.now, input.tz));
-  const catchBudget = Math.max(0, CATCH_UP_PER_DAY - catchUpToday(input.log, input.now, input.tz));
+  const { startedToday, startedBefore, notIntroduced, budget, catchBudget } = newMaterial(input);
 
   let room = portion;
   const take = (list: readonly Recall[], maxEntries = Infinity) => {
@@ -301,10 +333,13 @@ export function buildSession(input: SessionInput): SessionPlan {
     }
   }
 
+  // New cards: new entries and catch-up (Р25.9). Checks: material → daily limits → debts → room (Р29.5).
   let noNew: NoNewReason | null = null;
-  if (fresher.length === 0) {
-    if (notIntroduced.length === 0) noNew = 'noMaterial';
-    else if (budget === 0) noNew = 'dailyLimit';
+  if (fresher.length + catchUp.length === 0) {
+    const newLeft = notIntroduced.length > 0 && budget > 0;
+    const catchLeft = startedBefore.length > 0 && catchBudget > 0;
+    if (notIntroduced.length + startedBefore.length === 0) noNew = 'noMaterial';
+    else if (!newLeft && !catchLeft) noNew = 'dailyLimit';
     else if (blocked) noNew = 'overdue';
     else noNew = 'portionFull';
   }

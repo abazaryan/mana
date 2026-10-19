@@ -452,7 +452,7 @@ describe('debts hold back new entries (Р17.4, Р29.5)', () => {
 describe('outlook (Р29.6)', () => {
   const entries = ['a', 'b', 'c', 'd', 'e'].map((id, k) => entry(id, k));
   const others = ['x', 'y'].map((id, k) => entry(id, k, { deckId: 'o' }));
-  const day = { now: NOW, tz: LUX, deckId: 'd', entries: [...entries, ...others] };
+  const day = { now: NOW, tz: LUX, deckId: 'd', entries: [...entries, ...others], log: [] as LogRecord[], newPerDay: 0 };
 
   it('today (this deck, debts included), tomorrow and 7 days from tomorrow (every deck)', () => {
     const cards = [
@@ -464,7 +464,7 @@ describe('outlook (Р29.6)', () => {
       card('x', local(13, 9), 'speak', 'o'), // a debt elsewhere: not in "today"
       card('y', local(15, 10), 'speak', 'o'), // tomorrow elsewhere
     ];
-    expect(outlook({ ...day, cards })).toEqual({ today: 3, tomorrow: 2, week: 3, debts: [{ deckId: 'd', count: 1 }, { deckId: 'o', count: 1 }] });
+    expect(outlook({ ...day, cards })).toEqual({ today: 3, tomorrow: 2, week: 3, fresh: 0, debts: [{ deckId: 'd', count: 1 }, { deckId: 'o', count: 1 }] });
     expect(outlook({ ...day, cards: [card('e', local(22, 9))] }).week).toBe(0);
   });
 
@@ -549,5 +549,48 @@ describe('last places keep the cards of one entry apart at the tail (Р25.8, pho
       log: [intro('a', local(10, 9)), intro('b', local(10, 9))],
     });
     expect(shape(plan.items)).toEqual(['write:a*', 'write:b*', 'listen:a*', 'listen:b*']);
+  });
+});
+
+describe('new cards: new entries and catch-up together (phone check 19.10.2026)', () => {
+  const skills3 = { skills: ['speak', 'write', 'listen'] as Skill[], audio: 'audio/x.wav' };
+  /** Known since 10.10 with `speak` answered (due 25.10): `write` and `listen` wait as catch-up. */
+  const known = Array.from({ length: 7 }, (_, k) => entry(`k${k}`, k, skills3));
+  const knownCards = known.map((e) => card(e.entryId, local(25, 9)));
+  const knownIntros = known.map((e) => intro(e.entryId, local(10, 9)));
+  const fresh = ['n0', 'n1', 'n2'].map((id, k) => entry(id, 10 + k));
+  const day = { now: NOW, tz: LUX, deckId: 'd', entries: [...known, ...fresh], cards: knownCards };
+
+  it('outlook counts every new card of today within both limits', () => {
+    // Catch-up: 5 entries × 2 skills = 10; new entries: 2 of the limit × 1 skill = 2.
+    expect(outlook({ ...day, log: knownIntros, newPerDay: 2 }).fresh).toBe(12);
+    // Today's introductions still unanswered count too, beyond the limits.
+    expect(outlook({ ...day, log: [...knownIntros, intro('n0', local(14, 6))], newPerDay: 1 }).fresh).toBe(10 + 1);
+    expect(outlook({ ...day, log: knownIntros, newPerDay: 0 }).fresh).toBe(10);
+  });
+
+  it('catch-up issued: no reason line, even with no new entries left', () => {
+    const plan = run({ entries: known, cards: knownCards, log: knownIntros });
+    expect(plan).toMatchObject({ catchUp: 5, noNew: null });
+  });
+
+  it('both limits used up: one "daily limit" line', () => {
+    const answered = known.slice(0, 5).map((e) => ({ ...intro('x', local(14, 6)), id: `f${e.entryId}`, type: 'review', skill: 'write', entryId: e.entryId, fsrs: { stateBefore: State.New } }) as unknown as LogRecord);
+    const withCards = [...knownCards, ...known.slice(0, 5).map((e) => card(e.entryId, local(25, 9), 'write'))];
+    const plan = run({ entries: known, cards: withCards, log: [...knownIntros, ...answered] });
+    expect(plan).toMatchObject({ catchUp: 0, noNew: 'dailyLimit' });
+    // Catch-up left alone: no new entries in the deck → still the limit line, not "no material".
+    const withNew = run({ entries: [...known, ...fresh], cards: withCards, log: [...knownIntros, ...answered], newPerDay: 0 });
+    expect(withNew.noNew).toBe('dailyLimit');
+  });
+
+  it('only catch-up waits and a debt holds it back: the reason is the debt and "add anyway" gives the catch-up', () => {
+    const debt = card('k0', local(12, 9), 'speak');
+    const cards = [debt, ...knownCards.slice(1)];
+    const held = run({ entries: known, cards, log: knownIntros });
+    expect(held).toMatchObject({ catchUp: 0, noNew: 'overdue' });
+    const forced = run({ entries: known, cards, log: knownIntros, addAnyway: true });
+    expect(forced.catchUp).toBeGreaterThan(0);
+    expect(forced.noNew).toBeNull();
   });
 });

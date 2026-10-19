@@ -97,7 +97,7 @@ function planFor(data: SessionData, deck: DeckRow, newPerDay: number, addAnyway:
 }
 
 function lookAhead(data: SessionData, deck: DeckRow, newPerDay: number): After {
-  const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards };
+  const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards, log: data.log, newPerDay };
   return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), names: new Map(data.decks.map((d) => [d.id, d.name])) };
 }
 
@@ -219,9 +219,10 @@ export function StudyScreen({
   const locale = speechLocale(deck.language) ?? pack.defaultLocale;
   /** One line: why no new entries came (Р17.7). Debts elsewhere name the deck (Р29.5). */
   const noNewText = (p: SessionPlan): string | null => {
-    if (p.noNew === 'dailyLimit') return t('study.noNew.dailyLimit', { n: newPerDay });
+    if (p.noNew === 'dailyLimit') return t('study.noNew.dailyLimit');
     if (p.noNew === 'portionFull') return t('study.noNew.portionFull');
-    if (p.noNew === 'noMaterial') return t('study.noNew.noMaterial');
+    // "No new entries left" only when the portion has nothing at all: otherwise the figures tell.
+    if (p.noNew === 'noMaterial') return p.items.length === 0 ? t('study.noNew.noMaterial') : null;
     if (p.noNew !== 'overdue') return null;
     const first = p.debts[0];
     if (!first || first.deckId === deck.id) return t('study.noNew.overdue');
@@ -236,7 +237,7 @@ export function StudyScreen({
     const why = noNewText(after.next);
     return (
       <>
-        <p className="m">{t('study.left.today', { n: capped(after.outlook.today) })}</p>
+        <p className="m">{t('study.left.today', { n: capped(after.outlook.today + after.outlook.fresh) })}</p>
         <p className="m">
           {t('study.left.tomorrow', { n: capped(after.outlook.tomorrow) })} · {t('study.left.week', { n: capped(after.outlook.week) })}
         </p>

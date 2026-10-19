@@ -41,6 +41,8 @@ export const STRINGS = {
 
   // One deck
   'deck.dueToday': { tg: 'Имрӯз барои такрор: {n}', ru: 'К повторению сегодня: {n}', en: 'Due today: {n}' },
+  /** Appended to deck.dueToday when new cards wait today: new entries and catch-up together (19.10.2026). */
+  'deck.dueNew': { tg: ' · нав: {m}', ru: ' · новых: {m}', en: ' · new: {m}' },
   'deck.overdue': {
     tg: 'Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо',
     ru: 'С прошлых дней: {n} — новые записи после них',
@@ -81,10 +83,11 @@ export const STRINGS = {
     ru: 'Новых записей в колоде не осталось.',
     en: 'No new entries left in this deck.',
   },
+  // One line for both daily limits — new entries and new skills of known ones (phone check 19.10.2026).
   'study.noNew.dailyLimit': {
-    tg: 'Омӯзбаргҳои нави имрӯз тамом шуданд: ҳадди рӯзона — {n}.',
-    ru: 'Новые записи на сегодня закончились: лимит — {n} в день.',
-    en: 'No more new entries today: the limit is {n} a day.',
+    tg: 'Навҳои имрӯз тамом шуданд: ҳадди рӯзона.',
+    ru: 'Новые на сегодня закончились: дневной лимит.',
+    en: 'No more new cards today: the daily limit.',
   },
   'study.noNew.portionFull': {
     tg: 'Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар.',

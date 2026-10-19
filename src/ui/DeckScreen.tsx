@@ -16,7 +16,7 @@ import { LANG_NAMES } from './strings';
  * debts (this one first) and how many decks have them; `held`: debts hold back new
  * entries now, so "add anyway" is offered (Р29.5, Р29.6).
  */
-type Day = { due: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
+type Day = { due: number; fresh: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
 type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day } | 'missing' | null;
 
 export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deckId: string; userId: string; newPerDay: number }) {
@@ -33,12 +33,12 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
         return;
       }
       const [entries, all] = await Promise.all([listEntries(db, deckId), loadSessionData(db, userId)]);
-      const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards };
+      const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards, log: all.log, newPerDay };
       const o = outlook(input);
       const first = o.debts[0];
       const name = (id: string) => all.decks.find((d) => d.id === id)?.name ?? id;
-      const held = buildSession({ ...input, log: all.log, newPerDay }).noNew === 'overdue';
-      const day: Day = { due: o.today, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
+      const held = buildSession(input).noNew === 'overdue';
+      const day: Day = { due: o.today, fresh: o.fresh, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
       if (live) setData({ deck, entries, day });
     })();
     return () => {
@@ -81,7 +81,10 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
         {t('decks.revision', { n: deck.revision })} · {t('decks.audio', { mb: formatMb(deck.audioBytes, lang) })}
       </p>
       {deck.hiddenCount > 0 && <p className="hint">{t('deck.hidden', { n: deck.hiddenCount })}</p>}
-      <p className="m">{t('deck.dueToday', { n: capped(day.due) })}</p>
+      <p className="m">
+        {t('deck.dueToday', { n: capped(day.due) })}
+        {day.fresh > 0 && t('deck.dueNew', { m: capped(day.fresh) })}
+      </p>
       {day.debt && (
         <p className="hint">
           {day.debt.deckId === deck.id
