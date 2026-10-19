@@ -35,7 +35,7 @@ export function DecksScreen({ db }: { db: ManaDb }) {
     try {
       await applyImport(db, plan, archive.audio);
       void requestPersistence();
-      setImp({ phase: 'done', plan, warnings: archive.check.warnings });
+      setImp({ phase: 'done', plan, warnings: [...archive.check.warnings, ...(plan.crossDeck ?? [])] });
       refresh();
     } catch (e) {
       setImp({ phase: 'failed', error: e instanceof Error ? e.message : String(e) });

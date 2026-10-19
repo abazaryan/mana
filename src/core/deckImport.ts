@@ -8,7 +8,7 @@
  * - Same revision → "reinstall?"; older revision → warning; a deck with the same id
  *   but a mostly different set of entries (or another language) → warning.
  */
-import type { Deck } from './deckFormat';
+import type { Deck, DeckIssue } from './deckFormat';
 import { primaryLanguage } from './deckFormat';
 import type { DeckRow, EntryRow } from './model';
 
@@ -49,6 +49,8 @@ export interface ImportPlan {
   summary: ImportSummary;
   /** Questions to ask before writing; empty = write right away. */
   confirm: ImportConfirm[];
+  /** Checks against the other installed decks of the language (Р28 п. 8, К1/К2): warnings, the import goes on. */
+  crossDeck?: DeckIssue[];
 }
 
 /**

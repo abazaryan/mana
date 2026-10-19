@@ -93,7 +93,7 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
         {plan.confirm.map((c, k) => (
           <ConfirmText key={k} c={c} plan={plan} />
         ))}
-        <Warnings items={archive.check.warnings} />
+        <Warnings items={[...archive.check.warnings, ...(plan.crossDeck ?? [])]} />
         <div className="row mt">
           <button className="secondary" type="button" onClick={onClose}>
             {t('common.cancel')}

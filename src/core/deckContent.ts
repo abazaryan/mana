@@ -214,3 +214,63 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
   // A pair is seen from both sides: keep each warning once.
   return out.filter((w, k) => out.findIndex((o) => o.path === w.path && o.message === w.message) === k);
 }
+
+/** An installed deck to compare an incoming one with (Р28 п. 8): same learning language, visible entries only. */
+export interface OtherDeck {
+  name: string;
+  entries: readonly unknown[];
+}
+
+/** Comparable answer text: case, typographic apostrophes, spaces and closing punctuation do not count. */
+function textKey(low: string): string {
+  return low.replace(/\s+/g, ' ').replace(/[\s.!?…]+$/u, '').trim();
+}
+
+/**
+ * Checks between decks (Р28 п. 8), warnings only, run on import and by
+ * `deck:check --with`. The caller passes the other decks of the same learning
+ * language without the hidden entries and without the incoming deck itself.
+ * К1 — the same meaning (in a language both have), the same form and hint, another
+ * answer: two right answers. A hint or form on at least one of the two lifts it,
+ * as in В1. К2 — the same answer (and form) already in another deck: it would be
+ * learned twice.
+ */
+export function crossDeckWarnings(incoming: readonly unknown[], others: readonly OtherDeck[]): DeckIssue[] {
+  const out: DeckIssue[] = [];
+  const mine = readEntries(incoming);
+  for (const other of others) {
+    const theirs = readEntries(other.entries);
+    for (const x of mine) {
+      for (const y of theirs) {
+        const sameForm = stable(x.form) === stable(y.form);
+        const lang = UI_LANGS.find((l) => {
+          const mx = x.meaning[l];
+          const my = y.meaning[l];
+          return typeof mx === 'string' && typeof my === 'string' && meaningKey(mx) !== '' && meaningKey(mx) === meaningKey(my);
+        });
+        const where = `в колоде ${q(other.name)} (запись ${y.i + 1})`;
+        if (textKey(x.low) === textKey(y.low)) {
+          if (!sameForm) continue;
+          out.push({
+            level: 'warning',
+            path: `entries[${x.i}].text`,
+            message:
+              `К2. Запись ${x.i + 1} ${q(x.text)} уже есть ${where}` +
+              (lang ? `, и значение то же (${lang}) ${q(String(x.meaning[lang]))}` : '') +
+              ' — она будет учиться дважды. Уберите повтор или, если он нужен намеренно, скажите об этом автору (Р28).',
+          });
+          continue;
+        }
+        if (!lang || !sameForm || stable(x.hint) !== stable(y.hint)) continue;
+        out.push({
+          level: 'warning',
+          path: `entries[${x.i}].meaning.${lang}`,
+          message:
+            `К1. Запись ${x.i + 1} ${q(x.text)}: то же значение (${lang}) ${q(String(x.meaning[lang]))}, что у ${q(y.text)} ${where}, ` +
+            'а form и hint их не различают — у карточки два правильных ответа. Разведите значения или добавьте hint / form хотя бы одной из записей (Р28).',
+        });
+      }
+    }
+  }
+  return out;
+}

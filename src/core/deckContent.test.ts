@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import glossary from '../../docs/GLOSSARY_TG.md?raw';
 import generated from './tgDeckTerms.ts?raw';
-import { contentWarnings, splitLeadingArticle } from './deckContent';
+import { contentWarnings, crossDeckWarnings, splitLeadingArticle, type OtherDeck } from './deckContent';
 import { parseDeckTerms, renderDeckTerms } from './glossaryTerms';
 import { FRENCH } from './languages';
 
@@ -126,5 +126,63 @@ describe('rejected deck words: docs/GLOSSARY_TG.md is the source', () => {
       { word: 'артикл', use: 'шиносвожа' },
       { word: 'род', use: 'ҷинс' },
     ]);
+  });
+});
+
+describe('checks between decks (Р28 п. 8): К1 two right answers, К2 the same entry twice', () => {
+  // Real entries of lesson 1 (revision 2) and of the test deck (revision 8), 22.10.2026.
+  const lesson1 = {
+    name: 'Фаронсавӣ · Дарси 01',
+    entries: [
+      { id: 'bonjour', text: 'bonjour', meaning: { tg: 'салом' }, skills: ['speak'] },
+      { id: 'oui', text: 'oui', meaning: { tg: 'ҳа' }, skills: ['speak'] },
+      { id: 'le-nom', text: 'le nom', meaning: { tg: 'насаб' }, form: { determiner: 'definite' }, skills: ['speak'] },
+      { id: 'un-rendez-vous', text: 'un rendez-vous', meaning: { tg: 'вохӯрӣ' }, form: { determiner: 'indefinite' }, skills: ['speak'] },
+      { id: 'deux', text: 'deux', meaning: { tg: '2' }, skills: ['speak'] },
+    ],
+  };
+  const msgs = (incoming: unknown[], others: OtherDeck[] = [lesson1]) => crossDeckWarnings(incoming, others).map((w) => w.message);
+
+  it('un rendez-vous in both decks (added in both on 22.10.2026): К2, the same meaning', () => {
+    const m = msgs([{ text: 'un rendez-vous', meaning: { tg: 'вохӯрӣ', ru: 'встреча', en: 'an appointment' }, form: { determiner: 'indefinite' } }]);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toContain('К2. Запись 1 «un rendez-vous» уже есть в колоде «Фаронсавӣ · Дарси 01» (запись 4), и значение то же (tg) «вохӯрӣ»');
+  });
+
+  it('oui → К2; deux with another meaning → К2 without "the same meaning"; le nom with a hint → К2, no К1', () => {
+    expect(msgs([{ text: 'oui', meaning: { tg: 'ҳа', ru: 'да' } }])[0]).toMatch(/^К2.*значение то же/);
+    const deux = msgs([{ text: 'deux', meaning: { tg: 'ду (2)' } }]);
+    expect(deux).toHaveLength(1);
+    expect(deux[0]).toMatch(/^К2/);
+    expect(deux[0]).not.toContain('значение то же');
+    const nom = msgs([{ text: 'le nom', meaning: { tg: 'насаб' }, hint: { tg: 'на ном' }, form: { determiner: 'definite' } }]);
+    expect(nom.map((x) => x.slice(0, 2))).toEqual(['К2']);
+  });
+
+  it('the answer compares without case, spaces, apostrophe style and closing punctuation', () => {
+    expect(msgs([{ text: ' Bonjour ! ', meaning: { tg: 'рӯз ба хайр' } }])[0]).toMatch(/^К2/);
+    const l = { name: 'L', entries: [{ text: "l'ami", meaning: { tg: 'дӯст' }, form: { gender: 'm' } }] };
+    expect(msgs([{ text: 'l’ami', meaning: { tg: 'дӯст' }, form: { gender: 'm' } }], [l])[0]).toMatch(/^К2/);
+  });
+
+  it('salut «салом» without a hint against bonjour «салом» → К1', () => {
+    const m = msgs([{ text: 'salut', meaning: { tg: 'салом', ru: 'привет' } }]);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toContain('К1. Запись 1 «salut»: то же значение (tg) «салом», что у «bonjour» в колоде «Фаронсавӣ · Дарси 01» (запись 1)');
+  });
+
+  it('a hint or form on one of the two lifts К1 (as in В1, salut / ciao)', () => {
+    expect(msgs([{ text: 'salut', meaning: { tg: 'салом' }, hint: { tg: 'ҳангоми вохӯрӣ' } }])).toEqual([]);
+    expect(msgs([{ text: 'un', meaning: { tg: '2' }, form: { gender: 'm' } }])).toEqual([]);
+  });
+
+  it('meanings equal only in a language one deck lacks do not count', () => {
+    expect(msgs([{ text: 'salut', meaning: { ru: 'салом' } }])).toEqual([]);
+  });
+
+  it('nothing to compare with: no warnings; several decks are each checked', () => {
+    expect(msgs([{ text: 'oui', meaning: { tg: 'ҳа' } }], [])).toEqual([]);
+    const other = { name: 'test-speak', entries: [{ text: 'oui', meaning: { tg: 'ҳа' } }] };
+    expect(msgs([{ text: 'oui', meaning: { tg: 'ҳа' } }], [lesson1, other])).toHaveLength(2);
   });
 });

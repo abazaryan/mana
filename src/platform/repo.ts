@@ -9,6 +9,8 @@ import { parseBackup, planRestore, serializeBackup, type BackupError } from '../
 import { answerCard, rebuildCards } from '../core/cards';
 import type { DeckArchive, DeckAudio } from '../core/deckArchive';
 import type { Skill } from '../core/deckFormat';
+import { crossDeckWarnings } from '../core/deckContent';
+import { primaryLanguage } from '../core/deckFormat';
 import { planImport, type ImportPlan, type InstalledDeck } from '../core/deckImport';
 import type {
   DrillRecord,
@@ -110,12 +112,23 @@ async function loadInstalled(db: ManaDb, deckId: string): Promise<InstalledDeck 
   return { deck, entries };
 }
 
-/** The import plan for a checked archive (no errors). Nothing is written. */
+/**
+ * The import plan for a checked archive (no errors). Nothing is written. Adds the
+ * checks against the other installed decks of the same learning language (Р28 п. 8):
+ * their visible entries, the deck itself left out (a new revision is no repeat).
+ */
 export async function prepareImport(db: ManaDb, archive: DeckArchive, now = new Date()): Promise<ImportPlan> {
   const deck = archive.check.deck;
   if (!deck) throw new Error('prepareImport: the archive has errors');
   const audioBytes = archive.audio.reduce((n, a) => n + a.data.byteLength, 0);
-  return planImport(deck, archive.name, audioBytes, await loadInstalled(db, deck.id), now);
+  const plan = planImport(deck, archive.name, audioBytes, await loadInstalled(db, deck.id), now);
+  const lang = primaryLanguage(deck.language);
+  const others = [];
+  for (const d of await listDecks(db)) {
+    if (d.id === deck.id || primaryLanguage(d.language) !== lang) continue;
+    others.push({ name: d.name, entries: await listEntries(db, d.id) });
+  }
+  return { ...plan, crossDeck: crossDeckWarnings(deck.entries, others) };
 }
 
 /** Writes an import plan in one transaction. The journal and the cards are not touched. */

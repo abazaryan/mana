@@ -469,3 +469,21 @@ describe('new scheduling rules (Р29.7)', () => {
     expect(await needsRulesUpdate(db, after)).toBe(false);
   });
 });
+
+describe('checks between decks on import (Р28 п. 8)', () => {
+  it('a repeated entry of another installed deck of the language → К2; hidden entries, the deck itself and other languages do not count', async () => {
+    const db = freshDb();
+    await importDeck(db, deck(1, ['a', 'b', 'c']), 'Урок 1.zip');
+    await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip'); // c is hidden now
+    // A deck of another learning language with the same entry (stored as such: only French imports today).
+    await importDeck(db, deck(1, ['a'], { id: 'xx-test-01' }), 'Other.zip');
+    await db.decks.update('xx-test-01', { language: 'de-DE' });
+    const archive = await readDeckArchive(await deckZip(deck(1, ['a', 'c', 'z'], { id: 'fr-test-02' })), 'Урок 2.zip');
+    const plan = await prepareImport(db, archive);
+    expect(plan.crossDeck).toHaveLength(1);
+    expect(plan.crossDeck?.[0]?.message).toContain('К2. Запись 1 «a» уже есть в колоде «Урок 1» (запись 1)');
+    // A new revision of the same deck is no repeat.
+    const again = await prepareImport(db, await readDeckArchive(await deckZip(deck(3, ['a', 'b'])), 'Урок 1.zip'));
+    expect(again.crossDeck).toEqual([]);
+  });
+});
