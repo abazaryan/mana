@@ -42,7 +42,7 @@
 | `study.progress` | {i} из {n} | {i} of {n} | {i} аз {n} |
 | `study.nothing` | Сейчас повторять нечего. | Nothing to review right now. | Ҳоло чизе барои такрор нест. |
 | `study.noNew.noMaterial` | Новых записей в колоде не осталось. | No new entries left in this deck. | Дар ин маҷмӯа омӯзбарги нав намонд. |
-| `study.noNew.dailyLimit` | Новые на сегодня закончились: дневной лимит. | No more new cards today: the daily limit. | Навҳои имрӯз тамом шуданд: ҳадди рӯзона. |
+| `study.noNew.dailyLimit` | На сегодня новых больше нет: дневной лимит исчерпан. | No more new cards today: daily limit reached. | Саҳмияи имрӯзи омӯзбаргҳои нав тамом шуд. |
 | `study.noNew.portionFull` | Эту порцию заняли повторения; новые записи — в следующей. | Reviews filled this round; new entries come in the next one. | Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар. |
 | `study.done` | Порция пройдена | Round done | Давр тамом шуд |
 | `study.more` | Ещё порция | Another round | Даври дигар |

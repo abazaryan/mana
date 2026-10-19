@@ -85,9 +85,9 @@ export const STRINGS = {
   },
   // One line for both daily limits — new entries and new skills of known ones (phone check 19.10.2026).
   'study.noNew.dailyLimit': {
-    tg: 'Навҳои имрӯз тамом шуданд: ҳадди рӯзона.',
-    ru: 'Новые на сегодня закончились: дневной лимит.',
-    en: 'No more new cards today: the daily limit.',
+    tg: 'Саҳмияи имрӯзи омӯзбаргҳои нав тамом шуд.',
+    ru: 'На сегодня новых больше нет: дневной лимит исчерпан.',
+    en: 'No more new cards today: daily limit reached.',
   },
   'study.noNew.portionFull': {
     tg: 'Ин даврро такрорҳо пур карданд; омӯзбаргҳои нав — дар даври дигар.',
