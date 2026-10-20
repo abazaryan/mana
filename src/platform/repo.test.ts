@@ -487,3 +487,13 @@ describe('checks between decks on import (Р28 п. 8)', () => {
     expect(again.crossDeck).toEqual([]);
   });
 });
+
+describe('deck title in the checks between decks (Р30)', () => {
+  it('К2 names the other deck by its title in the interface language', async () => {
+    const db = freshDb();
+    await importDeck(db, deck(1, ['a'], { title: { tg: 'Фаронсавӣ · Дарси 1', ru: 'Французский · Урок 1' } }), 'Фаронсавӣ · Дарси 01-1.zip');
+    const archive = await readDeckArchive(await deckZip(deck(1, ['a'], { id: 'fr-test-02' })), 'test-speak-2.zip');
+    expect((await prepareImport(db, archive, new Date(), 'tg')).crossDeck?.[0]?.message).toContain('в колоде «Фаронсавӣ · Дарси 1»');
+    expect((await prepareImport(db, archive, new Date(), 'ru')).crossDeck?.[0]?.message).toContain('в колоде «Французский · Урок 1»');
+  });
+});

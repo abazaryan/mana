@@ -8,7 +8,7 @@
 import { readFile } from 'node:fs/promises';
 import JSZip from 'jszip';
 import { crossDeckWarnings, type OtherDeck } from '../src/core/deckContent.ts';
-import { checkDeckArchive, DECK_JSON, deckNameFromFileName, primaryLanguage } from '../src/core/deckFormat.ts';
+import { checkDeckArchive, DECK_JSON, deckNameFromFileName, deckTitle, primaryLanguage, type Localized } from '../src/core/deckFormat.ts';
 import { LANGUAGE_PACKS } from '../src/core/languages.ts';
 
 const args = process.argv.slice(2);
@@ -21,7 +21,7 @@ if (!file || (at !== -1 && withFiles.length === 0)) {
 }
 
 /** deck.json of another deck ZIP, or exit with a message. */
-async function readOther(path: string): Promise<{ id: string; language: string; entries: unknown[] }> {
+async function readOther(path: string): Promise<{ id: string; language: string; title?: Localized; entries: unknown[] }> {
   try {
     const z = await JSZip.loadAsync(await readFile(path));
     const d = JSON.parse((await z.file(DECK_JSON)?.async('string')) ?? 'null');
@@ -53,7 +53,7 @@ if (r.deck && withFiles.length > 0) {
   for (const path of withFiles) {
     const d = await readOther(path);
     if (d.id === r.deck.id || primaryLanguage(d.language) !== primaryLanguage(r.deck.language)) continue;
-    others.push({ name: deckNameFromFileName(path), entries: d.entries });
+    others.push({ name: deckTitle({ name: deckNameFromFileName(path), title: d.title }, 'ru'), entries: d.entries });
   }
   cross.push(...crossDeckWarnings(r.deck.entries, others).map((w) => w.message));
 }
@@ -63,7 +63,8 @@ for (const w of r.warnings) console.log(`Предупреждение: ${w.messa
 for (const w of cross) console.log(`Предупреждение: ${w}`);
 if (r.deck) {
   const audio = r.deck.entries.filter((e) => e.audio).length;
-  const title = deckNameFromFileName(file);
+  // Р30: the name from deck.json (in Russian, else any); the file name only without it.
+  const title = deckTitle({ name: deckNameFromFileName(file), title: r.deck.title }, 'ru');
   console.log(
     `OK: «${title}» (id ${r.deck.id}, редакция ${r.deck.revision}, язык ${r.deck.language}), ` +
       `записей: ${r.deck.entries.length}, с аудио: ${audio}, размер: ${(bytes.length / 1024 / 1024).toFixed(1)} МБ.`,
