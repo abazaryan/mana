@@ -148,6 +148,15 @@ export const STRINGS = {
   'mic.repeatHint': { tg: 'Вожаро ду-се бор пайи ҳам бигӯед', ru: 'Скажите слово 2–3 раза подряд', en: 'Say the word 2–3 times in a row' },
   'mic.hint': { tg: 'Фишор диҳед ва бигӯед', ru: 'Нажмите и говорите', en: 'Tap and speak' },
   'write.placeholder': { tg: 'Нависед…', ru: 'Напишите…', en: 'Type…' },
+
+  // On-screen keyboard (Р31): names for the screen reader; tg approved by the owner 20.10.2026
+  'kb.group': { tg: 'Сафҳакалид', ru: 'Клавиатура', en: 'Keyboard' },
+  'kb.shift': { tg: 'Ҳарфи калон', ru: 'Заглавная', en: 'Shift' },
+  'kb.backspace': { tg: 'Ҳазф', ru: 'Стереть', en: 'Delete' },
+  'kb.space': { tg: 'Фосила', ru: 'Пробел', en: 'Space' },
+  'kb.apostrophe': { tg: 'Апостроф', ru: 'Апостроф', en: 'Apostrophe' },
+  'kb.hyphen': { tg: 'Хати пайванд', ru: 'Дефис', en: 'Hyphen' },
+  'kb.hold': { tg: 'нигоҳ доред: {list}', ru: 'удерживайте: {list}', en: 'hold for {list}' },
   'mic.starting': { tg: 'Микрофон равшан мешавад…', ru: 'Микрофон включается…', en: 'Starting the microphone…' },
   'mic.unsupported': {
     tg: 'Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед.',
@@ -304,6 +313,13 @@ export const STRINGS = {
     tg: 'Ин мурургар вожаҳо барои бозшиносии гуфторро қабул намекунад.',
     ru: 'Этот браузер не поддерживает подсказки распознавателю.',
     en: 'This browser does not support recognizer hints.',
+  },
+  'settings.systemKeyboard': { tg: 'Сафҳакалиди дастгоҳ', ru: 'Системная клавиатура', en: 'System keyboard' },
+  // tg: a candidate, waiting for the owner's approval (Р31).
+  'settings.systemKeyboardHint': {
+    tg: 'Ҷавобҳо бо сафҳакалиди дастгоҳ навишта мешаванд, на бо сафҳакалиди Моно. Бо сафҳахон қулайтар аст. Ҳангоми навиштан сафҳакалиди дастгоҳ метавонад ҷавобро пешниҳод кунад.',
+    ru: 'Ответы набираются на клавиатуре телефона, а не на клавиатуре Маны. Удобнее с экранным диктором. В навыке «писать» клавиатура телефона может подсказать ответ.',
+    en: "Answers are typed on the phone's keyboard instead of Mana's. Easier with a screen reader. In the write skill the phone's keyboard may suggest the answer.",
   },
   'pack.available': {
     tg: 'Бозшиносӣ дар дастгоҳ ({lang}): насб шудааст.',

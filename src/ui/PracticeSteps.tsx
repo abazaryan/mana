@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { checkWritten, type TypedCheck } from '../core/evaluate';
+import type { TypedInputInfo } from '../core/keyboard';
 import type { LanguagePack } from '../core/languages';
 import type { EntryRow, IntroCopy, IntroEcho } from '../core/model';
 import { checkSpoken, liveHeard, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
@@ -100,7 +101,7 @@ export function EchoStep({
   const { t } = useI18n();
   const visibleMs = useVisibleClock();
   const voice = useVoice(locale, visibleMs, recognition);
-  const [echo, setEcho] = useState<{ check: SpokenCheck; alternatives: string[]; mode: 'voice' | 'typed' } | null>(null);
+  const [echo, setEcho] = useState<{ check: SpokenCheck; alternatives: string[]; mode: 'voice' | 'typed'; input?: TypedInputInfo } | null>(null);
   const [typed, setTyped] = useState('');
   const [audioError, setAudioError] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -175,6 +176,7 @@ export function EchoStep({
       repeatHintShown: o.repeatHint,
       retries: o.retries,
       repeats: skipped ? 0 : (echo?.check.repeats ?? 0),
+      ...(!skipped && echo?.input ? { keyboard: echo.input.keyboard, pasted: echo.input.pasted } : {}),
     });
   };
 
@@ -201,7 +203,7 @@ export function EchoStep({
             setEcho(null);
           }}
           checked={echo !== null && echo.mode === 'typed'}
-          onCheck={() => setEcho({ check: checkSpoken(entry.text, [typed], pack.spoken), alternatives: [], mode: 'typed' })}
+          onCheck={(input) => setEcho({ check: checkSpoken(entry.text, [typed], pack.spoken), alternatives: [], mode: 'typed', input })}
           onNext={() => finish(false)}
         />
       ) : (
@@ -241,6 +243,7 @@ export function CopyStep({
   const { t } = useI18n();
   const [typed, setTyped] = useState('');
   const [copy, setCopy] = useState<TypedCheck | null>(null);
+  const input = useRef<TypedInputInfo | null>(null);
   const [audioError, setAudioError] = useState(false);
   useEffect(() => stopEntryAudio, []);
 
@@ -252,6 +255,7 @@ export function CopyStep({
       verdict: copy.evaluation.verdict,
       errorType: copy.evaluation.errorType ?? null,
       ...(copy.evaluation.punctuationNote ? { punctuationNote: true } : {}),
+      ...(input.current ? { keyboard: input.current.keyboard, pasted: input.current.pasted } : {}),
     });
   };
 
@@ -277,7 +281,10 @@ export function CopyStep({
           setCopy(null);
         }}
         checked={copy !== null}
-        onCheck={() => setCopy(checkWritten(entry.text, typed, pack.writing, articleForm(entry)))}
+        onCheck={(info) => {
+          input.current = info;
+          setCopy(checkWritten(entry.text, typed, pack.writing, articleForm(entry)));
+        }}
         onNext={done}
       />
       {copy && (

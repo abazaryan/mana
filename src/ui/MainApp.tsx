@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { getDb } from '../platform/db';
-import { ensureDevice, getSettings, needsRulesUpdate, putSettings, setPhrasesUnsupported } from '../platform/repo';
+import { ensureDevice, getSettings, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
 import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
+import { KeyboardModeProvider } from './keyboardMode';
 import type { Route } from './Root';
 import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
@@ -69,32 +70,41 @@ export function MainApp({ route }: { route: Route }) {
     setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate });
   };
 
+  const saveSystemKeyboard = async (on: boolean) => {
+    const freshMeta = await setSystemKeyboard(db, on);
+    setBoot({ phase: 'ready', meta: freshMeta, settings, rulesUpdate });
+  };
+
   return (
     <I18nProvider lang={settings.uiLang} meaningLang={settings.meaningLang}>
-      <Shell route={route}>
-        {rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
-        {!rulesUpdate && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} />}
-        {!rulesUpdate && route.name === 'study' && (
-          <StudyScreen
-            key={`${route.deckId}${route.addAnyway ? '/new' : ''}`}
-            db={db}
-            deckId={route.deckId}
-            actor={meta}
-            newPerDay={settings.newPerDay}
-            biasing={settings.biasing === true}
-            addAnyway={route.addAnyway === true}
-          />
-        )}
-        {!rulesUpdate && route.name === 'settings' && (
-          <SettingsScreen
-            db={db}
-            meta={meta}
-            newPerDay={settings.newPerDay}
-            biasing={settings.biasing === true}
-            onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
-        )}
-        {!rulesUpdate && route.name === 'decks' && <DecksScreen db={db} />}
-      </Shell>
+      <KeyboardModeProvider systemKeyboard={meta.systemKeyboard === true}>
+        <Shell route={route}>
+          {rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
+          {!rulesUpdate && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} />}
+          {!rulesUpdate && route.name === 'study' && (
+            <StudyScreen
+              key={`${route.deckId}${route.addAnyway ? '/new' : ''}`}
+              db={db}
+              deckId={route.deckId}
+              actor={meta}
+              newPerDay={settings.newPerDay}
+              biasing={settings.biasing === true}
+              addAnyway={route.addAnyway === true}
+            />
+          )}
+          {!rulesUpdate && route.name === 'settings' && (
+            <SettingsScreen
+              db={db}
+              meta={meta}
+              newPerDay={settings.newPerDay}
+              biasing={settings.biasing === true}
+              systemKeyboard={meta.systemKeyboard === true}
+              onSystemKeyboard={(on) => void saveSystemKeyboard(on)}
+              onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
+          )}
+          {!rulesUpdate && route.name === 'decks' && <DecksScreen db={db} />}
+        </Shell>
+      </KeyboardModeProvider>
     </I18nProvider>
   );
 }

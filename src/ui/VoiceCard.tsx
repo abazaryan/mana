@@ -11,6 +11,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
+import type { TypedInputInfo } from '../core/keyboard';
 import type { LanguagePack } from '../core/languages';
 import type { AnswerMode, EntryRow, FinalRating, ReviewRecord } from '../core/model';
 import { suggestSpeak, type RatingChoice } from '../core/review';
@@ -42,6 +43,8 @@ interface Answered {
   latencySource: ReviewRecord['latencySource'];
   totalMs: number | null;
   suggestion: RatingSuggestion;
+  /** Typed: which keyboard, anything pasted (Р31). */
+  input?: TypedInputInfo;
 }
 
 /** The kicker of a study card: the skill, and ↻ when the card came back after Again. */
@@ -179,7 +182,7 @@ export function VoiceCard({
     // On each finished attempt.
   }, [phase]);
 
-  const submitTyped = () => {
+  const submitTyped = (input: TypedInputInfo) => {
     if (!typed.trim()) return;
     voice.abort();
     // `listen`: from the end of the audio, as for a voice answer.
@@ -193,6 +196,7 @@ export function VoiceCard({
       latencyMs: latency === null ? null : Math.round(latency),
       latencySource: latency === null ? null : 'key',
       totalMs: Math.round(visibleMs()),
+      input,
     });
   };
 
@@ -228,6 +232,7 @@ export function VoiceCard({
       repeats: check?.repeats ?? null,
       extraWords: check?.extra ?? null,
       soundRules: check?.rules ?? [],
+      ...(mode === 'typed' && answered.input ? { keyboard: answered.input.keyboard, pasted: answered.input.pasted } : {}),
       ...(listenSkill
         ? { plays: plays.current, audioEndMs: audioEnd.current === null ? null : Math.round(audioEnd.current), micReadyMs: v.readyMs }
         : {}),

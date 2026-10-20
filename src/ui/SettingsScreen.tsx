@@ -17,6 +17,9 @@ interface Props {
   meta: MetaRow;
   newPerDay: number;
   biasing: boolean;
+  /** Answers on the device's own keyboard (Р31, device-only). */
+  systemKeyboard: boolean;
+  onSystemKeyboard(on: boolean): void;
   onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>): void;
   /** The restore adopted another user: reload meta and settings. */
   onDataReplaced(): void;
@@ -34,7 +37,7 @@ const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
 
 type Msg = { text: string; err: boolean } | null;
 
-export function SettingsScreen({ db, meta, newPerDay, biasing, onChange, onDataReplaced }: Props) {
+export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, onSystemKeyboard, onChange, onDataReplaced }: Props) {
   const { t, lang, meaningLang } = useI18n();
   const [persist, setPersist] = useState<Persistence | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -121,6 +124,13 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, onChange, onDataR
       {biasing && !phrasesApiPresent && <p className="hint err">{t('settings.biasingNoApi')}</p>}
       {biasing && phrasesApiPresent && rejected && <p className="hint err">{t('settings.biasingRejected')}</p>}
       {biasing && <SpeechPacks db={db} />}
+
+      <h2 className="h2">{t('kb.group')}</h2>
+      <label className="check">
+        <input type="checkbox" checked={systemKeyboard} onChange={(e) => onSystemKeyboard(e.target.checked)} />
+        <span>{t('settings.systemKeyboard')}</span>
+      </label>
+      <p className="hint">{t('settings.systemKeyboardHint')}</p>
 
       <h2 className="h2">{t('backup.title')}</h2>
       <p className="hint">{t('backup.hint')}</p>

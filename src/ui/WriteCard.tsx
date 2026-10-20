@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import { checkWritten, type TypedCheck } from '../core/evaluate';
+import type { TypedInputInfo } from '../core/keyboard';
 import type { LanguagePack } from '../core/languages';
 import type { AnswerMode, EntryRow, FinalRating, ReviewRecord } from '../core/model';
 import { suggestWrite, type RatingChoice } from '../core/review';
@@ -30,6 +31,8 @@ interface Answered {
   latencyMs: number | null;
   totalMs: number;
   suggestion: RatingSuggestion;
+  /** Typed: which keyboard, anything pasted (Р31). */
+  input: TypedInputInfo | null;
 }
 
 export function WriteCard({
@@ -60,10 +63,10 @@ export function WriteCard({
 
   useEffect(() => stopEntryAudio, []);
 
-  const finish = (mode: AnswerMode, check: TypedCheck | null) => {
+  const finish = (mode: AnswerMode, check: TypedCheck | null, input: TypedInputInfo | null) => {
     const latency = mode === 'typed' && firstKey.current !== null ? Math.round(firstKey.current) : null;
     const suggestion = suggestWrite(check?.evaluation.verdict ?? null, latency, words, previous);
-    setAnswered({ mode, check, latencyMs: latency, totalMs: Math.round(visibleMs()), suggestion });
+    setAnswered({ mode, check, latencyMs: latency, totalMs: Math.round(visibleMs()), suggestion, input });
     setChoice({ final: suggestion.rating as FinalRating, correction: null });
     setAudioError(false);
     playEntry(db, entry, locale).catch(() => setAudioError(true));
@@ -81,6 +84,7 @@ export function WriteCard({
       verdict: ev?.verdict ?? 'incorrect',
       errorType: ev?.errorType ?? null,
       ...(ev?.punctuationNote ? { punctuationNote: true } : {}),
+      ...(answered.input ? { keyboard: answered.input.keyboard, pasted: answered.input.pasted } : {}),
       latencyMs: answered.latencyMs,
       latencySource: answered.latencyMs === null ? null : 'key',
       totalMs: answered.totalMs,
@@ -132,13 +136,13 @@ export function WriteCard({
           }}
           checked={answered !== null}
           frozen={answered !== null}
-          onCheck={() => finish('typed', checkWritten(entry.text, typed, pack.writing, articleForm(entry)))}
+          onCheck={(input) => finish('typed', checkWritten(entry.text, typed, pack.writing, articleForm(entry)), input)}
           onNext={next}
         />
       )}
       {!answered && (
         <div className="row start mt">
-          <button className="ghost" type="button" onClick={() => finish('skip', null)}>
+          <button className="ghost" type="button" onClick={() => finish('skip', null, null)}>
             {t('speak.dontKnow')}
           </button>
         </div>

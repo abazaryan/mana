@@ -25,6 +25,7 @@ import {
   recordIntro,
   recordReview,
   restoreJournal,
+  setSystemKeyboard,
   userLog,
   type Actor,
   type ReviewInput,
@@ -495,5 +496,17 @@ describe('deck title in the checks between decks (Р30)', () => {
     const archive = await readDeckArchive(await deckZip(deck(1, ['a'], { id: 'fr-test-02' })), 'test-speak-2.zip');
     expect((await prepareImport(db, archive, new Date(), 'tg')).crossDeck?.[0]?.message).toContain('в колоде «Фаронсавӣ · Дарси 1»');
     expect((await prepareImport(db, archive, new Date(), 'ru')).crossDeck?.[0]?.message).toContain('в колоде «Французский · Урок 1»');
+  });
+});
+
+describe('system keyboard setting (Р31)', () => {
+  it('off by default, kept on the device row, switched back off', async () => {
+    const db = freshDb();
+    const meta = await ensureDevice(db);
+    expect(meta.systemKeyboard).toBeUndefined();
+    expect((await setSystemKeyboard(db, true)).systemKeyboard).toBe(true);
+    expect((await db.meta.get('device'))?.systemKeyboard).toBe(true);
+    expect((await db.meta.get('device'))?.userId).toBe(meta.userId);
+    expect((await setSystemKeyboard(db, false)).systemKeyboard).toBe(false);
   });
 });

@@ -75,6 +75,13 @@
 | `mic.repeatHint` | Скажите слово 2–3 раза подряд | Say the word 2–3 times in a row | Вожаро ду-се бор пайи ҳам бигӯед |
 | `mic.hint` | Нажмите и говорите | Tap and speak | Фишор диҳед ва бигӯед |
 | `write.placeholder` | Напишите… | Type… | Нависед… |
+| `kb.group` | Клавиатура | Keyboard | Сафҳакалид |
+| `kb.shift` | Заглавная | Shift | Ҳарфи калон |
+| `kb.backspace` | Стереть | Delete | Ҳазф |
+| `kb.space` | Пробел | Space | Фосила |
+| `kb.apostrophe` | Апостроф | Apostrophe | Апостроф |
+| `kb.hyphen` | Дефис | Hyphen | Хати пайванд |
+| `kb.hold` | удерживайте: {list} | hold for {list} | нигоҳ доред: {list} |
 | `mic.starting` | Микрофон включается… | Starting the microphone… | Микрофон равшан мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |
 | `mic.err.not-allowed` | Нет доступа к микрофону. Разрешите его для этого сайта. | No access to the microphone. Allow it for this site. | Иҷозати микрофон нест. Онро барои ин сайт иҷозат диҳед. |
@@ -136,6 +143,8 @@
 | `settings.biasingHint` | Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах. | The recognizer gets the words of your decks to recognise them better. Not every browser supports it. | Ба бозшиносии гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар бишносад. Дар ҳама мурургарҳо кор намекунад. |
 | `settings.biasingRejected` | Этот браузер не принял подсказки — на этом устройстве они не отправляются. Чтобы попробовать снова, выключите и включите переключатель. | This browser rejected the hints, so they are not sent on this device. To try again, switch this off and on. | Ин мурургар вожаҳоро қабул накард — дар ин дастгоҳ онҳо фиристода намешаванд. Барои санҷиши дубора хомӯш ва дубора равшан кунед. |
 | `settings.biasingNoApi` | Этот браузер не поддерживает подсказки распознавателю. | This browser does not support recognizer hints. | Ин мурургар вожаҳо барои бозшиносии гуфторро қабул намекунад. |
+| `settings.systemKeyboard` | Системная клавиатура | System keyboard | Сафҳакалиди дастгоҳ |
+| `settings.systemKeyboardHint` | Ответы набираются на клавиатуре телефона, а не на клавиатуре Маны. Удобнее с экранным диктором. В навыке «писать» клавиатура телефона может подсказать ответ. | Answers are typed on the phone's keyboard instead of Mana's. Easier with a screen reader. In the write skill the phone's keyboard may suggest the answer. | Ҷавобҳо бо сафҳакалиди дастгоҳ навишта мешаванд, на бо сафҳакалиди Моно. Бо сафҳахон қулайтар аст. Ҳангоми навиштан сафҳакалиди дастгоҳ метавонад ҷавобро пешниҳод кунад. |
 | `pack.available` | Распознавание на устройстве ({lang}): установлено. | On-device recognition ({lang}): installed. | Бозшиносӣ дар дастгоҳ ({lang}): насб шудааст. |
 | `pack.downloadable` | Распознавание на устройстве ({lang}): можно скачать. | On-device recognition ({lang}): can be downloaded. | Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ кардан мумкин аст. |
 | `pack.downloading` | Распознавание на устройстве ({lang}): скачивается… | On-device recognition ({lang}): downloading… | Бозшиносӣ дар дастгоҳ ({lang}): боргирӣ мешавад… |

@@ -62,6 +62,17 @@ export async function setPhrasesUnsupported(db: ManaDb, value: boolean): Promise
   });
 }
 
+/** Type answers on the device's own keyboard instead of the on-screen one (Р31, device-only). */
+export async function setSystemKeyboard(db: ManaDb, value: boolean): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const row = await db.meta.get('device');
+    if (!row) throw new Error('setSystemKeyboard: no device row');
+    const next: MetaRow = { ...row, systemKeyboard: value };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
 /** Texts of every visible entry of the installed decks in a learning language (hint vocabulary). */
 export async function entryTextsForLanguage(db: ManaDb, language: string): Promise<string[]> {
   const primary = (tag: string) => tag.split('-')[0]!.toLowerCase();
