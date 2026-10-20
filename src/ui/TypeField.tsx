@@ -3,8 +3,9 @@
  * field after three unrecognised attempts). Enter is the form's submit — Gboard's
  * `keydown` Enter is unreliable — and means "Check" the first time and "Next" the
  * second, not sooner than ENTER_NEXT_DELAY_MS after the result (src/core/enterFlow.ts).
- * After the check the field keeps focus, so the keyboard stays up. Before a step that
- * needs no keyboard (the microphone) the focus is dropped on "Next".
+ * After the check "Next" takes the focus (src/ui/NextButton.tsx, Р26): on a phone the
+ * keyboard goes down and the marks are in view. On the next card with a field the
+ * field takes the focus itself (`autoFocus`).
  */
 import { useEffect, useRef } from 'react';
 import { enterAction } from '../core/enterFlow';
