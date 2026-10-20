@@ -3,8 +3,8 @@
  * A deck names its language with a BCP-47 tag ("fr-FR"); the pack is found by the primary subtag.
  *
  * Only French is implemented. The written-answer rules (stage 3) live in `writing`,
- * the sound-based check of a spoken answer and numbers (stage 4.2, Р22) in `spoken`;
- * the custom keyboard row is used at stage 5.
+ * the sound-based check of a spoken answer and numbers (stage 4.2, Р22) in `spoken`,
+ * the layout of the on-screen phone keyboard (stage 5, Р31) in `keyboard`.
  * Before the first deck in a new language, check speech recognition and TTS for it
  * on the user's devices (especially lb-LU).
  *
@@ -100,6 +100,26 @@ export interface SpokenRules {
   subjectClitics: readonly string[];
 }
 
+/**
+ * The on-screen phone keyboard (Р6, Р31): letter rows, the keys around the space bar
+ * and the long-press variants. No digits: numbers are learnt spelt out.
+ */
+export interface KeyboardLayout {
+  /** Letter rows, top to bottom, one key per character; the last one gets Shift and Backspace. */
+  rows: readonly string[];
+  /** Keys left of the space bar. */
+  beforeSpace: readonly string[];
+  /** Keys right of the space bar (before Enter). */
+  afterSpace: readonly string[];
+  /** Long press on a key offers these, in this order; the first is preselected. */
+  variants: Readonly<Record<string, readonly string[]>>;
+}
+
+/** A character class matching any of these marks, with the `g` flag. */
+export function marksPattern(marks: readonly string[]): RegExp {
+  return new RegExp(`[${marks.map((m) => m.replace(/[\\\]^-]/g, '\\$&')).join('')}]`, 'g');
+}
+
 export interface LanguagePack extends LanguageSupport {
   /** Locale for speech recognition and TTS when the deck tag has no region. */
   defaultLocale: string;
@@ -111,13 +131,19 @@ export interface LanguagePack extends LanguageSupport {
    * the grammar differs. Absent → the plain "Say it" / "Type…".
    */
   inLanguage?: Record<UiLang, string>;
-  /** Extra letters for the custom phone keyboard (Р6). */
-  keyboardRow: readonly string[];
+  /** The on-screen phone keyboard (Р31). */
+  keyboard: KeyboardLayout;
   /** Rules for the written answer (skill `write`, Р5). */
   writing: WritingRules;
   /** Rules for the spoken answer (skill `speak`, Р5, Р22). */
   spoken: SpokenRules;
 }
+
+/**
+ * Punctuation of a French answer: never counted in a written answer (Р26) and offered
+ * by a long press on "." of the on-screen keyboard (Р31). One list for both.
+ */
+const FRENCH_PUNCTUATION = ['.', ',', '?', '!', ':', ';', '…', '«', '»', '"', '“', '”', '„'] as const;
 
 export const FRENCH: LanguagePack = {
   code: 'fr',
@@ -165,12 +191,26 @@ export const FRENCH: LanguagePack = {
     formal: ['vous', 'votre', 'vos'],
     notAddress: ['rendez-vous'],
   },
-  keyboardRow: ['é', 'è', 'ê', 'ë', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ü', 'œ', 'æ', "'", '-'],
+  keyboard: {
+    rows: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
+    beforeSpace: ["'", '-'],
+    afterSpace: ['.'],
+    // The letters of Р6, each on its base letter.
+    variants: {
+      e: ['é', 'è', 'ê', 'ë'],
+      a: ['à', 'â', 'æ'],
+      c: ['ç'],
+      i: ['î', 'ï'],
+      o: ['ô', 'œ'],
+      u: ['û', 'ù', 'ü'],
+      '.': FRENCH_PUNCTUATION.filter((m) => m !== '.'),
+    },
+  },
   writing: {
     // French typography: a space before `? ! : ; »` and after `«`. Correct in print,
     // invisible on screen, not something to test the learner on.
     typographicSpace: /\s+(?=[?!:;»])|(?<=«)\s+/g,
-    ignoredPunctuation: /[.,!?;:…«»"“”„]/g,
+    ignoredPunctuation: marksPattern(FRENCH_PUNCTUATION),
     // Elision first so it wins over the two-letter forms.
     leadingArticle: /^(l'|le |la |les |un |une |des )/,
     // Words of 5 characters or less get no typo tolerance: one edit on a short

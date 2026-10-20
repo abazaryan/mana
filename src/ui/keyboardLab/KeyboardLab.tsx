@@ -35,8 +35,10 @@ const TYPEFIELD_ATTRS = {
 } as const;
 
 const LETTER_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].map((r) => [...r]);
-const half = Math.ceil(FRENCH.keyboardRow.length / 2);
-const ACCENT_ROWS = [FRENCH.keyboardRow.slice(0, half), FRENCH.keyboardRow.slice(half)];
+// The letters of Р6 and the apostrophe and hyphen, now long-press variants in the pack (Р31).
+const LAB_ROW = [...Object.entries(FRENCH.keyboard.variants).flatMap(([base, vs]) => (base === '.' ? [] : vs)), ...FRENCH.keyboard.beforeSpace];
+const half = Math.ceil(LAB_ROW.length / 2);
+const ACCENT_ROWS = [LAB_ROW.slice(0, half), LAB_ROW.slice(half)];
 
 function readEnv(): LabEnv {
   const mq = (q: string) => (typeof matchMedia === 'function' ? matchMedia(q).matches : false);
@@ -544,7 +546,7 @@ export function KeyboardLab() {
             Проверить
           </button>
         </form>
-        <div className="kl-accents">{FRENCH.keyboardRow.map(accentForB)}</div>
+        <div className="kl-accents">{LAB_ROW.map(accentForB)}</div>
         {submitted.B !== undefined && <p className="kl-sent">Enter: «{submitted.B}»</p>}
       </Section>
 

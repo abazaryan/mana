@@ -28,6 +28,11 @@ export interface MetaRow {
    * sent again until the setting is switched off and on (device-only, never synced).
    */
   phrasesUnsupported?: boolean;
+  /**
+   * Answers are typed on the device's own keyboard instead of the on-screen one (Р31;
+   * Settings, off by default). Device-only, never synced.
+   */
+  systemKeyboard?: boolean;
 }
 
 export interface SettingsRow {
@@ -124,6 +129,10 @@ export interface IntroEcho {
   retries?: number;
   /** The whole text said k times (Р22, amendment of 16.10.2026). */
   repeats?: number;
+  /** Typed after three unrecognised attempts: the keyboard of the first character (Р31). */
+  keyboard?: TypedKeyboard | null;
+  /** Typed: something was pasted (Р31). */
+  pasted?: boolean;
 }
 
 /** "Copy it out" during an introduction, entries with `write` only (Р22.5): checked, never rated. */
@@ -133,6 +142,10 @@ export interface IntroCopy {
   errorType: string | null;
   /** Punctuation differed — shown, not counted (Р26). */
   punctuationNote?: boolean;
+  /** The keyboard of the first character (Р31). */
+  keyboard?: TypedKeyboard | null;
+  /** Something was pasted (Р31). */
+  pasted?: boolean;
 }
 
 /** Introduction of an entry (Р3): once per entry, no rating. */
@@ -151,6 +164,12 @@ export interface RecognitionErrorEntry {
 }
 
 export type LatencySource = 'speechstart' | 'result' | 'key';
+
+/**
+ * What typed an answer (Р31): the on-screen keyboard, the device's own (Settings →
+ * System keyboard) or a physical one. Taken from the first character; a paste is not one.
+ */
+export type TypedKeyboard = 'onscreen' | 'system' | 'physical';
 
 /** Recognizer hints for an answer: sent, switched off, or wanted but not possible here. */
 export type BiasingState = 'on' | 'off' | 'unavailable';
@@ -214,6 +233,10 @@ export interface ReviewRecord extends LogBase {
   extraWords?: number | null;
   /** `write`: the answer differs from the reference in punctuation, which is not counted (Р26). */
   punctuationNote?: boolean;
+  /** Typed answers (from stage 5, Р31): the keyboard of the first character; null — nothing typed (only pasted). */
+  keyboard?: TypedKeyboard | null;
+  /** Typed answers (from stage 5, Р31): something was pasted. */
+  pasted?: boolean;
   /** `listen` (stage 4.3): times the audio played before the answer (1 = only the automatic play). */
   plays?: number | null;
   /** `listen`: visible ms from the card shown to the end of the last play before the answer. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { caretAtEnd, clampSelection, deleteBackward, insertText, type TextState } from './textEdit';
+import { caretAfterInsert, caretAtEnd, clampSelection, deleteBackward, insertText, type TextState } from './textEdit';
 
 const at = (text: string, start: number, end = start): TextState => ({ text, start, end });
 
@@ -61,5 +61,23 @@ describe('clampSelection', () => {
   });
   it('rounds fractional offsets down', () => {
     expect(clampSelection(at('abc', 1.7))).toEqual(at('abc', 1));
+  });
+});
+
+describe('caretAfterInsert', () => {
+  it('at the end of a pasted word', () => {
+    expect(caretAfterInsert(at('le ', 3), 'le nom'.length)).toBe(6);
+  });
+  it('a paste in the middle', () => {
+    expect(caretAfterInsert(at('lnom', 1), "l'aunom".length)).toBe(4);
+  });
+  it('a paste over a selection', () => {
+    expect(caretAfterInsert(at('la nom', 0, 2), 'le nom'.length)).toBe(2);
+  });
+  it('nothing inserted: the caret stays', () => {
+    expect(caretAfterInsert(at('abc', 2), 3)).toBe(2);
+  });
+  it('a shorter text than expected never puts the caret past the end', () => {
+    expect(caretAfterInsert(at('abc', 3), 1)).toBe(1);
   });
 });

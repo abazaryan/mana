@@ -53,3 +53,14 @@ function lastGraphemeLength(before: string): number {
   const cp = before.codePointAt(before.length - 2);
   return cp !== undefined && cp > 0xffff ? 2 : 1;
 }
+
+/**
+ * Where the caret goes after the browser inserted text over `before`'s selection (a
+ * paste): at the end of the inserted text. `afterLength` is the new text length.
+ * Chrome on the owner's phone left it at the start (stage 5 lab, 20.10.2026).
+ */
+export function caretAfterInsert(before: TextState, afterLength: number): number {
+  const { text, start, end } = clampSelection(before);
+  const inserted = afterLength - (text.length - (end - start));
+  return Math.min(Math.max(start, start + inserted), Math.max(0, afterLength));
+}

@@ -508,9 +508,8 @@ describe('language packs', () => {
     expect(speechLocale('de-DE')).toBeUndefined();
   });
 
-  it('French: genders m/f and the keyboard row from Р6', () => {
+  it('French: genders m/f (the keyboard is tested in keyboard.test.ts)', () => {
     expect(FRENCH.genders).toEqual(['m', 'f']);
-    expect(FRENCH.keyboardRow.join(' ')).toBe("é è ê ë à â ç î ï ô û ù ü œ æ ' -");
     for (const g of FRENCH.genders) expect(GENDERS).toContain(g);
     expect(LANGUAGE_TAG_PATTERN.test(FRENCH.defaultLocale)).toBe(true);
   });
