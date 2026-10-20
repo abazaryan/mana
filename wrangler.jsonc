@@ -1,0 +1,24 @@
+// Cloudflare Workers, static assets only: no Worker script (no "main"). Decision Р32.
+// Workers Builds on every push to main: build command `npm test && npm run build`,
+// deploy command `npx wrangler deploy`. Headers (CSP, caching) live in public/_headers.
+// Step-by-step setup in the Cloudflare dashboard: docs/DEPLOY.md.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mana",
+  // Navigation requests never invoke a Worker script from 2025-04-01 on (matters at stage 6a).
+  "compatibility_date": "2026-10-20",
+  "assets": {
+    "directory": "./dist",
+    // The app routes by #/…: only / is needed. An unknown path gets a plain 404, not
+    // index.html — with base './' a nested path would load its scripts from a wrong folder.
+    "not_found_handling": "none",
+  },
+  // No Cloudflare logs or analytics: answers and recordings stay on the device.
+  "observability": { "enabled": false },
+  // No Wrangler usage telemetry from the build machine.
+  "send_metrics": false,
+  // The site's address: https://mana.amisipehr.workers.dev. Per-version preview URLs
+  // would be public copies with their own empty database: off.
+  "workers_dev": true,
+  "preview_urls": false,
+}

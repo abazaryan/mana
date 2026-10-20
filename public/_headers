@@ -1,0 +1,21 @@
+# Cloudflare Workers static assets: response headers (Р32).
+# Copied to dist/_headers by Vite; Cloudflare applies it and does not serve it.
+# No rule sets a header twice for one path (Cloudflare would join the values with a comma).
+# media-src blob: — deck audio plays from IndexedDB through object URLs.
+# Permissions-Policy microphone=(self) — voice answers; nothing else needs a device.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Permissions-Policy: microphone=(self), camera=(), geolocation=()
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+
+# Hashed build files never change under the same name.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Entry points: always revalidate, so a new version is found at once.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache

@@ -469,6 +469,24 @@ describe('new scheduling rules (Р29.7)', () => {
     expect((await db.cards.get(key))!.state).toBe(2);
     expect(await needsRulesUpdate(db, after)).toBe(false);
   });
+
+  it('a new address (Р32): first start, then restore of the old journal → no rebuild screen, after the reload too', async () => {
+    const old = freshDb();
+    const actorOld = await ensureDevice(old);
+    await someProgress(old, actorOld);
+    const { json } = await exportJournal(old, actorOld);
+
+    // MainApp.load on the new site: device row, then the rules check on an empty journal.
+    const db = freshDb();
+    const meta = await ensureDevice(db);
+    expect(await needsRulesUpdate(db, meta)).toBe(false);
+    expect(await restoreJournal(db, createScheduler(), json)).toEqual({ ok: true, added: 6, skipped: 0, userId: actorOld.userId });
+
+    // The reload after the user was adopted.
+    const reloaded = (await db.meta.get('device'))!;
+    expect(reloaded).toMatchObject({ userId: actorOld.userId, deviceId: meta.deviceId, rulesVersion: 2 });
+    expect(await needsRulesUpdate(db, reloaded)).toBe(false);
+  });
 });
 
 describe('checks between decks on import (Р28 п. 8)', () => {

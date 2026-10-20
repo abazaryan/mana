@@ -25,3 +25,6 @@ tools/.env.*
 !tools/.env.example
 mana-lab/
 *.key.json
+
+# Cloudflare (wrangler local state)
+.wrangler/
