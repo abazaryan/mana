@@ -13,7 +13,8 @@
     "i18n:table": "node scripts/i18n-table.ts",
     "glossary:terms": "node scripts/glossary-terms.ts",
     "deck:test-meanings": "node scripts/make-test-meanings.ts",
-    "deck:test-speak": "node scripts/make-test-speak.ts"
+    "deck:test-speak": "node scripts/make-test-speak.ts",
+    "icons": "node scripts/render-icons.ts"
   },
   "dependencies": {
     "dexie": "^4.4.6",

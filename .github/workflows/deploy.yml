@@ -26,6 +26,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # The old address must not be installable: the installed app lives only on
+      # https://mana.amisipehr.workers.dev (Р32), its data are separate from this site's.
+      - name: Remove the web app manifest
+        run: |
+          rm dist/manifest.webmanifest
+          sed -i '/rel="manifest"/d' dist/index.html
+          ! grep -q 'rel="manifest"' dist/index.html
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
