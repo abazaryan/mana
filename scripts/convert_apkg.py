@@ -61,7 +61,9 @@ DEFINITE = {"le", "la", "les", "l'"}
 GENDER = {"le": "m", "un": "m", "la": "f", "une": "f"}
 # Р28: the gender of the answer where the meaning does not show it (revision 2).
 FORM_GENDER = {"un": "m", "je-suis-tadjike": "f"}
-REVISION = 2
+REVISION = 3
+# Р30: the deck name comes from deck.json, not from the file name (revision 3: only the title is new).
+TITLE = {"tg": "Фаронсавӣ · Дарси 1", "ru": "Французский · Урок 1", "en": "French · Lesson 1"}
 
 
 def article(fr: str) -> str | None:
@@ -146,6 +148,7 @@ def main() -> int:
         "id": args.id,
         "revision": REVISION,
         "language": args.language,
+        "title": TITLE,
         "tags": {code: name for code, name in TAGS.values() if any(code in e.get("tags", []) for e in entries)},
         "entries": entries,
     }

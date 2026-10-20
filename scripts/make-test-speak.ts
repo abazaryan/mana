@@ -10,6 +10,7 @@
  * `npm run deck:check` without warnings.
  * Revision 8 (stage 4.4a): six new entries, so that new entries remain and the soft
  * ban on them while reviews from earlier days wait (Р29.5) can be seen on the phone.
+ * Revision 9 (Р30): only the title — the deck name no longer follows the file name.
  * npm run deck:test-speak. Node 24+ (runs .ts directly).
  *
  * Audio: only the `listen` entries have it, copied from the lesson-1 deck
@@ -32,8 +33,9 @@ const deck = {
   format: 'mana-deck',
   version: 1,
   id: 'fr-test-speak-01',
-  revision: 8,
+  revision: 9,
   language: 'fr-FR',
+  title: { tg: 'test-speak', ru: 'test-speak', en: 'test-speak' },
   tags: { word, phrase, number },
   entries: [
     {
