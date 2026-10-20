@@ -8,6 +8,7 @@
  * of Р29.6 and the reason why no new entries came (Р17.7).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { deckTitle } from '../core/deckFormat';
 import { findLanguagePack, speechLocale, type LanguagePack } from '../core/languages';
 import type { DeckRow, EntryRow, FinalRating, IntroCopy, IntroEcho, ReviewRecord } from '../core/model';
 import { createScheduler } from '../core/scheduler';
@@ -53,9 +54,9 @@ const scheduler = createScheduler();
 
 type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
 /** What comes after this portion (Р29.6): the figures and the portion "Another round" would build. */
-type After = { outlook: Outlook; next: SessionPlan; names: Map<string, string> };
+type After = { outlook: Outlook; next: SessionPlan; decks: Map<string, DeckRow> };
 type Round =
-  | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; names: Map<string, string>; after: After | null }
+  | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; decks: Map<string, DeckRow>; after: After | null }
   | 'missing'
   | null;
 type DrillResult = { echo: IntroEcho | null; copy: IntroCopy | null; skipped: boolean };
@@ -98,7 +99,7 @@ function planFor(data: SessionData, deck: DeckRow, newPerDay: number, addAnyway:
 
 function lookAhead(data: SessionData, deck: DeckRow, newPerDay: number): After {
   const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards, log: data.log, newPerDay };
-  return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), names: new Map(data.decks.map((d) => [d.id, d.name])) };
+  return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), decks: new Map(data.decks.map((d) => [d.id, d])) };
 }
 
 export function StudyScreen({
@@ -138,9 +139,9 @@ export function StudyScreen({
     const data = await loadSessionData(db, actor.userId);
     const p = planFor(data, deck, newPerDay, force);
     const hints = await prepareHints(db, deck, biasing);
-    const names = new Map(data.decks.map((d) => [d.id, d.name]));
+    const decks = new Map(data.decks.map((d) => [d.id, d]));
     const after = p.items.length === 0 ? lookAhead(data, deck, newPerDay) : null;
-    setRound({ deck, plan: p, items: p.items, sessionId: randomId(), hints, names, after });
+    setRound({ deck, plan: p, items: p.items, sessionId: randomId(), hints, decks, after });
     setIndex(0);
     setRatings([]);
     setPrevious(null);
@@ -205,7 +206,7 @@ export function StudyScreen({
   };
   const back = (
     <a className="back-link" href={deckHref(deck.id)}>
-      ← {deck.name}
+      ← {deckTitle(deck, lang)}
     </a>
   );
   if (!pack) {
@@ -227,7 +228,8 @@ export function StudyScreen({
     const first = p.debts[0];
     if (!first || first.deckId === deck.id) return t('study.noNew.overdue');
     const more = p.debts.length > 1 ? t('study.noNew.overdueMore', { n: p.debts.length - 1 }) : '';
-    return t('study.noNew.overdueIn', { deck: round.names.get(first.deckId) ?? first.deckId, more });
+    const other = round.decks.get(first.deckId);
+    return t('study.noNew.overdueIn', { deck: other ? deckTitle(other, lang) : first.deckId, more });
   };
   const noNewLine = noNewText(plan);
 
@@ -265,7 +267,7 @@ export function StudyScreen({
     return (
       <section>
         {back}
-        <h1>{deck.name}</h1>
+        <h1>{deckTitle(deck, lang)}</h1>
         <p className="lead">{t('study.nothing')}</p>
         {ahead(round.after)}
       </section>

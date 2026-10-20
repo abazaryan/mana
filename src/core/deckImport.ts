@@ -7,6 +7,9 @@
  * - The journal and the cards are never touched by an import.
  * - Same revision → "reinstall?"; older revision → warning; a deck with the same id
  *   but a mostly different set of entries (or another language) → warning.
+ * - Name (Р30): the deck's `title` when it has one; the file name only when a deck
+ *   without a title is installed — an update never renames it from the file
+ *   (Chrome on Android suffixes downloads again: "test-speak-2").
  */
 import type { Deck, DeckIssue } from './deckFormat';
 import { primaryLanguage } from './deckFormat';
@@ -24,6 +27,8 @@ export type ImportConfirm =
   | {
       type: 'different';
       installedName: string;
+      /** Title of the installed deck (Р30): shown with `deckTitle`. */
+      installedTitle?: DeckRow['title'];
       /** Entry ids present in both. */
       shared: number;
       installedCount: number;
@@ -61,7 +66,8 @@ export const MIN_SHARED_SHARE = 0.5;
 
 export function planImport(
   deck: Deck,
-  name: string,
+  /** File name without .zip: the stored name of a deck installed without a title. */
+  fileName: string,
   audioBytes: number,
   installed: InstalledDeck | null,
   now: Date,
@@ -101,9 +107,11 @@ export function planImport(
   }
 
   const hiddenCount = entries.length - deck.entries.length;
+  const title = deck.title ?? installed?.deck.title;
   const row: DeckRow = {
     id: deck.id,
-    name,
+    name: installed?.deck.name ?? fileName,
+    ...(title ? { title } : {}),
     language: deck.language,
     revision: deck.revision,
     formatVersion: deck.version,
@@ -128,6 +136,7 @@ export function planImport(
       confirm.push({
         type: 'different',
         installedName: installed.deck.name,
+        installedTitle: installed.deck.title,
         shared,
         installedCount: old.size,
         incomingCount: deck.entries.length,

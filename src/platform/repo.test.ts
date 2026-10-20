@@ -148,7 +148,7 @@ describe('deck import', () => {
     ]);
     const all = await listEntries(db, 'fr-test-01', true);
     expect(all.find((e) => e.entryId === 'b')).toMatchObject({ hidden: 1, text: 'b' });
-    expect((await listDecks(db))[0]).toMatchObject({ name: 'Урок 1 (новый)', revision: 2, entryCount: 3, hiddenCount: 1 });
+    expect((await listDecks(db))[0]).toMatchObject({ name: 'Урок 1', revision: 2, entryCount: 3, hiddenCount: 1 });
     // Audio replaced with the new revision's files; b's audio is gone with the old revision.
     expect(new Uint8Array((await getMedia(db, 'fr-test-01', 'audio/a.mp3'))!.data)).toEqual(fakeAudio('audio/a.mp3', 2));
     expect(await getMedia(db, 'fr-test-01', 'audio/b.mp3')).toBeUndefined();

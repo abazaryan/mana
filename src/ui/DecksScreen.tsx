@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { readDeckArchive, type DeckArchive } from '../core/deckArchive';
 import type { ImportPlan } from '../core/deckImport';
+import { deckTitle } from '../core/deckFormat';
 import { findLanguagePack } from '../core/languages';
 import type { DeckRow } from '../core/model';
 import type { ManaDb } from '../platform/db';
@@ -50,7 +51,7 @@ export function DecksScreen({ db }: { db: ManaDb }) {
         setImp({ phase: 'rejected', errors: archive.check.errors, warnings: archive.check.warnings });
         return;
       }
-      const plan = await prepareImport(db, archive);
+      const plan = await prepareImport(db, archive, new Date(), lang);
       if (plan.confirm.length > 0) setImp({ phase: 'confirm', plan, archive });
       else await write(plan, archive);
     } catch (e) {
@@ -82,7 +83,7 @@ export function DecksScreen({ db }: { db: ManaDb }) {
           {decks.map((d) => (
             <li key={d.id}>
               <a className="deck-card" href={deckHref(d.id)}>
-                <strong>{d.name}</strong>
+                <strong>{deckTitle(d, lang)}</strong>
                 <span className="m">
                   {languageName(d.language, lang)} · {t('decks.entries', { n: d.entryCount })} ·{' '}
                   {t('decks.revision', { n: d.revision })}

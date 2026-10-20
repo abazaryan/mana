@@ -43,6 +43,7 @@ function deck(over: Record<string, unknown> = {}): Record<string, unknown> {
     id: 'fr-lesson-01',
     revision: 1,
     language: 'fr-FR',
+    title: { tg: 'Фаронсавӣ · Дарси 1', ru: 'Французский · Урок 1', en: 'French · Lesson 1' },
     entries: [entry()],
     ...over,
   };
@@ -145,13 +146,21 @@ describe('validateDeck: deck-level errors', () => {
     expect(validateDeck(deck({ language: 'sr-Latn-RS' })).errors).toEqual([]);
   });
 
-  it('has no title: the deck name is the file name; old title/description only warn', () => {
+  it('title (Р30): in interface languages, a warning without it, an error for a wrong type; description only warns', () => {
     const r = validateDeck(deck({ title: { ru: 'Урок 1' }, description: 'x' }), withPacks);
     expect(r.errors).toEqual([]);
-    expect(messages(r.warnings)).toEqual([
-      'Колода: поле «title» не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.',
-      'Колода: поле «description» не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.',
-    ]);
+    expect(r.deck?.title).toEqual({ ru: 'Урок 1' });
+    expect(messages(r.warnings)).toEqual(['Колода: поле «description» не используется. Поле будет пропущено.']);
+    const none = validateDeck(deck({ title: undefined }), withPacks);
+    expect(none.errors).toEqual([]);
+    expect(messages(none.warnings)).toHaveLength(1);
+    expect(messages(none.warnings)[0]).toContain('нет поля title');
+    expect(messages(none.warnings)[0]).toContain('«-1» (Р30)');
+    expect(errorsOf(deck({ title: 'Урок 1' }))[0]).toContain('Колода: title должно быть объектом с языками');
+    expect(errorsOf(deck({ title: {} }))[0]).toContain('title пустое');
+    const odd = validateDeck(deck({ title: { tg: 'Дарс', tj: 'Дарс' } }), withPacks);
+    expect(odd.errors).toEqual([]);
+    expect(messages(odd.warnings)[0]).toContain('в title язык «tj» не поддерживается');
   });
 
   it('checks the tag dictionary', () => {
@@ -534,7 +543,7 @@ describe('JSON Schema stays in sync with the validator', () => {
 
   it('lists every field the validator knows', () => {
     expect(Object.keys(schema.properties).sort()).toEqual(
-      ['format', 'version', 'id', 'revision', 'language', 'tags', 'entries'].sort(),
+      ['format', 'version', 'id', 'revision', 'language', 'tags', 'title', 'entries'].sort(),
     );
     expect(Object.keys(entrySchema.properties).sort()).toEqual(
       ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills'].sort(),

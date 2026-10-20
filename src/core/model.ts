@@ -50,8 +50,13 @@ export function defaultSettings(userId: string, uiLang: UiLang, now: Date): Sett
 
 export interface DeckRow {
   id: string;
-  /** ZIP file name without extension (Р15); updated on every import. */
+  /**
+   * ZIP file name without extension at the first install; never changed by an update
+   * (Р30). Shown only when the deck has no title.
+   */
   name: string;
+  /** Deck name in interface languages from deck.json (Р30); kept when an update has none. */
+  title?: Localized;
   language: string;
   revision: number;
   formatVersion: number;

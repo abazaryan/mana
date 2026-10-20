@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
+import { deckTitle, formHints, pickLocalizedWithLang } from '../core/deckFormat';
 import type { DeckRow, EntryRow } from '../core/model';
 import { buildSession, capped, outlook } from '../core/session';
 import { playAudio, stopAudio } from '../platform/audio';
@@ -36,7 +36,11 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards, log: all.log, newPerDay };
       const o = outlook(input);
       const first = o.debts[0];
-      const name = (id: string) => all.decks.find((d) => d.id === id)?.name ?? id;
+      const other = (id: string) => all.decks.find((d) => d.id === id);
+      const name = (id: string) => {
+        const d = other(id);
+        return d ? deckTitle(d, lang) : id;
+      };
       const held = buildSession(input).noNew === 'overdue';
       const day: Day = { due: o.today, fresh: o.fresh, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
       if (live) setData({ deck, entries, day });
@@ -45,7 +49,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       live = false;
       stopAudio();
     };
-  }, [db, deckId, userId, newPerDay]);
+  }, [db, deckId, userId, newPerDay, lang]);
 
   const play = async (e: EntryRow) => {
     if (!e.audio) return;
@@ -75,7 +79,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       <a className="back-link" href="#/">
         ← {t('decks.title')}
       </a>
-      <h1>{deck.name}</h1>
+      <h1>{deckTitle(deck, lang)}</h1>
       <p className="lead">
         {languageName(deck.language, lang)} · {t('decks.entries', { n: deck.entryCount })} ·{' '}
         {t('decks.revision', { n: deck.revision })} · {t('decks.audio', { mb: formatMb(deck.audioBytes, lang) })}

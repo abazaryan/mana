@@ -1,5 +1,5 @@
 import type { DeckArchive } from '../core/deckArchive';
-import type { DeckIssue } from '../core/deckFormat';
+import { deckTitle, type DeckIssue } from '../core/deckFormat';
 import type { ImportConfirm, ImportPlan } from '../core/deckImport';
 import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
@@ -49,7 +49,7 @@ function ConfirmText({ c, plan }: { c: ImportConfirm; plan: ImportPlan }) {
     case 'different':
       return (
         <>
-          <p>{t('import.different', { name: c.installedName, shared: c.shared, installed: c.installedCount })}</p>
+          <p>{t('import.different', { name: deckTitle({ name: c.installedName, title: c.installedTitle }, lang), shared: c.shared, installed: c.installedCount })}</p>
           {c.languageChanged && (
             <p>{t('import.languageChanged', {
                 from: languageName(c.installedLanguage, lang),
@@ -62,7 +62,7 @@ function ConfirmText({ c, plan }: { c: ImportConfirm; plan: ImportPlan }) {
 }
 
 export function ImportSheet({ state, onConfirm, onClose }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const close = state.phase === 'reading' ? () => {} : onClose;
 
   if (state.phase === 'reading') {
@@ -88,7 +88,7 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
     return (
       <Sheet title={t('import.confirmTitle')} onClose={onClose} closeLabel={t('common.close')}>
         <p>
-          <strong>{plan.deck.name}</strong>
+          <strong>{deckTitle(plan.deck, lang)}</strong>
         </p>
         {plan.confirm.map((c, k) => (
           <ConfirmText key={k} c={c} plan={plan} />
@@ -114,7 +114,7 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
         closeLabel={t('common.close')}
       >
         <p>
-          <strong>{plan.deck.name}</strong>
+          <strong>{deckTitle(plan.deck, lang)}</strong>
         </p>
         <p>{t('import.summary', { ...plan.summary })}</p>
         <Warnings items={state.warnings} />

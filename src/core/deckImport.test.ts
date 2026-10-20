@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deck } from '../test/decks';
+import { deckTitle } from './deckFormat';
 import { planImport, type InstalledDeck } from './deckImport';
 
 const T0 = new Date('2026-10-01T10:00:00Z');
@@ -36,7 +37,8 @@ describe('planImport', () => {
     const byId = new Map(p.entries.map((e) => [e.entryId, e]));
     expect(byId.get('a')).toMatchObject({ text: 'a corrigé', position: 0, hidden: 0 });
     expect(byId.get('b')).toMatchObject({ text: 'b', hidden: 1 });
-    expect(p.deck).toMatchObject({ name: 'Дарси 01 (2)', revision: 2, entryCount: 3, hiddenCount: 1, importedAt: T0, updatedAt: T1 });
+    // Р30: an update without a title keeps the installed name, whatever the file is called.
+    expect(p.deck).toMatchObject({ name: 'Урок', revision: 2, entryCount: 3, hiddenCount: 1, importedAt: T0, updatedAt: T1 });
   });
 
   it('a returning entry is shown again', () => {
@@ -88,5 +90,38 @@ describe('planImport', () => {
     const old = installed(1, ['a', 'b']);
     const p = planImport(deck(2, ['a', 'b'], { language: 'de-DE' }), 'Урок', 0, old, T1);
     expect(p.confirm).toMatchObject([{ type: 'different', languageChanged: true, shared: 2 }]);
+  });
+});
+
+describe('deck name (Р30)', () => {
+  const title = { tg: 'Фаронсавӣ · Дарси 1', ru: 'Французский · Урок 1', en: 'French · Lesson 1' };
+
+  it('install without a title: the file name; with a title: the title, the file name only stored', () => {
+    expect(planImport(deck(1, ['a']), 'test-speak', 0, null, T0).deck).toMatchObject({ name: 'test-speak' });
+    expect(planImport(deck(1, ['a']), 'test-speak', 0, null, T0).deck.title).toBeUndefined();
+    const p = planImport(deck(1, ['a'], { title }), 'Фаронсавӣ · Дарси 01-1', 0, null, T0);
+    expect(p.deck.title).toEqual(title);
+    expect(deckTitle(p.deck, 'tg')).toBe('Фаронсавӣ · Дарси 1');
+  });
+
+  it('the real case: "test-speak" installed, "test-speak-2.zip" without a title arrives — the name stays', () => {
+    const first = planImport(deck(8, ['a']), 'test-speak', 0, null, T0);
+    const again = planImport(deck(8, ['a']), 'test-speak-2', 0, { deck: first.deck, entries: first.entries }, T1);
+    expect(deckTitle(again.deck, 'ru')).toBe('test-speak');
+  });
+
+  it('a title fixes a deck renamed by a suffix, and stays when a later revision has none', () => {
+    const broken = planImport(deck(2, ['a']), 'Фаронсавӣ · Дарси 01-1', 0, null, T0);
+    const fixed = planImport(deck(3, ['a'], { title }), 'Фаронсавӣ · Дарси 01-2', 0, { deck: broken.deck, entries: broken.entries }, T1);
+    expect(deckTitle(fixed.deck, 'tg')).toBe('Фаронсавӣ · Дарси 1');
+    const later = planImport(deck(4, ['a']), 'x', 0, { deck: fixed.deck, entries: fixed.entries }, T1);
+    expect(later.deck.title).toEqual(title);
+  });
+
+  it('shown in the interface language, else any, else the stored name', () => {
+    const d = { name: 'file', title: { tg: 'Дарс', ru: 'Урок' } };
+    expect(deckTitle(d, 'ru')).toBe('Урок');
+    expect(deckTitle(d, 'en')).toBe('Дарс');
+    expect(deckTitle({ name: 'file' }, 'en')).toBe('file');
   });
 });

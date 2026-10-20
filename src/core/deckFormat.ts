@@ -80,8 +80,13 @@ export interface Deck {
   id: string;
   revision: number;
   language: string;
-  /** Tag code → tag name in interface languages. The deck name is the ZIP file name, not a field. */
+  /** Tag code → tag name in interface languages. */
   tags?: Record<string, Localized>;
+  /**
+   * Deck name in interface languages (Р30); shown in the interface language, else any.
+   * Without it the name is the ZIP file name on install and stays on update.
+   */
+  title?: Localized;
   entries: DeckEntry[];
 }
 
@@ -141,7 +146,7 @@ export interface DeckCheck {
   warnings: DeckIssue[];
 }
 
-const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'entries']);
+const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'title', 'entries']);
 const ENTRY_KEYS = new Set([
   'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills',
 ]);
@@ -243,6 +248,11 @@ export function primaryLanguage(tag: string): string {
 export function deckNameFromFileName(fileName: string): string {
   const base = fileName.split(/[\\/]/).pop() ?? '';
   return base.replace(/\.zip$/i, '').trim();
+}
+
+/** Name of an installed deck in the interface language (Р30): its title, else the stored name (the file name). */
+export function deckTitle(d: { name: string; title?: Localized }, lang: UiLang): string {
+  return pickLocalized(d.title, lang) ?? d.name;
 }
 
 /** Text in the interface language, or any available one (in UI_LANGS order). */
@@ -702,9 +712,19 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
   }
   const lang = checkLanguage(c, value.language, options);
   const tagCodes = checkTagDictionary(c, value.tags);
+  // Р30: the name comes from the deck; without it, from the file name, which Chrome may suffix ("-1").
+  if (value.title === undefined) {
+    c.warn(
+      'title',
+      'Колода: нет поля title (название на языках интерфейса, например {"tg": "Фаронсавӣ · Дарси 1", "ru": "Французский · Урок 1"}) — ' +
+        'название возьмётся из имени ZIP-файла, а Chrome при повторном скачивании дописывает к нему «-1» (Р30).',
+    );
+  } else {
+    checkLocalized(c, 'title', 'Колода', value.title, 'title', 'название колоды', true);
+  }
   for (const key of Object.keys(value)) {
-    if (key === 'title' || key === 'description') {
-      c.warn(key, `Колода: поле ${q(key)} не используется — название колоды берётся из имени ZIP-файла. Поле будет пропущено.`);
+    if (key === 'description') {
+      c.warn(key, `Колода: поле ${q(key)} не используется. Поле будет пропущено.`);
     } else if (!DECK_KEYS.has(key)) {
       c.warn(key, `Колода: неизвестное поле ${q(key)} — будет пропущено.`);
     }
