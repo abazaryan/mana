@@ -282,7 +282,7 @@ html.osk-open body{padding-bottom:var(--osk-h,0px);}
 .osk-var[data-on]{background:var(--accent);color:var(--accent-ink);}
 /* A low landscape window: shorter keys, and the header and progress make room while the keyboard is up. */
 @media (orientation: landscape) and (max-height: 500px){
-  .osk{--key-cur:var(--key-h-land,38px);}
+  .osk{--key-cur:var(--key-h-land,40px);}
   .osk-cap{font-size:1.2rem;}
   html.osk-open .top,html.osk-open .progress{display:none;}
 }

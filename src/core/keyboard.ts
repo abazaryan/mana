@@ -6,10 +6,13 @@
 import type { KeyboardLayout } from './languages';
 import type { TypedKeyboard } from './model';
 
-/** Key height in portrait: not below Gboard's (≈ 39 px on the owner's phone, 20.10.2026). */
+/**
+ * Key height in portrait: not below Gboard's (≈ 44 px on the owner's phone, 412 CSS px
+ * wide, measured from screenshots 20.10.2026).
+ */
 export const KEY_HEIGHT_PX = 54;
-/** Key height in a low landscape window: not below Gboard's landscape keys (≈ 34 px). */
-export const KEY_HEIGHT_LANDSCAPE_PX = 38;
+/** Key height in a low landscape window: not below Gboard's landscape keys (≈ 36–38 px). */
+export const KEY_HEIGHT_LANDSCAPE_PX = 40;
 /** A press held this long opens the variants. */
 export const LONG_PRESS_MS = 350;
 /** Backspace held: first repeat after this, then every REPEAT_EVERY_MS. */

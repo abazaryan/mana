@@ -315,11 +315,11 @@ export const STRINGS = {
     en: 'This browser does not support recognizer hints.',
   },
   'settings.systemKeyboard': { tg: 'Сафҳакалиди дастгоҳ', ru: 'Системная клавиатура', en: 'System keyboard' },
-  // tg: a candidate, waiting for the owner's approval (Р31).
+  // The skill is named as on the cards ('skill.write'). tg approved 20.10.2026.
   'settings.systemKeyboardHint': {
-    tg: 'Ҷавобҳо бо сафҳакалиди дастгоҳ навишта мешаванд, на бо сафҳакалиди Моно. Бо сафҳахон қулайтар аст. Ҳангоми навиштан сафҳакалиди дастгоҳ метавонад ҷавобро пешниҳод кунад.',
-    ru: 'Ответы набираются на клавиатуре телефона, а не на клавиатуре Маны. Удобнее с экранным диктором. В навыке «писать» клавиатура телефона может подсказать ответ.',
-    en: "Answers are typed on the phone's keyboard instead of Mana's. Easier with a screen reader. In the write skill the phone's keyboard may suggest the answer.",
+    tg: 'Ҷавобҳоро бо сафҳакалиди дастгоҳ менависед, на бо сафҳакалиди Моно. Бо сафҳахон роҳаттар аст. Дар маҳорати «навиштан» сафҳакалиди дастгоҳ метавонад ҷавобро пешниҳод кунад.',
+    ru: 'Ответы вы набираете на клавиатуре телефона, а не на клавиатуре Маны. С экранным диктором так удобнее. В навыке «писать» клавиатура телефона может подсказать ответ.',
+    en: "You type answers on the phone's keyboard instead of Mana's. Easier with a screen reader. In the “write” skill the phone's keyboard may suggest the answer.",
   },
   'pack.available': {
     tg: 'Бозшиносӣ дар дастгоҳ ({lang}): насб шудааст.',

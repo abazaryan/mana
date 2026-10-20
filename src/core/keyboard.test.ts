@@ -176,7 +176,7 @@ describe('keyboard mode and the journal (Р31)', () => {
     expect(typedKeyboard('onscreen', null)).toBeNull();
   });
   it('keys are not smaller than Gboard on the owner phone', () => {
-    expect(KEY_HEIGHT_PX).toBeGreaterThanOrEqual(39);
-    expect(KEY_HEIGHT_LANDSCAPE_PX).toBeGreaterThanOrEqual(34);
+    expect(KEY_HEIGHT_PX).toBeGreaterThanOrEqual(44);
+    expect(KEY_HEIGHT_LANDSCAPE_PX).toBeGreaterThanOrEqual(38);
   });
 });
