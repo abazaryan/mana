@@ -1,3 +1,4 @@
+import { voiceAvailability, voicesOf, type VoiceAvailability } from '../core/voices';
 import {
   RecognitionStartError,
   type RecognitionHandlers,
@@ -146,18 +147,9 @@ export function createBrowserRecognizer(): SpeechRecognizer {
   };
 }
 
-/** Voices of a language: exact tag first, then the same primary language; on-device ones first (Р33 п. 14). */
-function voicesOf(lang: string): SpeechSynthesisVoice[] {
-  const voices = speechSynthesis.getVoices() ?? [];
-  const want = lang.toLowerCase();
-  const prefix = want.split('-')[0]!;
-  const tag = (v: SpeechSynthesisVoice) => v.lang.replace('_', '-').toLowerCase();
-  const rank = (v: SpeechSynthesisVoice) => (tag(v) === want ? 0 : 2) + (v.localService ? 0 : 1);
-  return voices.filter((v) => tag(v) === want || tag(v).split('-')[0] === prefix).sort((a, b) => rank(a) - rank(b));
-}
-
+/** The voice that speaks `lang`: on-device first (Р33 п. 14, `src/core/voices.ts`). */
 function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
-  return voicesOf(lang)[0];
+  return voicesOf(speechSynthesis.getVoices() ?? [], lang)[0];
 }
 
 export function createBrowserSpeaker(): Speaker {
@@ -184,16 +176,16 @@ export function createBrowserSpeaker(): Speaker {
 }
 
 /**
- * What the browser says about voices of a language: `listed` false when it gives no
- * list at all (Chrome and Edge on Android may not — then only listening tells), else
- * the names of the matching voices, the one that will speak first.
+ * What the browser says about voices of a language: whether it can be said that there
+ * is none (an empty list is only "unknown", see `voiceAvailability`), and the names of
+ * the matching voices, the one that will speak first.
  */
-export function voicesFor(lang: string): { listed: boolean; names: string[] } {
+export function voicesFor(lang: string): { availability: VoiceAvailability; names: string[] } {
   try {
     const all = speechSynthesis.getVoices() ?? [];
-    return { listed: all.length > 0, names: voicesOf(lang).map((v) => v.name) };
+    return { availability: voiceAvailability(all, lang), names: voicesOf(all, lang).map((v) => v.name) };
   } catch {
-    return { listed: false, names: [] };
+    return { availability: 'unknown', names: [] };
   }
 }
 

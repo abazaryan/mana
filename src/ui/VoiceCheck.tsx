@@ -46,8 +46,8 @@ export function VoiceCheckSheet({ db, language, onDone, onClose }: Props) {
     setStep(a);
     onDone(meta, a);
   };
-  // The browser lists voices and none is of this language: say it plainly (Android may list none at all).
-  const none = voices.listed && voices.names.length === 0;
+  // Only a list without this language means "no voice"; an empty list (Chrome on Android) leaves it to the ear.
+  const none = voices.availability === 'missing';
   const question = pack?.voiceCheck?.question[lang] ?? t('voice.heard');
 
   return (

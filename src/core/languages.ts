@@ -154,7 +154,7 @@ export const FRENCH: LanguagePack = {
   inLanguage: { tg: 'ба фаронсавӣ', ru: 'по-французски', en: 'in French' },
   voiceCheck: {
     sample: "Bonjour ! Je m'appelle Marie. Un, deux, trois.",
-    question: { tg: 'Овози фаронсавӣ шунидед?', ru: 'Слышен французский голос?', en: 'Did you hear a French voice?' },
+    question: { tg: 'Садои фаронсавиро шунидед?', ru: 'Слышен французский голос?', en: 'Did you hear a French voice?' },
   },
   genders: ['m', 'f'],
   sameSound: (a, b) => soundsSame(a, b, FRENCH_SPOKEN),

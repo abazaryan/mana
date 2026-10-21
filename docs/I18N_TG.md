@@ -30,7 +30,7 @@
 | `deck.overdueIn` | В колоде «{deck}» с прошлых дней: {n} — новые записи после них | In “{deck}”: {n} from earlier days — new entries after them | Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
 | `deck.play` | Слушать | Play | Пахш |
-| `deck.contents` | Состав колоды ({n}) | Deck contents ({n}) | Таркиби маҷмӯа ({n}) |
+| `deck.contents` | Состав колоды ({n}) | Deck contents ({n}) | Омӯзбаргҳо ({n}) |
 | `deck.audioError` | Не удалось воспроизвести аудио. | Could not play the audio. | Садо пахш нашуд. |
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
 | `skill.listen` | слушать | listen | гӯш додан |
@@ -153,38 +153,38 @@
 | `pack.failed` | Скачать не удалось. | The download failed. | Боргирӣ нашуд. |
 | `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old journal) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
 | `decks.paste` | Вставить текст колоды | Paste deck text | Часпондани матни маҷмӯа |
-| `decks.makeWithAi` | Сделать колоду с ИИ | Make a deck with AI | Сохтани маҷмӯа бо ИИ |
-| `privacy.voice` | Голосовой ответ распознаёт браузер: Chrome отправляет звук в Google, Edge — в Microsoft. | Your browser recognises voice answers: Chrome sends the audio to Google, Edge to Microsoft. | Ҷавоби овозиро мурургар мешиносад: Chrome садоро ба Google мефиристад, Edge — ба Microsoft. |
+| `decks.makeWithAi` | Сделать колоду с ИИ | Make a deck with AI | Сохтани маҷмӯа бо ҳуши маснӯӣ |
+| `privacy.voice` | Голосовой ответ распознаёт браузер: Chrome отправляет звук в Google, Edge — в Microsoft. | Your browser recognises voice answers: Chrome sends the audio to Google, Edge to Microsoft. | Садои ҷавобро мурургар бозшиносӣ мекунад: Chrome онро ба Google мефиристад, Edge — ба Microsoft. |
 | `paste.title` | Текст колоды | Deck text | Матни маҷмӯа |
-| `paste.hint` | Вставьте сюда ответ ИИ с deck.json целиком. | Paste the answer of the AI with the whole deck.json here. | Ҷавоби ИИ-ро бо deck.json-и пурра ин ҷо гузоред. |
+| `paste.hint` | Вставьте сюда ответ ИИ с deck.json целиком. | Paste the answer of the AI with the whole deck.json here. | Ҷавоби ҳуши маснӯиро бо deck.json-и пурра ин ҷо гузоред. |
 | `import.notes` | Сведения: {n} | Notes: {n} | Маълумот: {n} |
-| `import.fixFirst` | Лучше сначала исправить колоду: отдайте «Копию для ИИ» вашему ИИ. | Better fix the deck first: give the “Copy for the AI” to your AI. | Беҳтар аст аввал маҷмӯаро ислоҳ кунед: «Нусха барои ИИ»-ро ба ИИ диҳед. |
-| `import.copyReport` | Копия для ИИ | Copy for the AI | Нусха барои ИИ |
+| `import.fixFirst` | Лучше сначала исправить колоду: отдайте «Копию для ИИ» вашему ИИ. | Better fix the deck first: give the “Copy for the AI” to your AI. | Беҳтар аст аввал маҷмӯаро ислоҳ кунед: нусхаи санҷишро ба ҳуши маснӯӣ диҳед. |
+| `import.copyReport` | Копия для ИИ | Copy for the AI | Нусха барои ҳуши маснӯӣ |
 | `common.copied` | Скопировано | Copied | Нусха гирифта шуд |
 | `common.copyFailed` | Не удалось скопировать — выделите текст ниже вручную. | Could not copy — select the text below by hand. | Нусха гирифта нашуд — матни поёнро дастӣ интихоб кунед. |
-| `prompt.step1` | Нажмите «Копировать инструкцию» и вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT). | Tap “Copy the instructions” and paste the text into a chat with an AI (Claude, Gemini, ChatGPT). | «Нусхаи дастур»-ро фишор диҳед ва матнро ба чат бо ИИ (Claude, Gemini, ChatGPT) гузоред. |
+| `prompt.step1` | Нажмите «Копировать инструкцию» и вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT). | Tap “Copy the instructions” and paste the text into a chat with an AI (Claude, Gemini, ChatGPT). | «Нусхаи дастур»-ро фишор диҳед ва матнро ба чат бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) гузоред. |
 | `prompt.step2` | В конце заполните задание: тема, слова или текст урока. | At the end, fill in the task: the topic, the words or the lesson text. | Дар охир супоришро пур кунед: мавзӯъ, вожаҳо ё матни дарс. |
-| `prompt.step3` | Вставьте и «Установленные записи» — чтобы ИИ не повторял то, что вы уже учите. | Paste the “installed entries” too, so the AI does not repeat what you already learn. | «Нусхаи омӯзбаргҳои насбшуда»-ро низ гузоред — то ИИ он чиро, ки аллакай меомӯзед, такрор накунад. |
-| `prompt.step4` | Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить. | Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them. | Ҷавоби ИИ-ро дар «Моно» гузоред: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ИИ», ба ИИ гузоред ва хоҳиш кунед, ки ислоҳ кунад. |
-| `prompt.step5` | Звук необязателен: без него карточки прочитает голос браузера. | Audio is optional: without it the browser voice reads the cards. | Садо ҳатмӣ нест: бе он омӯзбаргҳоро овози мурургар мехонад. |
-| `prompt.personal` | За содержание своей колоды отвечаете вы. Если верный ответ засчитан как неверный — исправьте колоду с ИИ. | You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI. | Масъули мӯҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ИИ ислоҳ кунед. |
+| `prompt.step3` | Вставьте и «Установленные записи» — чтобы ИИ не повторял то, что вы уже учите. | Paste the “installed entries” too, so the AI does not repeat what you already learn. | «Нусхаи омӯзбаргҳои насбшуда»-ро низ гузоред — то ҳуши маснӯӣ он чиро, ки аллакай меомӯзед, такрор накунад. |
+| `prompt.step4` | Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить. | Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them. | Ҷавоби ҳуши маснӯиро дар «Моно» гузоред: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, ба ҳуши маснӯӣ гузоред ва дархост кунед, ки ислоҳ кунад. |
+| `prompt.step5` | Звук необязателен: без него карточки прочитает голос браузера. | Audio is optional: without it the browser voice reads the cards. | Файли садо ҳатмӣ нест: бе он омӯзбаргҳоро садои мурургар мехонад. |
+| `prompt.personal` | За содержание своей колоды отвечаете вы. Если верный ответ засчитан как неверный — исправьте колоду с ИИ. | You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI. | Масъули мӯҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ҳуши маснӯӣ ислоҳ кунед. |
 | `prompt.copy` | Копировать инструкцию | Copy the instructions | Нусхаи дастур |
 | `prompt.copyEntries` | Копировать установленные записи | Copy installed entries | Нусхаи омӯзбаргҳои насбшуда |
-| `voice.title` | Проверка голоса | Voice check | Санҷиши овоз |
-| `voice.intro` | Карточки без звука колоды читает голос браузера. Нажмите «Слушать» и послушайте. | The browser voice reads cards without deck audio. Tap Play and listen. | Омӯзбаргҳои бе файли садоро овози мурургар мехонад. «Пахш»-ро фишор диҳед ва гӯш диҳед. |
-| `voice.heard` | Слышен голос? | Did you hear the voice? | Овозро шунидед? |
+| `voice.title` | Проверка голоса | Voice check | Санҷиши садо |
+| `voice.intro` | Карточки без звука колоды читает голос браузера. Нажмите «Слушать» и послушайте. | The browser voice reads cards without deck audio. Tap Play and listen. | Омӯзбаргҳои бе файли садоро садои мурургар мехонад. «Пахш»-ро фишор диҳед ва гӯш диҳед. |
+| `voice.heard` | Слышен голос? | Did you hear the voice? | Садоро шунидед? |
 | `voice.yes` | Да | Yes | Ҳа |
 | `voice.no` | Нет | No | Не |
-| `voice.ok` | Хорошо: на этом устройстве карточки «слушать» без звука колоды будут звучать голосом браузера. | Good: on this device, “listen” cards without deck audio will use the browser voice. | Хуб: дар ин дастгоҳ омӯзбаргҳои «гӯш додан» бе файли садо бо овози мурургар дода мешаванд. |
-| `voice.none` | Браузер не находит на этом устройстве голоса этого языка. | The browser finds no voice for this language on this device. | Мурургар дар ин дастгоҳ овози ин забонро намеёбад. |
-| `voice.howAndroid` | Android: Настройки → Специальные возможности (или Система → Язык и ввод) → Синтез речи → Google → Установить голосовые данные → выберите язык и скачайте. Названия пунктов зависят от телефона. | Android: Settings → Accessibility (or System → Languages & input) → Text-to-speech → Google → Install voice data → pick the language and download. Item names differ between phones. | Android: Танзимот → Дастрасӣ (ё Система → Забон ва вуруд) → Табдили матн ба гуфтор → Google → насби додаҳои овоз → забонро интихоб ва боргирӣ кунед. Номи бандҳо дар ҳар телефон дигар аст. |
-| `voice.howWindows` | Windows: Параметры → Время и язык → Речь → Добавить голоса → выберите язык. Затем перезапустите Edge. | Windows: Settings → Time & language → Speech → Add voices → pick the language. Then restart Edge. | Windows: Танзимот → Вақт ва забон → Гуфтор → Илова кардани овозҳо → забонро интихоб кунед. Баъд Edge-ро аз нав кушоед. |
-| `voice.howOther` | Установите голос этого языка в настройках синтеза речи устройства. iPhone — позже. | Install a voice for this language in the device text-to-speech settings. iPhone comes later. | Овози ин забонро дар танзимоти дастгоҳ (табдили матн ба гуфтор) насб кунед. iPhone — баъдтар. |
-| `voice.rule` | Если голоса этого языка на устройстве нет совсем, карточки «слушать» без звука колоды не выдаются. | If the device has no voice for this language at all, “listen” cards without deck audio are not given. | Агар дар дастгоҳ овози ин забон умуман набошад, омӯзбаргҳои «гӯш додан» бе файли садо дода намешаванд. |
+| `voice.ok` | Хорошо: на этом устройстве карточки «слушать» без звука колоды будут звучать голосом браузера. | Good: on this device, “listen” cards without deck audio will use the browser voice. | Хуб: дар ин дастгоҳ омӯзбаргҳои «гӯш додан» бе файли садо бо садои мурургар дода мешаванд. |
+| `voice.none` | Браузер не находит на этом устройстве голоса этого языка. | The browser finds no voice for this language on this device. | Мурургар дар ин дастгоҳ садои ин забонро намеёбад. |
+| `voice.howAndroid` | Android: Настройки → Специальные возможности (или Система → Язык и ввод) → Синтез речи → Google → Установить голосовые данные → выберите язык и скачайте. Названия пунктов зависят от телефона. | Android: Settings → Accessibility (or System → Languages & input) → Text-to-speech → Google → Install voice data → pick the language and download. Item names differ between phones. | Android: Танзимот → Дастрасӣ (ё Система → Забон ва вуруд) → Табдили матн ба гуфтор → Google → насби додаҳои садо → забонро интихоб ва боргирӣ кунед. Номи бандҳо дар ҳар телефон дигар аст. |
+| `voice.howWindows` | Windows: Параметры → Время и язык → Речь → Добавить голоса → выберите язык. Затем перезапустите Edge. | Windows: Settings → Time & language → Speech → Add voices → pick the language. Then restart Edge. | Windows: Танзимот → Вақт ва забон → Гуфтор → Илова кардани садоҳо → забонро интихоб кунед. Баъд Edge-ро аз нав кушоед. |
+| `voice.howOther` | Установите голос этого языка в настройках синтеза речи устройства. iPhone — позже. | Install a voice for this language in the device text-to-speech settings. iPhone comes later. | Садои ин забонро дар танзимоти дастгоҳ (табдили матн ба гуфтор) насб кунед. iPhone — баъдтар. |
+| `voice.rule` | Если голоса этого языка на устройстве нет совсем, карточки «слушать» без звука колоды не выдаются. | If the device has no voice for this language at all, “listen” cards without deck audio are not given. | Агар дар дастгоҳ садои ин забон умуман набошад, омӯзбаргҳои «гӯш додан» бе файли садо дода намешаванд. |
 | `voice.state.yes` | Проверено: слышно | Checked: works | Санҷида шуд: ҳаст |
 | `voice.state.no` | Проверено: не слышно | Checked: not heard | Санҷида шуд: шунида нашуд |
 | `voice.state.none` | Не проверено | Not checked | Санҷида нашудааст |
-| `settings.voice` | Голос браузера | Browser voice | Овози мурургар |
+| `settings.voice` | Голос браузера | Browser voice | Садои мурургар |
 | `settings.voiceHint` | Для карточек без звука колоды. | For cards without deck audio. | Барои омӯзбаргҳои бе файли садо. |
 | `backup.title` | Резервная копия | Backup | Нусхаи пуштибон |
 | `backup.hint` | Журнал ответов (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл. | The answer journal (all your progress) lives only in this browser. Save it to a file from time to time. | Таърихчаи ҷавобҳо (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед. |

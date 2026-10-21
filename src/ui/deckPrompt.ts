@@ -95,7 +95,20 @@ const RULES_RU = `Ты готовишь личную колоду для при�
 
 ГЛАВНЫЙ ПРИНЦИП
 - Значение + form + hint (то, что ученик видит ДО ответа) определяют РОВНО ОДИН правильный ответ. Если ученик может честно ответить иначе и получит «неверно» — запись неоднозначна, исправь её.
-- Одно значение — один ответ. У синонимов — разные значения (bonjour «добрый день», salut «привет», ciao «пока») или hint.
+- Одно значение — один ответ. У синонимов — разные значения (bonjour «добрый день», salut «привет», ciao «пока») или hint. Частые группы синонимов французского — бери значения и hint из таблицы:
+| fr | tg | ru | en | hint |
+| --- | --- | --- | --- | --- |
+| bonjour | Рӯз ба хайр | Добрый день | Good day | — |
+| bonsoir | Шом ба хайр | Добрый вечер | Good evening | — |
+| bonne nuit | Шаб ба хайр | Спокойной ночи | Good night | — |
+| salut (greeting) | Салом | Привет | Hi | tg «ҳангоми вохӯрӣ», ru «при встрече», en «when meeting» |
+| salut (leaving) | Салом | Пока | Bye | tg «ҳангоми рафтан», ru «при прощании», en «when leaving» |
+| au revoir | Худоҳофиз | До свидания | Goodbye | — |
+| à bientôt | То дидор | До скорого | See you soon | tg «ба зудӣ», ru «скоро увидимся», en «soon» |
+| ciao | Хайр | Пока | Bye | tg «итолиёӣ, байналмилалӣ», ru «итал., интернац.», en «Italian, international» |
+| à plus tard | То баъд | Увидимся позже | See you later | — |
+| à tout à l'heure | То пас аз лаҳзае | Увидимся чуть позже | See you in a while | — |
+| merci | Ташаккур | Спасибо | Thank you | — |
 - Грамматика (определённость, род, число) — ТОЛЬКО в form, никогда текстом в meaning, hint или note («(м.)», «(мард)», «с артиклем»).
 - Таджикский текст — персидский язык Ирана в таджикской кириллице: артикль — шиносвожа (не «артикл»), слово — вожа, фраза — ибора. Лучше вообще не писать грамматику текстом.
 
@@ -201,7 +214,20 @@ FORMS: EVERY FORM IS A SEPARATE ENTRY
 
 THE MAIN PRINCIPLE
 - Meaning + form + hint (what the learner sees BEFORE answering) allow EXACTLY ONE correct answer. If the learner could honestly answer differently and be marked wrong, the entry is ambiguous — fix it.
-- One meaning — one answer. Synonyms get different meanings (bonjour "good day", salut "hi", ciao "bye") or a hint.
+- One meaning — one answer. Synonyms get different meanings (bonjour "good day", salut "hi", ciao "bye") or a hint. For common French synonym groups take the meanings and hints from this table:
+| fr | tg | ru | en | hint |
+| --- | --- | --- | --- | --- |
+| bonjour | Рӯз ба хайр | Добрый день | Good day | — |
+| bonsoir | Шом ба хайр | Добрый вечер | Good evening | — |
+| bonne nuit | Шаб ба хайр | Спокойной ночи | Good night | — |
+| salut (greeting) | Салом | Привет | Hi | tg «ҳангоми вохӯрӣ», ru «при встрече», en «when meeting» |
+| salut (leaving) | Салом | Пока | Bye | tg «ҳангоми рафтан», ru «при прощании», en «when leaving» |
+| au revoir | Худоҳофиз | До свидания | Goodbye | — |
+| à bientôt | То дидор | До скорого | See you soon | tg «ба зудӣ», ru «скоро увидимся», en «soon» |
+| ciao | Хайр | Пока | Bye | tg «итолиёӣ, байналмилалӣ», ru «итал., интернац.», en «Italian, international» |
+| à plus tard | То баъд | Увидимся позже | See you later | — |
+| à tout à l'heure | То пас аз лаҳзае | Увидимся чуть позже | See you in a while | — |
+| merci | Ташаккур | Спасибо | Thank you | — |
 - Grammar (definiteness, gender, number) goes ONLY in form, never as text in meaning, hint or note ("(m.)", "with article").
 - Tajik text is the Persian of Iran in Tajik Cyrillic: article — шиносвожа (not «артикл»), word — вожа, phrase — ибора. Better not to write grammar as text at all.
 
