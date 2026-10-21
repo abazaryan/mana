@@ -1,8 +1,8 @@
 /**
  * Texts the user copies into a chat with an AI (Р33 п. 15): the check report of a deck,
  * so the AI fixes every error and warning, and the entries of the installed decks, so a
- * new deck does not repeat them (К1/К2, Р28 п. 10). In Russian, like the validator
- * messages: they are for the AI, not for the learner.
+ * new deck does not repeat them (К1/К2, Р28 п. 10). The report is in Russian, like the
+ * validator messages; the installed list follows the language of the AI rules (Р34).
  */
 import type { DeckIssue, EntryForm, Localized } from './deckFormat';
 
@@ -40,6 +40,7 @@ export function reportForAi(r: ReportInput): string {
 }
 
 export interface InstalledForAi {
+  id: string;
   title: string;
   language: string;
   entries: readonly { text: string; meaning: Localized; hint?: Localized; form?: EntryForm; hidden?: 0 | 1 }[];
@@ -56,21 +57,36 @@ function form(f: EntryForm | undefined): string {
   return parts.length > 0 ? ` [form: ${parts.join(', ')}]` : '';
 }
 
-/** Visible entries of the installed decks as "text — meaning [form] (hint)". */
-export function installedForAi(decks: readonly InstalledForAi[]): string {
-  const lines = [
-    'Уже установленные колоды. Не повторяй эти записи (тот же text с той же form). ' +
-      'Значение новой записи не должно совпадать со значением записи отсюда с другим ответом, если их не различают form или hint.',
-  ];
+const INSTALLED = {
+  ru: {
+    head:
+      'УСТАНОВЛЕННЫЕ КОЛОДЫ УЧЕНИКА. Не повторяй эти записи (тот же text с той же form). ' +
+      'Значение новой записи не должно совпадать со значением записи отсюда с другим ответом, если их не различают form или hint. ' +
+      'id новой колоды должен отличаться от этих id.',
+    none: 'Установленных колод нет.',
+  },
+  en: {
+    head:
+      "THE LEARNER'S INSTALLED DECKS. Do not repeat these entries (the same text with the same form). " +
+      'A new entry must not have the meaning of an entry here with another answer, unless form or hint tells them apart. ' +
+      'The id of the new deck must differ from these ids.',
+    none: 'No decks installed.',
+  },
+};
+
+/** Visible entries of the installed decks as "text — meaning [form] (hint)", under the deck title and id. */
+export function installedForAi(decks: readonly InstalledForAi[], lang: 'ru' | 'en' = 'ru'): string {
+  const words = INSTALLED[lang];
+  const lines = [words.head];
   for (const d of decks) {
     const visible = d.entries.filter((e) => !e.hidden);
     if (visible.length === 0) continue;
-    lines.push('', `«${d.title}» (${d.language}):`);
+    lines.push('', `«${d.title}» (id ${d.id}, ${d.language}):`);
     for (const e of visible) {
       const hint = localized(e.hint);
       lines.push(`- ${e.text} — ${localized(e.meaning)}${form(e.form)}${hint ? ` (hint: ${hint})` : ''}`);
     }
   }
-  if (lines.length === 1) lines.push('', 'Установленных колод нет.');
+  if (lines.length === 1) lines.push('', words.none);
   return lines.join('\n');
 }

@@ -10,6 +10,7 @@ import { deck, deckZip, fakeAudio } from '../test/decks';
 import { ManaDb } from './db';
 import {
   applyImport,
+  deleteDeck,
   ensureDevice,
   exportJournal,
   getMedia,
@@ -211,6 +212,35 @@ describe('deck import', () => {
       ['b', 0],
     ]);
     expect(new Uint8Array((await getMedia(db, 'fr-test-01', 'audio/b.mp3'))!.data)).toEqual(fakeAudio('audio/b.mp3', 1));
+  });
+});
+
+describe('deleting a deck (Р34)', () => {
+  it('removes the deck, its entries, audio and cards; keeps the journal and other decks; a reinstall brings the progress back', async () => {
+    const db = freshDb();
+    const actor = await ensureDevice(db);
+    await importDeck(db);
+    await importDeck(db, { ...deck(1, ['x']), id: 'fr-other' }, 'Другая.zip');
+    await someProgress(db, actor);
+    // An entry hidden by a later revision goes too.
+    await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip', new Date(T0 + 3 * D));
+    const logBefore = await userLog(db, actor.userId);
+    const cardsBefore = await db.cards.toArray();
+    expect(cardsBefore.length).toBeGreaterThan(0);
+
+    await deleteDeck(db, 'fr-test-01');
+    expect((await listDecks(db)).map((d) => d.id)).toEqual(['fr-other']);
+    expect(await db.entries.where('deckId').equals('fr-test-01').count()).toBe(0);
+    expect(await db.media.where('deckId').equals('fr-test-01').count()).toBe(0);
+    expect(await db.cards.count()).toBe(0);
+    expect(await db.entries.where('deckId').equals('fr-other').count()).toBe(1);
+    expect(await userLog(db, actor.userId)).toEqual(logBefore);
+    expect((await loadSessionData(db, actor.userId)).cards).toEqual([]);
+
+    const plan = await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip', new Date(T0 + 4 * D));
+    expect(plan.kind).toBe('install');
+    expect(await db.cards.toArray()).toEqual(cardsBefore);
+    expect(await userLog(db, actor.userId)).toEqual(logBefore);
   });
 });
 

@@ -95,6 +95,7 @@ describe('texts for the AI', () => {
   it('installed entries: visible ones, meanings, form and hint', () => {
     const text = installedForAi([
       {
+        id: 'fr-lesson-01',
         title: 'Французский · Урок 1',
         language: 'fr-FR',
         entries: [
@@ -104,10 +105,11 @@ describe('texts for the AI', () => {
         ],
       },
     ]);
-    expect(text).toContain('«Французский · Урок 1» (fr-FR):');
+    expect(text).toContain('«Французский · Урок 1» (id fr-lesson-01, fr-FR):');
     expect(text).toContain('- le nom — tg: насаб; ru: фамилия [form: definite]');
     expect(text).toContain('- salut — ru: привет (hint: ru: при встрече)');
     expect(text).not.toContain('caché');
     expect(installedForAi([])).toContain('Установленных колод нет.');
+    expect(installedForAi([], 'en')).toContain('No decks installed.');
   });
 });

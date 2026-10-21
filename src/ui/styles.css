@@ -45,6 +45,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .primary,.secondary{min-height:52px;padding:12px 20px;border-radius:14px;border:1px solid transparent;font-weight:600;}
 .primary{background:var(--accent);color:var(--accent-ink);}
 .secondary{background:var(--surface);border-color:var(--line);}
+.secondary.danger{color:var(--bad);border-color:var(--bad);}
 .big{width:100%;font-size:1.05rem;}
 
 h1{font-size:1.9rem;line-height:1.15;margin:8px 0 10px;}
@@ -139,6 +140,7 @@ a.ghost[aria-current="page"]{color:var(--ink);font-weight:600;background:var(--w
 .deck-contents{margin-top:16px;}
 .deck-contents>summary{cursor:pointer;font-weight:600;padding:10px 0;color:var(--accent);}
 .deck-contents>.entries{margin-top:4px;}
+.deck-delete{margin-top:32px;}
 .cards-list,.entries,.issues{list-style:none;margin:16px 0 0;padding:0;}
 .deck-card{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 10px;color:var(--ink);text-decoration:none;}
 .deck-card:hover{border-color:var(--accent);}

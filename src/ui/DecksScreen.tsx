@@ -3,13 +3,13 @@ import { readDeckFile, readDeckJson, type DeckArchive } from '../core/deckArchiv
 import type { ImportPlan } from '../core/deckImport';
 import { deckTitle } from '../core/deckFormat';
 import { installedForAi } from '../core/deckReport';
-import { findLanguagePack } from '../core/languages';
+import { findLanguagePack, LANGUAGE_PACKS } from '../core/languages';
 import type { DeckRow } from '../core/model';
 import type { ManaDb } from '../platform/db';
 import { requestPersistence } from '../platform/persist';
 import { applyImport, listDecks, listEntries, prepareImport } from '../platform/repo';
 import { CopyButton } from './CopyButton';
-import { deckPromptText } from './deckPrompt';
+import { deckPromptText, promptLanguage } from './deckPrompt';
 import { useI18n } from './i18n';
 import { ImportSheet, type Checked, type ImportState } from './ImportSheet';
 import { deckHref } from './Root';
@@ -60,18 +60,20 @@ function PasteSheet({ onCheck, onClose }: { onCheck(text: string): void; onClose
   );
 }
 
-/** How to make a personal deck with an AI (Р33 п. 15). */
+/** How to make a personal deck with an AI (Р33 п. 15): one text with the rules, the settings and the installed entries (Р34). */
 function PromptSheet({ db, onClose }: { db: ManaDb; onClose(): void }) {
-  const { t, lang } = useI18n();
-  const [installed, setInstalled] = useState('');
+  const { t, lang, meaningLang } = useI18n();
+  const [installed, setInstalled] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
       const decks = await listDecks(db);
       const list = [];
-      for (const d of decks) list.push({ title: deckTitle(d, lang), language: d.language, entries: await listEntries(db, d.id) });
-      setInstalled(installedForAi(list));
+      for (const d of decks) list.push({ id: d.id, title: deckTitle(d, lang), language: d.language, entries: await listEntries(db, d.id) });
+      setInstalled(installedForAi(list, promptLanguage(lang)));
     })();
   }, [db, lang]);
+  // The supported learning languages; one for now (fr-FR), several → the AI asks.
+  const language = LANGUAGE_PACKS.map((p) => p.defaultLocale).join(' / ');
   return (
     <Sheet title={t('decks.makeWithAi')} onClose={onClose} closeLabel={t('common.close')}>
       <ol className="steps">
@@ -80,8 +82,11 @@ function PromptSheet({ db, onClose }: { db: ManaDb; onClose(): void }) {
         ))}
       </ol>
       <div className="stack mt">
-        <CopyButton label={t('prompt.copy')} text={() => deckPromptText(lang)} primary />
-        <CopyButton label={t('prompt.copyEntries')} text={() => installed} />
+        {installed === null ? (
+          <p className="hint">{t('common.loading')}</p>
+        ) : (
+          <CopyButton label={t('prompt.copy')} text={() => deckPromptText({ lang, meaningLang, language, installed })} primary />
+        )}
       </div>
       <p className="hint mt">{t('prompt.personal')}</p>
     </Sheet>
@@ -111,7 +116,11 @@ export function DecksScreen({ db }: { db: ManaDb }) {
     }
   };
 
-  /** Errors refuse the deck; warnings (the validator's and К1/К2) are installed only with "Add anyway" (Р33 п. 15). */
+  /**
+   * Errors refuse the deck; otherwise the check result is always shown and the deck is
+   * installed only by a button — "Add anyway" with warnings (the validator's and К1/К2,
+   * Р33 п. 15), "Install" without (Р34).
+   */
   const consider = async (read: () => Promise<DeckArchive>) => {
     setImp({ phase: 'reading' });
     try {
@@ -123,8 +132,7 @@ export function DecksScreen({ db }: { db: ManaDb }) {
       }
       const plan = await prepareImport(db, archive, new Date(), lang);
       const checked: Checked = { ...idOf(archive), errors, warnings: [...warnings, ...(plan.crossDeck ?? [])], notes };
-      if (plan.confirm.length > 0 || checked.warnings.length > 0) setImp({ phase: 'confirm', plan, archive, checked });
-      else await write(plan, archive, checked);
+      setImp({ phase: 'confirm', plan, archive, checked });
     } catch (e) {
       setImp({ phase: 'failed', error: e instanceof Error ? e.message : String(e) });
     }

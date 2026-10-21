@@ -50,13 +50,13 @@ function Listed({ items, label, open = false }: { items: DeckIssue[]; label: str
 }
 
 /** Warnings and notes, and the report for the AI when there is something to fix. */
-function Findings({ checked, openWarnings = false }: { checked: Checked; openWarnings?: boolean }) {
+function Findings({ checked, open = false }: { checked: Checked; open?: boolean }) {
   const { t } = useI18n();
   const fix = checked.errors.length + checked.warnings.length > 0;
   return (
     <>
-      <Listed items={checked.warnings} label={t('import.warnings', { n: checked.warnings.length })} open={openWarnings} />
-      <Listed items={checked.notes} label={t('import.notes', { n: checked.notes.length })} />
+      <Listed items={checked.warnings} label={t('import.warnings', { n: checked.warnings.length })} open={open} />
+      <Listed items={checked.notes} label={t('import.notes', { n: checked.notes.length })} open={open} />
       {fix && (
         <div className="mt">
           <CopyButton label={t('import.copyReport')} text={() => reportForAi(checked)} />
@@ -110,19 +110,24 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
       </Sheet>
     );
   }
+  // Every deck that passed shows its check result and is installed only by a button,
+  // even with notes alone (Р34).
   if (state.phase === 'confirm') {
     const { plan, archive, checked } = state;
     const warned = checked.warnings.length > 0;
     return (
-      <Sheet title={t('import.confirmTitle')} onClose={onClose} closeLabel={t('common.close')}>
+      <Sheet title={t('import.checkTitle')} onClose={onClose} closeLabel={t('common.close')}>
         <p>
           <strong>{deckTitle(plan.deck, lang)}</strong>
         </p>
         {plan.confirm.map((c, k) => (
           <ConfirmText key={k} c={c} plan={plan} />
         ))}
-        {warned && <p className="hint">{t('import.fixFirst')}</p>}
-        <Findings checked={checked} openWarnings />
+        {warned ? <p className="hint">{t('import.fixFirst')}</p> : <p>{t('import.clean')}</p>}
+        <Findings checked={checked} open />
+        <p className="mt">
+          {t('import.willChange')} {t('import.summary', { ...plan.summary })}
+        </p>
         <div className="row mt">
           <button className="secondary" type="button" onClick={onClose}>
             {t('common.cancel')}

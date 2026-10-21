@@ -6,10 +6,11 @@ import { buildSession, capped, outlook } from '../core/session';
 import { stopAudio } from '../platform/audio';
 import type { ManaDb } from '../platform/db';
 import { deviceZone } from '../platform/device';
-import { getDeck, listEntries, loadSessionData } from '../platform/repo';
+import { deleteDeck, getDeck, listEntries, loadSessionData } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { studyHref } from './Root';
+import { Sheet } from './Sheet';
 import { LANG_NAMES } from './strings';
 import { playEntry, stopEntryAudio } from './studyHooks';
 import { VoiceCheckSheet } from './VoiceCheck';
@@ -28,6 +29,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
   const [audioError, setAudioError] = useState(false);
   const [voiceCheck, setVoiceCheck] = useState(false);
   const [reload, setReload] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -165,6 +167,12 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
           })}
         </ul>
       </details>
+      <div className="deck-delete">
+        <button className="secondary danger big" type="button" onClick={() => setDeleting(true)}>
+          {t('deck.delete')}
+        </button>
+      </div>
+      {deleting && <DeleteSheet db={db} deck={deck} onClose={() => setDeleting(false)} />}
       {voiceCheck && (
         <VoiceCheckSheet
           db={db}
@@ -174,5 +182,41 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
         />
       )}
     </section>
+  );
+}
+
+/** Deleting a deck asks first and says that the journal, and so the progress, stays (Р34, Р10). */
+function DeleteSheet({ db, deck, onClose }: { db: ManaDb; deck: DeckRow; onClose(): void }) {
+  const { t, lang } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const remove = async () => {
+    setBusy(true);
+    try {
+      stopEntryAudio();
+      await deleteDeck(db, deck.id);
+      window.location.hash = '#/';
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet title={t('deck.deleteTitle')} onClose={onClose} closeLabel={t('common.close')}>
+      <p>{t('deck.deleteText', { name: deckTitle(deck, lang) })}</p>
+      {error && (
+        <p className="hint err" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row mt">
+        <button className="secondary" type="button" onClick={onClose}>
+          {t('common.cancel')}
+        </button>
+        <button className="secondary danger" type="button" disabled={busy} onClick={() => void remove()}>
+          {t('deck.deleteConfirm')}
+        </button>
+      </div>
+    </Sheet>
   );
 }

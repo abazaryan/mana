@@ -33,6 +33,10 @@
 | `deck.contents` | Записи ({n}) | Entries ({n}) | Омӯзбаргҳо ({n}) |
 | `deck.audioError` | Не удалось воспроизвести аудио. | Could not play the audio. | Садо пахш нашуд. |
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
+| `deck.delete` | Удалить колоду | Delete deck | Пок кардани маҷмӯа |
+| `deck.deleteTitle` | Удалить колоду? | Delete this deck? | Маҷмӯа пок шавад? |
+| `deck.deleteText` | Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов не удаляется: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды. | “{name}” will be deleted from this device with its entries and audio. The answer journal is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text. | «{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо пок намешавад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст. |
+| `deck.deleteConfirm` | Удалить | Delete | Пок кардан |
 | `skill.listen` | слушать | listen | гӯш додан |
 | `skill.speak` | говорить | speak | гуфтан |
 | `skill.write` | писать | write | навиштан |
@@ -122,7 +126,9 @@
 | `import.rejected` | Колода не принята | Deck not accepted | Маҷмӯа қабул нашуд |
 | `import.authorNote` | Сообщения адресованы автору колоды. | The messages are in Russian — they are meant for the deck author. | Паёмҳо ба забони русӣ — онҳо барои муаллифи маҷмӯа навишта шудаанд. |
 | `import.warnings` | Предупреждения: {n} | Warnings: {n} | Ҳушдорҳо: {n} |
-| `import.confirmTitle` | Нужно подтверждение | Please confirm | Таъйид лозим аст |
+| `import.checkTitle` | Итог проверки | Check result | Натиҷаи санҷиш |
+| `import.clean` | Ошибок и предупреждений нет. | No errors or warnings. | Хато ва ҳушдор нест. |
+| `import.willChange` | После установки: | After installing: | Пас аз насб: |
 | `import.reinstall` | Редакция {rev} уже установлена. Переустановить? Прогресс и журнал не изменятся. | Revision {rev} is already installed. Reinstall it? Progress and the journal stay as they are. | Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи ҷавобҳо тағйир намеёбанд. |
 | `import.older` | Загружается редакция {incoming}, а установлена {installed} — загружаемая старее. Всё равно установить? | You are loading revision {incoming}, but revision {installed} is installed — the file is older. Install it anyway? | Шумо нусхаи {incoming}-ро дарунрезӣ мекунед, вале нусхаи {installed} насб шудааст — файли нав кӯҳнатар аст. Бо вуҷуди ин насб кунем? |
 | `import.different` | Колода с таким id уже установлена («{name}»), но записи почти не совпадают: общих {shared} из {installed}. Возможно, это другая колода с тем же id. Если установить, записи «{name}», которых нет в новом файле, будут скрыты. | A deck with this id is already installed ("{name}"), but the entries hardly match: {shared} of {installed} in common. It may be another deck with the same id. If you install it, the entries of "{name}" missing from the new file will be hidden. | Маҷмӯа бо ҳамин шиноса аз қабл ҳаст («{name}»), вале омӯзбаргҳо қариб мувофиқат намекунанд: муштарак {shared} аз {installed}. Шояд ин маҷмӯаи дигар бо ҳамон шиноса бошад. Агар насб кунед, омӯзбаргҳои «{name}», ки дар файли нав нестанд, пинҳон мешаванд. |
@@ -162,14 +168,13 @@
 | `import.copyReport` | Копия для ИИ | Copy for the AI | Нусха барои ҳуши маснӯӣ |
 | `common.copied` | Скопировано | Copied | Нусха гирифта шуд |
 | `common.copyFailed` | Не удалось скопировать — выделите текст ниже вручную. | Could not copy — select the text below by hand. | Нусха гирифта нашуд — матни поёнро дастӣ интихоб кунед. |
-| `prompt.step1` | Нажмите «Копировать инструкцию» и вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT). | Tap “Copy the instructions” and paste the text into a chat with an AI (Claude, Gemini, ChatGPT). | «Нусхаи дастур»-ро фишор диҳед ва матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед. |
-| `prompt.step2` | В конце заполните задание: тема, слова или текст урока. | At the end, fill in the task: the topic, the words or the lesson text. | Дар охир дархостро пур кунед: мавзӯъ, вожаҳо ё матни дарс. |
-| `prompt.step3` | Вставьте и «Установленные записи» — чтобы ИИ не повторял то, что вы уже учите. | Paste the “installed entries” too, so the AI does not repeat what you already learn. | «Нусхаи омӯзбаргҳои насбшуда»-ро низ часпонед — то ҳуши маснӯӣ он чиро, ки аз қабл меомӯзед, такрор накунад. |
+| `prompt.step1` | Нажмите «Копировать инструкцию», вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT) и отправьте. ИИ будет говорить по-русски; можно попросить другой язык. | Tap “Copy the instructions”, paste the text into a chat with an AI (Claude, Gemini, ChatGPT) and send it. The AI will talk in English; you can ask for another language. | «Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед. |
+| `prompt.step2` | ИИ сначала спросит: из чего делать колоду (тема, текст или фото страницы учебника), что из этого взять и сколько записей. | The AI asks first: what to make the deck from (a topic, a text or a photo of a textbook page), what to take from it and how many entries. | Ҳуши маснӯӣ аввал мепурсад: маҷмӯаро аз чӣ созад (мавзӯъ, матн ё акси саҳифаи китоби дарсӣ), чиро аз он гирад ва чанд омӯзбарг бошад. |
+| `prompt.step3` | Сначала ИИ покажет таблицу записей — проверьте её и напишите исправления. deck.json он даст только после вашего «да». | First the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after your “yes”. | Аввал ҳуши маснӯӣ ҷадвали омӯзбаргҳоро нишон медиҳад — онро санҷед ва ислоҳҳоро нависед. deck.json-ро танҳо пас аз «Бале»-и шумо медиҳад. |
 | `prompt.step4` | Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить. | Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them. | Ҷавоби ҳуши маснӯиро дар «Моно» часпонед: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ часпонед ва дархост кунед, ки ислоҳ кунад. |
 | `prompt.step5` | Звук необязателен: без него карточки прочитает голос браузера. | Audio is optional: without it the browser voice reads the cards. | Файли садо ихтиёрӣ аст: бе он омӯзбаргҳоро садои мурургар мехонад. |
 | `prompt.personal` | За содержание своей колоды отвечаете вы. Если верный ответ засчитан как неверный — исправьте колоду с ИИ. | You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI. | Масъули муҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ҳуши маснӯӣ ислоҳ кунед. |
 | `prompt.copy` | Копировать инструкцию | Copy the instructions | Нусхаи дастур |
-| `prompt.copyEntries` | Копировать установленные записи | Copy installed entries | Нусхаи омӯзбаргҳои насбшуда |
 | `voice.title` | Проверка голоса | Voice check | Санҷиши садо |
 | `voice.intro` | Карточки без звука колоды читает голос браузера. Нажмите «Слушать» и послушайте. | The browser voice reads cards without deck audio. Tap Play and listen. | Омӯзбаргҳои бе файли садоро садои мурургар мехонад. «Пахш»-ро фишор диҳед ва гӯш диҳед. |
 | `voice.heard` | Слышен голос? | Did you hear the voice? | Садоро шунидед? |

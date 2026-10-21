@@ -66,6 +66,15 @@ export const STRINGS = {
     en: 'Could not play the audio.',
   },
   'deck.notFound': { tg: 'Маҷмӯа ёфт нашуд.', ru: 'Колода не найдена.', en: 'Deck not found.' },
+  // Deleting a deck (Р34)
+  'deck.delete': { tg: 'Пок кардани маҷмӯа', ru: 'Удалить колоду', en: 'Delete deck' },
+  'deck.deleteTitle': { tg: 'Маҷмӯа пок шавад?', ru: 'Удалить колоду?', en: 'Delete this deck?' },
+  'deck.deleteText': {
+    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо пок намешавад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
+    ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов не удаляется: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
+    en: '“{name}” will be deleted from this device with its entries and audio. The answer journal is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text.',
+  },
+  'deck.deleteConfirm': { tg: 'Пок кардан', ru: 'Удалить', en: 'Delete' },
 
   // Skills (Р3)
   'skill.listen': { tg: 'гӯш додан', ru: 'слушать', en: 'listen' },
@@ -247,7 +256,9 @@ export const STRINGS = {
     en: 'The messages are in Russian — they are meant for the deck author.',
   },
   'import.warnings': { tg: 'Ҳушдорҳо: {n}', ru: 'Предупреждения: {n}', en: 'Warnings: {n}' },
-  'import.confirmTitle': { tg: 'Таъйид лозим аст', ru: 'Нужно подтверждение', en: 'Please confirm' },
+  'import.checkTitle': { tg: 'Натиҷаи санҷиш', ru: 'Итог проверки', en: 'Check result' },
+  'import.clean': { tg: 'Хато ва ҳушдор нест.', ru: 'Ошибок и предупреждений нет.', en: 'No errors or warnings.' },
+  'import.willChange': { tg: 'Пас аз насб:', ru: 'После установки:', en: 'After installing:' },
   'import.reinstall': {
     tg: 'Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи ҷавобҳо тағйир намеёбанд.',
     ru: 'Редакция {rev} уже установлена. Переустановить? Прогресс и журнал не изменятся.',
@@ -385,19 +396,19 @@ export const STRINGS = {
     en: 'Could not copy — select the text below by hand.',
   },
   'prompt.step1': {
-    tg: '«Нусхаи дастур»-ро фишор диҳед ва матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед.',
-    ru: 'Нажмите «Копировать инструкцию» и вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT).',
-    en: 'Tap “Copy the instructions” and paste the text into a chat with an AI (Claude, Gemini, ChatGPT).',
+    tg: '«Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед.',
+    ru: 'Нажмите «Копировать инструкцию», вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT) и отправьте. ИИ будет говорить по-русски; можно попросить другой язык.',
+    en: 'Tap “Copy the instructions”, paste the text into a chat with an AI (Claude, Gemini, ChatGPT) and send it. The AI will talk in English; you can ask for another language.',
   },
   'prompt.step2': {
-    tg: 'Дар охир дархостро пур кунед: мавзӯъ, вожаҳо ё матни дарс.',
-    ru: 'В конце заполните задание: тема, слова или текст урока.',
-    en: 'At the end, fill in the task: the topic, the words or the lesson text.',
+    tg: 'Ҳуши маснӯӣ аввал мепурсад: маҷмӯаро аз чӣ созад (мавзӯъ, матн ё акси саҳифаи китоби дарсӣ), чиро аз он гирад ва чанд омӯзбарг бошад.',
+    ru: 'ИИ сначала спросит: из чего делать колоду (тема, текст или фото страницы учебника), что из этого взять и сколько записей.',
+    en: 'The AI asks first: what to make the deck from (a topic, a text or a photo of a textbook page), what to take from it and how many entries.',
   },
   'prompt.step3': {
-    tg: '«Нусхаи омӯзбаргҳои насбшуда»-ро низ часпонед — то ҳуши маснӯӣ он чиро, ки аз қабл меомӯзед, такрор накунад.',
-    ru: 'Вставьте и «Установленные записи» — чтобы ИИ не повторял то, что вы уже учите.',
-    en: 'Paste the “installed entries” too, so the AI does not repeat what you already learn.',
+    tg: 'Аввал ҳуши маснӯӣ ҷадвали омӯзбаргҳоро нишон медиҳад — онро санҷед ва ислоҳҳоро нависед. deck.json-ро танҳо пас аз «Бале»-и шумо медиҳад.',
+    ru: 'Сначала ИИ покажет таблицу записей — проверьте её и напишите исправления. deck.json он даст только после вашего «да».',
+    en: 'First the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after your “yes”.',
   },
   'prompt.step4': {
     tg: 'Ҷавоби ҳуши маснӯиро дар «Моно» часпонед: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ часпонед ва дархост кунед, ки ислоҳ кунад.',
@@ -415,7 +426,6 @@ export const STRINGS = {
     en: 'You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI.',
   },
   'prompt.copy': { tg: 'Нусхаи дастур', ru: 'Копировать инструкцию', en: 'Copy the instructions' },
-  'prompt.copyEntries': { tg: 'Нусхаи омӯзбаргҳои насбшуда', ru: 'Копировать установленные записи', en: 'Copy installed entries' },
   'voice.title': { tg: 'Санҷиши садо', ru: 'Проверка голоса', en: 'Voice check' },
   'voice.intro': {
     tg: 'Омӯзбаргҳои бе файли садоро садои мурургар мехонад. «Пахш»-ро фишор диҳед ва гӯш диҳед.',

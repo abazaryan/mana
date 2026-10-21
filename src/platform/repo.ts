@@ -25,7 +25,7 @@ import type {
   SettingsRow,
   VoiceCheck,
 } from '../core/model';
-import { RULES_VERSION } from '../core/scheduler';
+import { createScheduler, RULES_VERSION } from '../core/scheduler';
 import type { ManaDb } from './db';
 
 export type NewId = () => string;
@@ -159,8 +159,17 @@ export async function prepareImport(db: ManaDb, archive: DeckArchive, now = new 
   return { ...plan, crossDeck: crossDeckWarnings(deck.entries, others) };
 }
 
-/** Writes an import plan in one transaction. The journal and the cards are not touched. */
-export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly DeckAudio[]): Promise<void> {
+/**
+ * Writes an import plan in one transaction. The journal is not touched. A deck
+ * installed anew (first time, or again after `deleteDeck`) gets its cards rebuilt
+ * from the journal, so its progress comes back (Р34); an update keeps the cards.
+ */
+export async function applyImport(
+  db: ManaDb,
+  plan: ImportPlan,
+  audio: readonly DeckAudio[],
+  scheduler: FSRS = createScheduler(),
+): Promise<void> {
   const deckId = plan.deck.id;
   const media: MediaRow[] = audio.map((a) => ({
     deckId,
@@ -169,12 +178,34 @@ export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly 
     data: a.data,
     bytes: a.data.byteLength,
   }));
-  await db.transaction('rw', db.decks, db.entries, db.media, async () => {
+  await db.transaction('rw', [db.decks, db.entries, db.media, db.log, db.cards], async () => {
     await db.entries.where('deckId').equals(deckId).delete();
     await db.entries.bulkPut(plan.entries);
     await db.media.where('deckId').equals(deckId).delete();
     await db.media.bulkPut(media);
     await db.decks.put(plan.deck);
+    if (plan.kind === 'install') await rebuildDeckCards(db, scheduler, deckId);
+  });
+}
+
+/** The cards of one deck, for every user, rebuilt from the journal. */
+async function rebuildDeckCards(db: ManaDb, scheduler: FSRS, deckId: string): Promise<void> {
+  const log = await db.log.filter((r) => r.deckId === deckId).toArray();
+  await db.cards.filter((c) => c.deckId === deckId).delete();
+  for (const userId of new Set(log.map((r) => r.userId))) await db.cards.bulkPut(rebuildCards(scheduler, log, userId));
+}
+
+/**
+ * Deletes a deck from this device (Р34): the deck, its entries (hidden ones too), its
+ * audio and its cards. The journal stays (Р10): installing the deck again rebuilds the
+ * cards from it, and entries already introduced are not introduced again.
+ */
+export async function deleteDeck(db: ManaDb, deckId: string): Promise<void> {
+  await db.transaction('rw', [db.decks, db.entries, db.media, db.cards], async () => {
+    await db.entries.where('deckId').equals(deckId).delete();
+    await db.media.where('deckId').equals(deckId).delete();
+    await db.cards.filter((c) => c.deckId === deckId).delete();
+    await db.decks.delete(deckId);
   });
 }
 
