@@ -1,5 +1,6 @@
 /** Browser wiring of a study card: visible-time clock, microphone, entry audio. */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { voiceText } from '../core/deckFormat';
 import { applyElapsed, elapsedMs, startElapsed, type ElapsedState } from '../core/latency';
 import type { AudioSource, BiasingState, EntryRow, SpeechPackState } from '../core/model';
 import type { RecognitionOptions } from '../core/ports';
@@ -113,7 +114,7 @@ export async function playEntry(db: ManaDb, entry: EntryRow, locale: string, onE
   speaker.cancel();
   if (!entry.audio) {
     stopAudio();
-    speaker.speak(entry.text, locale, onEnded, (voice) => {
+    speaker.speak(voiceText(entry), locale, onEnded, (voice) => {
       sounded = { audioSource: 'browser', voice };
     });
     return;

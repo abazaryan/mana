@@ -18,6 +18,7 @@ import {
   pickLocalized,
   pickLocalizedWithLang,
   validateDeck,
+  voiceText,
   parseDeckJson,
   type DeckIssue,
 } from './deckFormat';
@@ -358,6 +359,34 @@ describe('validateDeck: entry errors', () => {
   });
 });
 
+describe('speech: the text for the browser voice (Р34)', () => {
+  it('is optional plain text', () => {
+    const r = validateDeck(deck({ entries: [entry({ id: 'ciao', text: 'ciao', speech: 'tchao', audio: undefined })] }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+    expect(r.notes).toEqual([]);
+    expect(r.deck?.entries[0]?.speech).toBe('tchao');
+  });
+
+  it('rejects a non-string, an empty string and HTML', () => {
+    expect(one({ speech: 5 }).join()).toMatch(/speech.*строка/);
+    expect(one({ speech: ' ' }).join()).toMatch(/speech.*пустая строка/);
+    expect(one({ speech: '<b>tchao</b>' }).join()).toMatch(/speech.*HTML/);
+  });
+
+  it('the same as text is only a note', () => {
+    const r = validateDeck(deck({ entries: [entry({ speech: 'Bonjour' })] }), withPacks);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+    expect(messages(r.notes)).toEqual(['Запись 1 (id «bonjour»): speech совпадает с text — поле не нужно, голос браузера и так читает text.']);
+  });
+
+  it('the browser voice reads speech, else text', () => {
+    expect(voiceText({ text: 'ciao', speech: 'tchao' })).toBe('tchao');
+    expect(voiceText({ text: 'bonjour' })).toBe('bonjour');
+  });
+});
+
 describe('validateDeck: warnings', () => {
   it('warns about unknown entry fields, duplicate text and shared audio', () => {
     const r = validateDeck(deck({ entries: [entry({ comment: 'x' }), entry({ id: 'bonjour-2', text: 'Bonjour' })] }), withPacks);
@@ -545,7 +574,7 @@ describe('JSON Schema stays in sync with the validator', () => {
       ['format', 'version', 'id', 'revision', 'language', 'tags', 'title', 'entries'].sort(),
     );
     expect(Object.keys(entrySchema.properties).sort()).toEqual(
-      ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills'].sort(),
+      ['id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'speech', 'gender', 'form', 'tags', 'skills'].sort(),
     );
   });
 });

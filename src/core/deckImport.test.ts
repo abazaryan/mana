@@ -41,6 +41,16 @@ describe('planImport', () => {
     expect(p.deck).toMatchObject({ name: 'Урок', revision: 2, entryCount: 3, hiddenCount: 1, importedAt: T0, updatedAt: T1 });
   });
 
+  it('keeps speech (Р34) and drops it when the new revision has none', () => {
+    const first = deck(1, ['a', 'b']);
+    first.entries[0]!.speech = 'tchao';
+    const p = planImport(first, 'Урок', 0, null, T0);
+    expect(p.entries.find((e) => e.entryId === 'a')?.speech).toBe('tchao');
+    expect('speech' in p.entries.find((e) => e.entryId === 'b')!).toBe(false);
+    const q = planImport(deck(2, ['a', 'b']), 'Урок', 0, { deck: p.deck, entries: p.entries }, T1);
+    expect('speech' in q.entries.find((e) => e.entryId === 'a')!).toBe(false);
+  });
+
   it('a returning entry is shown again', () => {
     const old = installed(2, ['a', 'c'], ['b']);
     const p = planImport(deck(3, ['a', 'b', 'c']), 'Урок', 0, old, T1);

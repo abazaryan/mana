@@ -16,7 +16,7 @@ import type { LanguagePack } from '../core/languages';
 import type { AnswerMode, EntryRow, FinalRating, ReviewRecord } from '../core/model';
 import { suggestSpeak, type RatingChoice } from '../core/review';
 import type { RatingSuggestion } from '../core/rating';
-import { checkSpoken, countSpokenWords, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
+import { checkSpoken, checkSpokenEntry, countSpokenWords, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
 import type { VoiceOutcome } from '../core/voice';
 import type { ManaDb } from '../platform/db';
 import type { ReviewInput } from '../platform/repo';
@@ -172,7 +172,7 @@ export function VoiceCard({
     const o = voice.outcome();
     finish({
       mode: 'voice',
-      check: checkSpoken(entry.text, o.alternatives, pack.spoken, { determiner }),
+      check: checkSpokenEntry(entry, o.alternatives, pack.spoken, { determiner }),
       typed: '',
       voice: o,
       latencyMs: o.latencyMs,

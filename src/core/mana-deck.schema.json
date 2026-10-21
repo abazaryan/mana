@@ -115,6 +115,10 @@
           "type": "string",
           "pattern": "^audio/[^\\\\]+\\.(mp3|wav)$"
         },
+        "speech": {
+          "$ref": "#/$defs/text",
+          "description": "Текст для голоса браузера, если он читает text неверно (ciao → tchao); только без audio. Ответ и показ — по text."
+        },
         "gender": {
           "enum": [
             "m",

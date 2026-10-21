@@ -65,6 +65,12 @@ export interface DeckEntry {
   hint?: Localized;
   note?: Localized;
   audio?: string;
+  /**
+   * What the browser voice reads instead of `text` when it reads `text` wrong
+   * (ciao → "tchao"); only without audio. The answer and the display use `text`;
+   * a spoken answer may also match `speech` (Р34).
+   */
+  speech?: string;
   /** Gender of the word itself; shown at the introduction only, not when recalling. */
   gender?: Gender;
   /** Form hints shown before the answer. */
@@ -151,7 +157,7 @@ export interface DeckCheck {
 
 const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'title', 'entries']);
 const ENTRY_KEYS = new Set([
-  'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'gender', 'form', 'tags', 'skills',
+  'id', 'text', 'ipa', 'meaning', 'hint', 'note', 'audio', 'speech', 'gender', 'form', 'tags', 'skills',
 ]);
 /** Former field names: an error with a rename hint, not an "unknown field" warning. */
 const OLD_ENTRY_KEYS = new Set(['fr', 'determiner']);
@@ -281,11 +287,15 @@ export function pickLocalizedWithLang(
 class Collector {
   readonly errors: DeckIssue[] = [];
   readonly warnings: DeckIssue[] = [];
+  readonly notes: DeckIssue[] = [];
   error(path: string, message: string): void {
     this.errors.push({ level: 'error', path, message });
   }
   warn(path: string, message: string): void {
     this.warnings.push({ level: 'warning', path, message });
+  }
+  info(path: string, message: string): void {
+    this.notes.push({ level: 'info', path, message });
   }
 }
 
@@ -598,6 +608,10 @@ function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport |
   checkLocalized(c, `${path}.hint`, where, v.hint, 'hint', 'подсказка до ответа', false);
   checkLocalized(c, `${path}.note`, where, v.note, 'note', 'заметка после ответа', false);
   const audio = checkAudio(c, `${path}.audio`, where, v.audio);
+  const speech = checkText(c, `${path}.speech`, `${where}, поле speech (текст для голоса браузера)`, v.speech, false);
+  if (speech !== undefined && text !== undefined && speech.trim().toLowerCase() === text.trim().toLowerCase()) {
+    c.info(`${path}.speech`, `${where}: speech совпадает с text — поле не нужно, голос браузера и так читает text.`);
+  }
 
   checkGender(c, `${path}.gender`, where, 'род', v.gender, lang);
   if (v.determiner !== undefined) {
@@ -675,6 +689,11 @@ function sameSoundWarnings(c: Collector, entries: readonly unknown[], sameSound:
       );
     }
   }
+}
+
+/** What the browser voice reads for an entry without audio: `speech` when the deck gives it (Р34). */
+export function voiceText(entry: Pick<DeckEntry, 'text' | 'speech'>): string {
+  return entry.speech ?? entry.text;
 }
 
 /** Validates parsed deck.json content. */
@@ -799,7 +818,7 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
     deck: c.errors.length === 0 ? (value as unknown as Deck) : null,
     errors: c.errors,
     warnings: c.warnings,
-    notes: [],
+    notes: c.notes,
   };
 }
 

@@ -16,6 +16,8 @@ export const ALMOST_UNSAID_SHARE = 0.25;
 
 /** Rule id for a number said in words and written in digits (or the other way round). */
 export const DIGITS_RULE = 'Ч';
+/** Rule id for a spoken answer that matched the entry's `speech` rather than its text (Р34). */
+export const SPEECH_RULE = 'Г';
 
 export interface SpokenToken {
   /** Comparison key: lower case, œ → oe, apostrophe kept on elided words (`l'`). */
@@ -414,6 +416,32 @@ export function checkSpoken(
     }
   });
   return best!;
+}
+
+/**
+ * A voice answer to an entry (Р34): the text is the answer, and what the browser
+ * voice reads instead (`speech`: "tchao" for "ciao") is accepted too — the recognizer
+ * may write the word so. A match by `speech` is shown over the text when both have
+ * as many tokens (the differing ones as `sound` by rule Г); `write` checks the text only.
+ */
+export function checkSpokenEntry(
+  entry: { text: string; speech?: string },
+  alternatives: readonly string[],
+  rules: SpokenRules,
+  opts: SpokenOptions = {},
+): SpokenCheck {
+  const byText = checkSpoken(entry.text, alternatives, rules, opts);
+  if (entry.speech === undefined || byText.verdict === 'correct') return byText;
+  const bySpeech = checkSpoken(entry.speech, alternatives, rules, opts);
+  if (bySpeech.verdict !== 'correct') return byText;
+  const ruled = [...new Set([...bySpeech.rules, SPEECH_RULE])];
+  const ref = tokenizeSpoken(entry.text, rules);
+  if (ref.length !== bySpeech.ref.length) return { ...bySpeech, rules: ruled };
+  const ops = bySpeech.ops.map((o): SpokenOp => {
+    if (o.ref === undefined || ref[o.ref]!.key === bySpeech.ref[o.ref]!.key) return o;
+    return { ...o, status: 'sound', rule: SPEECH_RULE };
+  });
+  return { ...bySpeech, ref, ops, rules: ruled, words: countSpokenWords(ref) };
 }
 
 // ---------- Live progress (intro "say it aloud") ----------

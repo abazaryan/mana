@@ -91,6 +91,7 @@ export function planImport(
       skills: e.skills,
     };
     if (e.ipa !== undefined) row.ipa = e.ipa;
+    if (e.speech !== undefined) row.speech = e.speech;
     if (e.hint !== undefined) row.hint = e.hint;
     if (e.note !== undefined) row.note = e.note;
     if (e.gender !== undefined) row.gender = e.gender;

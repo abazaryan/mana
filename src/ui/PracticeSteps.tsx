@@ -9,7 +9,7 @@ import { checkWritten, type TypedCheck } from '../core/evaluate';
 import type { TypedInputInfo } from '../core/keyboard';
 import type { LanguagePack } from '../core/languages';
 import type { EntryRow, IntroCopy, IntroEcho } from '../core/model';
-import { checkSpoken, liveHeard, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
+import { checkSpoken, checkSpokenEntry, liveHeard, tokenizeSpoken, type SpokenCheck } from '../core/spoken';
 import type { ManaDb } from '../platform/db';
 import { useI18n } from './i18n';
 import { CharMarks, LiveWords, SpokenMarks } from './Marks';
@@ -147,7 +147,7 @@ export function EchoStep({
   useEffect(() => {
     if (phase !== 'done') return;
     const alternatives = voice.outcome().alternatives;
-    setEcho({ check: checkSpoken(entry.text, alternatives, pack.spoken), alternatives, mode: 'voice' });
+    setEcho({ check: checkSpokenEntry(entry, alternatives, pack.spoken), alternatives, mode: 'voice' });
     // On each finished attempt.
   }, [phase]);
 

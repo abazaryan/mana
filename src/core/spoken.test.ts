@@ -7,9 +7,11 @@ import {
   biasPhrases,
   alignSpoken,
   checkSpoken,
+  checkSpokenEntry,
   countSpokenWords,
   liveHeard,
   soundRule,
+  SPEECH_RULE,
   spokenBlocks,
   tokenizeSpoken,
   type SpokenOptions,
@@ -375,6 +377,31 @@ describe('alternatives', () => {
   it('the rules that fired are listed', () => {
     expect(check('il parle', 'ils parlent').rules.sort()).toEqual(['З4', 'З5']);
     expect(check('vingt et un', '21').rules).toEqual(['Ч']);
+  });
+});
+
+describe('voice answer to an entry with speech (Р34)', () => {
+  const ciao = { text: 'ciao', speech: 'tchao' };
+
+  it('the text and the speech are both correct, shown over the text', () => {
+    expect(checkSpokenEntry(ciao, ['ciao'], R)).toMatchObject({ verdict: 'correct', rules: [] });
+    const c = checkSpokenEntry(ciao, ['tchao'], R);
+    expect(c).toMatchObject({ verdict: 'correct', answer: 'tchao', words: 1 });
+    expect(c.rules).toContain(SPEECH_RULE);
+    expect(c.ref.map((t) => t.text)).toEqual(['ciao']);
+    expect(c.ops).toEqual([{ status: 'sound', ref: 0, heard: 0, rule: SPEECH_RULE }]);
+    expect(allMatched(c)).toBe(true);
+  });
+
+  it('only the differing words are marked by the rule', () => {
+    const c = checkSpokenEntry({ text: "Je m'appelle Pooya.", speech: "Je m'appelle Pouya." }, ["je m'appelle Pouya"], R);
+    expect(c.verdict).toBe('correct');
+    expect(c.ops.map((o) => o.status)).toEqual(['ok', 'ok', 'ok', 'sound']);
+  });
+
+  it('another word is still wrong; without speech it is the plain check', () => {
+    expect(checkSpokenEntry(ciao, ['salut'], R).verdict).toBe('incorrect');
+    expect(checkSpokenEntry({ text: 'ciao' }, ['tchao'], R)).toEqual(check('ciao', 'tchao'));
   });
 });
 
