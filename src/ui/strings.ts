@@ -70,8 +70,8 @@ export const STRINGS = {
   'deck.delete': { tg: 'Пок кардани маҷмӯа', ru: 'Удалить колоду', en: 'Delete deck' },
   'deck.deleteTitle': { tg: 'Маҷмӯа пок шавад?', ru: 'Удалить колоду?', en: 'Delete this deck?' },
   'deck.deleteText': {
-    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо пок намешавад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
-    ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов не удаляется: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
+    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
+    ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
     en: '“{name}” will be deleted from this device with its entries and audio. The answer journal is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text.',
   },
   'deck.deleteConfirm': { tg: 'Пок кардан', ru: 'Удалить', en: 'Delete' },
@@ -406,9 +406,9 @@ export const STRINGS = {
     en: 'The AI asks first: what to make the deck from (a topic, a text or a photo of a textbook page), what to take from it and how many entries.',
   },
   'prompt.step3': {
-    tg: 'Аввал ҳуши маснӯӣ ҷадвали омӯзбаргҳоро нишон медиҳад — онро санҷед ва ислоҳҳоро нависед. deck.json-ро танҳо пас аз «Бале»-и шумо медиҳад.',
-    ru: 'Сначала ИИ покажет таблицу записей — проверьте её и напишите исправления. deck.json он даст только после вашего «да».',
-    en: 'First the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after your “yes”.',
+    tg: 'Баъд ҳуши маснӯӣ ҷадвали омӯзбаргҳоро нишон медиҳад — онро санҷед ва ислоҳҳоро нависед. deck.json-ро танҳо пас аз таъйиди шумо медиҳад.',
+    ru: 'Затем ИИ покажет таблицу записей — проверьте её и напишите исправления. deck.json он даст только после вашего подтверждения.',
+    en: 'Then the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after you confirm.',
   },
   'prompt.step4': {
     tg: 'Ҷавоби ҳуши маснӯиро дар «Моно» часпонед: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ часпонед ва дархост кунед, ки ислоҳ кунад.',
