@@ -106,6 +106,9 @@ h1{font-size:1.9rem;line-height:1.15;margin:8px 0 10px;}
 .field>span{display:block;font-size:.92rem;color:var(--muted);margin-bottom:4px;}
 .field input[type=number],.field select,.field textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);}
 .field textarea{min-height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem;}
+.paste-text,.copy-text{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;margin-top:8px;}
+.steps{margin:8px 0 0;padding-left:1.3em;}
+.steps li{margin:0 0 6px;}
 .check{display:flex;gap:10px;align-items:center;margin:10px 0;}
 .check input{width:22px;height:22px;}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { backupFileName } from '../core/backup';
+import { primaryLanguage } from '../core/deckFormat';
 import { findLanguagePack, speechLocale } from '../core/languages';
 import type { MetaRow, SettingsRow, SpeechPackState } from '../core/model';
 import { createScheduler } from '../core/scheduler';
@@ -11,6 +12,52 @@ import { installSpeechPack, speechPackState } from '../platform/speechPack';
 import { phrasesApiPresent } from './studyHooks';
 import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
+import { VoiceCheckSheet } from './VoiceCheck';
+
+/** The browser voice per learning language of the installed decks: its check and a button to (re)check (Р33 п. 14). */
+function VoiceChecks({ db }: { db: ManaDb }) {
+  const { t, lang } = useI18n();
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [checks, setChecks] = useState<MetaRow['voiceChecks']>({});
+  const [open, setOpen] = useState<string | null>(null);
+  useEffect(() => {
+    void (async () => {
+      const decks = await listDecks(db);
+      const first = new Map<string, string>();
+      for (const d of decks) if (!first.has(primaryLanguage(d.language))) first.set(primaryLanguage(d.language), d.language);
+      setLanguages([...first.values()]);
+      setChecks((await db.meta.get('device'))?.voiceChecks ?? {});
+    })();
+  }, [db]);
+  if (languages.length === 0) return null;
+  return (
+    <>
+      <h2 className="h2">{t('settings.voice')}</h2>
+      <p className="hint">{t('settings.voiceHint')}</p>
+      {languages.map((l) => {
+        const state = checks?.[primaryLanguage(l)];
+        return (
+          <div key={l} className="stack mt">
+            <p className="m">
+              {findLanguagePack(l)?.name[lang] ?? l}: {t(state === 'yes' ? 'voice.state.yes' : state === 'no' ? 'voice.state.no' : 'voice.state.none')}
+            </p>
+            <button className="secondary" type="button" onClick={() => setOpen(l)}>
+              {t('voice.title')}
+            </button>
+          </div>
+        );
+      })}
+      {open && (
+        <VoiceCheckSheet
+          db={db}
+          language={open}
+          onDone={(m) => setChecks(m.voiceChecks ?? {})}
+          onClose={() => setOpen(null)}
+        />
+      )}
+    </>
+  );
+}
 
 interface Props {
   db: ManaDb;
@@ -116,6 +163,7 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
       </label>
 
       <h2 className="h2">{t('settings.recognition')}</h2>
+      <p className="hint">{t('privacy.voice')}</p>
       <label className="check">
         <input type="checkbox" checked={biasing} onChange={(e) => onChange({ biasing: e.target.checked })} />
         <span>{t('settings.biasing')}</span>
@@ -124,6 +172,8 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
       {biasing && !phrasesApiPresent && <p className="hint err">{t('settings.biasingNoApi')}</p>}
       {biasing && phrasesApiPresent && rejected && <p className="hint err">{t('settings.biasingRejected')}</p>}
       {biasing && <SpeechPacks db={db} />}
+
+      <VoiceChecks db={db} />
 
       <h2 className="h2">{t('kb.group')}</h2>
       <label className="check">

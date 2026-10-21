@@ -1,7 +1,7 @@
 /** Browser wiring of a study card: visible-time clock, microphone, entry audio. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyElapsed, elapsedMs, startElapsed, type ElapsedState } from '../core/latency';
-import type { BiasingState, EntryRow, SpeechPackState } from '../core/model';
+import type { AudioSource, BiasingState, EntryRow, SpeechPackState } from '../core/model';
 import type { RecognitionOptions } from '../core/ports';
 import { VoiceCapture, type VoiceOutcome, type VoiceState } from '../core/voice';
 import { playAudio, stopAudio } from '../platform/audio';
@@ -91,20 +91,44 @@ export function useVoice(lang: string, visibleMs: () => number, setup: Recogniti
   };
 }
 
+/** How the entry sounded on the card on screen (Р33 п. 14); reset when a card is shown. */
+let sounded: { audioSource: AudioSource; voice: string | null } = { audioSource: 'none', voice: null };
+
+/** Forget how the previous card sounded: call when a card (or its short practice) is shown. */
+export function resetSoundStamp(): void {
+  sounded = { audioSource: 'none', voice: null };
+}
+
+/** For the journal record of the card on screen: `audioSource` and `voice`. */
+export function soundStamp(): { audioSource: AudioSource; voice: string | null } {
+  return { ...sounded };
+}
+
 /**
- * Deck audio of the entry; the browser voice only when the entry has none. Rejects if
- * it cannot play. `onEnded`: the sound played to the end (not called when stopped).
+ * Deck audio of the entry; the browser voice only when the entry has none (Р33 п. 14).
+ * Rejects if the file cannot play. `onEnded`: the sound played to the end (not called
+ * when stopped; for the browser voice also after a failure, so `listen` goes on).
  */
 export async function playEntry(db: ManaDb, entry: EntryRow, locale: string, onEnded?: () => void): Promise<void> {
   speaker.cancel();
   if (!entry.audio) {
     stopAudio();
-    speaker.speak(entry.text, locale, onEnded);
+    speaker.speak(entry.text, locale, onEnded, (voice) => {
+      sounded = { audioSource: 'browser', voice };
+    });
     return;
   }
   const media = await getMedia(db, entry.deckId, entry.audio);
   if (!media) throw new Error('no media');
   await playAudio(media.data, media.type, onEnded);
+  sounded = { audioSource: 'file', voice: null };
+}
+
+/** A sample phrase in the browser voice of `locale` ("Voice check", Р33 п. 14). */
+export function speakSample(text: string, locale: string, onEnded?: () => void): void {
+  stopAudio();
+  speaker.cancel();
+  speaker.speak(text, locale, onEnded);
 }
 
 export function stopEntryAudio(): void {

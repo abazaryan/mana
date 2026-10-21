@@ -1,15 +1,26 @@
 import type { DeckArchive } from '../core/deckArchive';
 import { deckTitle, type DeckIssue } from '../core/deckFormat';
 import type { ImportConfirm, ImportPlan } from '../core/deckImport';
+import { reportForAi } from '../core/deckReport';
+import { CopyButton } from './CopyButton';
 import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 
+/** Check results of one deck: errors refuse it, warnings need "Add anyway", notes only inform (Р33 п. 15). */
+export interface Checked {
+  deckId: string | null;
+  revision: number | null;
+  errors: DeckIssue[];
+  warnings: DeckIssue[];
+  notes: DeckIssue[];
+}
+
 export type ImportState =
   | { phase: 'reading' }
-  | { phase: 'rejected'; errors: DeckIssue[]; warnings: DeckIssue[] }
-  | { phase: 'confirm'; plan: ImportPlan; archive: DeckArchive }
-  | { phase: 'done'; plan: ImportPlan; warnings: DeckIssue[] }
+  | { phase: 'rejected'; checked: Checked }
+  | { phase: 'confirm'; plan: ImportPlan; archive: DeckArchive; checked: Checked }
+  | { phase: 'done'; plan: ImportPlan; checked: Checked }
   | { phase: 'failed'; error: string };
 
 interface Props {
@@ -28,14 +39,30 @@ function Issues({ items }: { items: DeckIssue[] }) {
   );
 }
 
-function Warnings({ items }: { items: DeckIssue[] }) {
-  const { t } = useI18n();
+function Listed({ items, label, open = false }: { items: DeckIssue[]; label: string; open?: boolean }) {
   if (items.length === 0) return null;
   return (
-    <details className="mt">
-      <summary>{t('import.warnings', { n: items.length })}</summary>
+    <details className="mt" open={open}>
+      <summary>{label}</summary>
       <Issues items={items} />
     </details>
+  );
+}
+
+/** Warnings and notes, and the report for the AI when there is something to fix. */
+function Findings({ checked, openWarnings = false }: { checked: Checked; openWarnings?: boolean }) {
+  const { t } = useI18n();
+  const fix = checked.errors.length + checked.warnings.length > 0;
+  return (
+    <>
+      <Listed items={checked.warnings} label={t('import.warnings', { n: checked.warnings.length })} open={openWarnings} />
+      <Listed items={checked.notes} label={t('import.notes', { n: checked.notes.length })} />
+      {fix && (
+        <div className="mt">
+          <CopyButton label={t('import.copyReport')} text={() => reportForAi(checked)} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -78,13 +105,14 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
     return (
       <Sheet title={t('import.rejected')} onClose={onClose} closeLabel={t('common.close')}>
         <p className="hint">{t('import.authorNote')}</p>
-        <Issues items={state.errors} />
-        <Warnings items={state.warnings} />
+        <Issues items={state.checked.errors} />
+        <Findings checked={state.checked} />
       </Sheet>
     );
   }
   if (state.phase === 'confirm') {
-    const { plan, archive } = state;
+    const { plan, archive, checked } = state;
+    const warned = checked.warnings.length > 0;
     return (
       <Sheet title={t('import.confirmTitle')} onClose={onClose} closeLabel={t('common.close')}>
         <p>
@@ -93,13 +121,14 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
         {plan.confirm.map((c, k) => (
           <ConfirmText key={k} c={c} plan={plan} />
         ))}
-        <Warnings items={[...archive.check.warnings, ...(plan.crossDeck ?? [])]} />
+        {warned && <p className="hint">{t('import.fixFirst')}</p>}
+        <Findings checked={checked} openWarnings />
         <div className="row mt">
           <button className="secondary" type="button" onClick={onClose}>
             {t('common.cancel')}
           </button>
           <button className="primary" type="button" onClick={() => onConfirm(plan, archive)}>
-            {t('import.install')}
+            {warned ? t('study.addAnyway') : t('import.install')}
           </button>
         </div>
       </Sheet>
@@ -117,7 +146,7 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
           <strong>{deckTitle(plan.deck, lang)}</strong>
         </p>
         <p>{t('import.summary', { ...plan.summary })}</p>
-        <Warnings items={state.warnings} />
+        <Findings checked={state.checked} />
       </Sheet>
     );
   }

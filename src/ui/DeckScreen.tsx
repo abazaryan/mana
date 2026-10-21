@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
-import { deckTitle, formHints, pickLocalizedWithLang } from '../core/deckFormat';
+import { deckTitle, formHints, pickLocalizedWithLang, primaryLanguage } from '../core/deckFormat';
+import { findLanguagePack, speechLocale } from '../core/languages';
 import type { DeckRow, EntryRow } from '../core/model';
 import { buildSession, capped, outlook } from '../core/session';
-import { playAudio, stopAudio } from '../platform/audio';
+import { stopAudio } from '../platform/audio';
 import type { ManaDb } from '../platform/db';
 import { deviceZone } from '../platform/device';
-import { getDeck, getMedia, listEntries, loadSessionData } from '../platform/repo';
+import { getDeck, listEntries, loadSessionData } from '../platform/repo';
 import { formatMb, languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { studyHref } from './Root';
 import { LANG_NAMES } from './strings';
+import { playEntry, stopEntryAudio } from './studyHooks';
+import { VoiceCheckSheet } from './VoiceCheck';
 
 /**
  * `due`: reviews due today in this deck (debts included); `debt`: the first deck with
@@ -17,12 +20,14 @@ import { LANG_NAMES } from './strings';
  * entries now, so "add anyway" is offered (Р29.5, Р29.6).
  */
 type Day = { due: number; fresh: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
-type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day } | 'missing' | null;
+type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day; voiceAsked: boolean } | 'missing' | null;
 
 export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deckId: string; userId: string; newPerDay: number }) {
   const { t, lang, meaningLang } = useI18n();
   const [data, setData] = useState<Loaded>(null);
   const [audioError, setAudioError] = useState(false);
+  const [voiceCheck, setVoiceCheck] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -32,8 +37,8 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
         if (live) setData('missing');
         return;
       }
-      const [entries, all] = await Promise.all([listEntries(db, deckId), loadSessionData(db, userId)]);
-      const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards, log: all.log, newPerDay };
+      const [entries, all, meta] = await Promise.all([listEntries(db, deckId), loadSessionData(db, userId), db.meta.get('device')]);
+      const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards, log: all.log, newPerDay, voiceDecks: all.voiceDecks };
       const o = outlook(input);
       const first = o.debts[0];
       const other = (id: string) => all.decks.find((d) => d.id === id);
@@ -43,21 +48,25 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       };
       const held = buildSession(input).noNew === 'overdue';
       const day: Day = { due: o.today, fresh: o.fresh, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
-      if (live) setData({ deck, entries, day });
+      // The first time a deck with entries without audio is chosen: "Voice check" (Р33 п. 14).
+      const voiceAsked = meta?.voiceChecks?.[primaryLanguage(deck.language)] !== undefined;
+      if (live) {
+        setData({ deck, entries, day, voiceAsked });
+        if (!voiceAsked && entries.some((e) => !e.audio)) setVoiceCheck(true);
+      }
     })();
     return () => {
       live = false;
       stopAudio();
+      stopEntryAudio();
     };
-  }, [db, deckId, userId, newPerDay, lang]);
+  }, [db, deckId, userId, newPerDay, lang, reload]);
 
-  const play = async (e: EntryRow) => {
-    if (!e.audio) return;
+  // Deck audio, or the browser voice for an entry without it (Р33 п. 14).
+  const play = async (e: EntryRow, language: string) => {
     setAudioError(false);
     try {
-      const media = await getMedia(db, deckId, e.audio);
-      if (!media) throw new Error('no media');
-      await playAudio(media.data, media.type);
+      await playEntry(db, e, speechLocale(language) ?? findLanguagePack(language)?.defaultLocale ?? language);
     } catch {
       setAudioError(true);
     }
@@ -145,9 +154,9 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
                 <button
                   className="play"
                   type="button"
-                  disabled={!e.audio}
-                  aria-label={e.audio ? `${t('deck.play')}: ${e.text}` : t('deck.noAudio')}
-                  onClick={() => void play(e)}
+                  aria-label={`${t('deck.play')}: ${e.text}`}
+                  title={e.audio ? undefined : t('settings.voice')}
+                  onClick={() => void play(e, deck.language)}
                 >
                   ▶
                 </button>
@@ -156,6 +165,14 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
           })}
         </ul>
       </details>
+      {voiceCheck && (
+        <VoiceCheckSheet
+          db={db}
+          language={deck.language}
+          onDone={() => setReload((n) => n + 1)}
+          onClose={() => setVoiceCheck(false)}
+        />
+      )}
     </section>
   );
 }

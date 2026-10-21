@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { readDeckArchive, type DeckArchive } from '../core/deckArchive';
+import { readDeckFile, readDeckJson, type DeckArchive } from '../core/deckArchive';
 import type { ImportPlan } from '../core/deckImport';
 import { deckTitle } from '../core/deckFormat';
+import { installedForAi } from '../core/deckReport';
 import { findLanguagePack } from '../core/languages';
 import type { DeckRow } from '../core/model';
 import type { ManaDb } from '../platform/db';
 import { requestPersistence } from '../platform/persist';
-import { applyImport, listDecks, prepareImport } from '../platform/repo';
+import { applyImport, listDecks, listEntries, prepareImport } from '../platform/repo';
+import { CopyButton } from './CopyButton';
+import { deckPromptText } from './deckPrompt';
 import { useI18n } from './i18n';
-import { ImportSheet, type ImportState } from './ImportSheet';
+import { ImportSheet, type Checked, type ImportState } from './ImportSheet';
 import { deckHref } from './Root';
+import { Sheet } from './Sheet';
 
 export function formatMb(bytes: number, lang: string): string {
   return new Intl.NumberFormat(lang === 'en' ? 'en' : 'ru', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(
@@ -21,10 +25,74 @@ export function languageName(tag: string, lang: 'tg' | 'ru' | 'en'): string {
   return findLanguagePack(tag)?.name[lang] ?? tag;
 }
 
+/** The deck id and revision of deck.json text that did not pass, when readable (for the AI report). */
+function idOf(archive: DeckArchive): { deckId: string | null; revision: number | null } {
+  const d = archive.check.deck;
+  return { deckId: d?.id ?? null, revision: d?.revision ?? null };
+}
+
+/** Pasting the answer of an AI (Р33 п. 15). */
+function PasteSheet({ onCheck, onClose }: { onCheck(text: string): void; onClose(): void }) {
+  const { t } = useI18n();
+  const [text, setText] = useState('');
+  return (
+    <Sheet title={t('paste.title')} onClose={onClose} closeLabel={t('common.close')}>
+      <p className="hint">{t('paste.hint')}</p>
+      <textarea
+        className="paste-text"
+        rows={10}
+        value={text}
+        lang="fr"
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => setText(e.target.value)}
+        aria-label={t('paste.title')}
+      />
+      <div className="row mt">
+        <button className="secondary" type="button" onClick={onClose}>
+          {t('common.cancel')}
+        </button>
+        <button className="primary" type="button" disabled={text.trim() === ''} onClick={() => onCheck(text)}>
+          {t('speak.check')}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** How to make a personal deck with an AI (Р33 п. 15). */
+function PromptSheet({ db, onClose }: { db: ManaDb; onClose(): void }) {
+  const { t, lang } = useI18n();
+  const [installed, setInstalled] = useState('');
+  useEffect(() => {
+    void (async () => {
+      const decks = await listDecks(db);
+      const list = [];
+      for (const d of decks) list.push({ title: deckTitle(d, lang), language: d.language, entries: await listEntries(db, d.id) });
+      setInstalled(installedForAi(list));
+    })();
+  }, [db, lang]);
+  return (
+    <Sheet title={t('decks.makeWithAi')} onClose={onClose} closeLabel={t('common.close')}>
+      <ol className="steps">
+        {(['prompt.step1', 'prompt.step2', 'prompt.step3', 'prompt.step4', 'prompt.step5'] as const).map((k) => (
+          <li key={k}>{t(k)}</li>
+        ))}
+      </ol>
+      <div className="stack mt">
+        <CopyButton label={t('prompt.copy')} text={() => deckPromptText(lang)} primary />
+        <CopyButton label={t('prompt.copyEntries')} text={() => installed} />
+      </div>
+      <p className="hint mt">{t('prompt.personal')}</p>
+    </Sheet>
+  );
+}
+
 export function DecksScreen({ db }: { db: ManaDb }) {
   const { t, lang } = useI18n();
   const [decks, setDecks] = useState<DeckRow[] | null>(null);
   const [imp, setImp] = useState<ImportState | null>(null);
+  const [sheet, setSheet] = useState<'paste' | 'prompt' | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
@@ -32,28 +100,31 @@ export function DecksScreen({ db }: { db: ManaDb }) {
   }, [db]);
   useEffect(refresh, [refresh]);
 
-  const write = async (plan: ImportPlan, archive: DeckArchive) => {
+  const write = async (plan: ImportPlan, archive: DeckArchive, checked: Checked) => {
     try {
       await applyImport(db, plan, archive.audio);
       void requestPersistence();
-      setImp({ phase: 'done', plan, warnings: [...archive.check.warnings, ...(plan.crossDeck ?? [])] });
+      setImp({ phase: 'done', plan, checked });
       refresh();
     } catch (e) {
       setImp({ phase: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
   };
 
-  const onFile = async (file: File) => {
+  /** Errors refuse the deck; warnings (the validator's and К1/К2) are installed only with "Add anyway" (Р33 п. 15). */
+  const consider = async (read: () => Promise<DeckArchive>) => {
     setImp({ phase: 'reading' });
     try {
-      const archive = await readDeckArchive(await file.arrayBuffer(), file.name);
+      const archive = await read();
+      const { errors, warnings, notes } = archive.check;
       if (!archive.check.deck) {
-        setImp({ phase: 'rejected', errors: archive.check.errors, warnings: archive.check.warnings });
+        setImp({ phase: 'rejected', checked: { ...idOf(archive), errors, warnings, notes } });
         return;
       }
       const plan = await prepareImport(db, archive, new Date(), lang);
-      if (plan.confirm.length > 0) setImp({ phase: 'confirm', plan, archive });
-      else await write(plan, archive);
+      const checked: Checked = { ...idOf(archive), errors, warnings: [...warnings, ...(plan.crossDeck ?? [])], notes };
+      if (plan.confirm.length > 0 || checked.warnings.length > 0) setImp({ phase: 'confirm', plan, archive, checked });
+      else await write(plan, archive, checked);
     } catch (e) {
       setImp({ phase: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
@@ -65,17 +136,25 @@ export function DecksScreen({ db }: { db: ManaDb }) {
       <input
         ref={input}
         type="file"
-        accept=".zip,application/zip"
+        accept=".zip,.json,application/zip,application/json"
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0];
           e.target.value = '';
-          if (f) void onFile(f);
+          if (f) void consider(async () => readDeckFile(await f.arrayBuffer(), f.name));
         }}
       />
-      <button className="primary big" type="button" onClick={() => input.current?.click()}>
-        {t('decks.import')}
-      </button>
+      <div className="stack">
+        <button className="primary big" type="button" onClick={() => input.current?.click()}>
+          {t('decks.import')}
+        </button>
+        <button className="secondary" type="button" onClick={() => setSheet('paste')}>
+          {t('decks.paste')}
+        </button>
+        <button className="secondary" type="button" onClick={() => setSheet('prompt')}>
+          {t('decks.makeWithAi')}
+        </button>
+      </div>
 
       {decks && decks.length === 0 && <p className="lead mt">{t('decks.empty')}</p>}
       {decks && decks.length > 0 && (
@@ -94,14 +173,27 @@ export function DecksScreen({ db }: { db: ManaDb }) {
         </ul>
       )}
 
+      <p className="hint mt">{t('privacy.voice')}</p>
       <p className="note">
         <a href="#/prototype">{t('settings.prototype')}</a>
       </p>
 
+      {sheet === 'paste' && (
+        <PasteSheet
+          onClose={() => setSheet(null)}
+          onCheck={(text) => {
+            setSheet(null);
+            void consider(async () => readDeckJson(text, null));
+          }}
+        />
+      )}
+      {sheet === 'prompt' && <PromptSheet db={db} onClose={() => setSheet(null)} />}
       {imp && (
         <ImportSheet
           state={imp}
-          onConfirm={(plan, archive) => void write(plan, archive)}
+          onConfirm={(plan, archive) => {
+            if (imp.phase === 'confirm') void write(plan, archive, imp.checked);
+          }}
           onClose={() => setImp(null)}
         />
       )}

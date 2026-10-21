@@ -46,7 +46,7 @@ import { useI18n } from './i18n';
 import { IntroCard, type IntroResult } from './IntroCard';
 import { CopyStep, EchoStep } from './PracticeSteps';
 import { deckHref, studyHref } from './Root';
-import { phrasesApiPresent, type RecognitionSetup } from './studyHooks';
+import { phrasesApiPresent, resetSoundStamp, soundStamp, type RecognitionSetup } from './studyHooks';
 import { VoiceCard, type CardAnswer } from './VoiceCard';
 import { WriteCard } from './WriteCard';
 
@@ -98,7 +98,7 @@ function planFor(data: SessionData, deck: DeckRow, newPerDay: number, addAnyway:
 }
 
 function lookAhead(data: SessionData, deck: DeckRow, newPerDay: number): After {
-  const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards, log: data.log, newPerDay };
+  const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards, log: data.log, newPerDay, voiceDecks: data.voiceDecks };
   return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), decks: new Map(data.decks.map((d) => [d.id, d])) };
 }
 
@@ -156,6 +156,8 @@ export function StudyScreen({
   }, [start, addAnyway, deckId]);
 
   const item = round && round !== 'missing' ? round.items[index] : undefined;
+  // How the entry sounded is journaled per card and per short practice (Р33 п. 14).
+  useEffect(resetSoundStamp, [index, drill]);
 
   // The previous answer on the card, for the Easy rule; loaded before the card shows.
   useEffect(() => {
@@ -276,7 +278,7 @@ export function StudyScreen({
 
   const base = (entryId: string) => {
     const at = new Date();
-    return { at, deckId: deck.id, entryId, deckRevision: deck.revision, sessionId, ...zoneStamp(deviceZone(), at) };
+    return { at, deckId: deck.id, entryId, deckRevision: deck.revision, sessionId, ...zoneStamp(deviceZone(), at), ...soundStamp() };
   };
   const save = async (write: () => Promise<unknown>) => {
     setSaveError(null);
