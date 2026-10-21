@@ -124,8 +124,8 @@
 | au revoir | Худоҳофиз | До свидания | Goodbye | — |
 | à bientôt | То дидор | До скорого | See you soon | tg «ба зудӣ», ru «скоро увидимся», en «soon» |
 | ciao | Хайр | Пока | Bye | tg «итолиёӣ, байналмилалӣ», ru «итал., интернац.», en «Italian, international» |
-| à plus tard (резерв) | То баъд | Увидимся позже | See you later | — |
-| à tout à l'heure (резерв) | То пас аз лаҳзае | Увидимся чуть позже | See you in a while | — |
+| à plus tard (резерв) | То баъд | До скорого | See you later | — |
+| à tout à l'heure (резерв) | То каме баъд | До скорого (сегодня же) | See you in a bit | — |
 | merci | Ташаккур | Спасибо | Thank you | — |
 
 ПРАВИЛА СОДЕРЖАНИЯ

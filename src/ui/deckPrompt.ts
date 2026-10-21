@@ -106,8 +106,8 @@ const RULES_RU = `Ты готовишь личную колоду для при�
 | au revoir | Худоҳофиз | До свидания | Goodbye | — |
 | à bientôt | То дидор | До скорого | See you soon | tg «ба зудӣ», ru «скоро увидимся», en «soon» |
 | ciao | Хайр | Пока | Bye | tg «итолиёӣ, байналмилалӣ», ru «итал., интернац.», en «Italian, international» |
-| à plus tard | То баъд | Увидимся позже | See you later | — |
-| à tout à l'heure | То пас аз лаҳзае | Увидимся чуть позже | See you in a while | — |
+| à plus tard | То баъд | До скорого | See you later | — |
+| à tout à l'heure | То каме баъд | До скорого (сегодня же) | See you in a bit | — |
 | merci | Ташаккур | Спасибо | Thank you | — |
 - Грамматика (определённость, род, число) — ТОЛЬКО в form, никогда текстом в meaning, hint или note («(м.)», «(мард)», «с артиклем»).
 - Таджикский текст — персидский язык Ирана в таджикской кириллице: артикль — шиносвожа (не «артикл»), слово — вожа, фраза — ибора. Лучше вообще не писать грамматику текстом.
@@ -225,8 +225,8 @@ THE MAIN PRINCIPLE
 | au revoir | Худоҳофиз | До свидания | Goodbye | — |
 | à bientôt | То дидор | До скорого | See you soon | tg «ба зудӣ», ru «скоро увидимся», en «soon» |
 | ciao | Хайр | Пока | Bye | tg «итолиёӣ, байналмилалӣ», ru «итал., интернац.», en «Italian, international» |
-| à plus tard | То баъд | Увидимся позже | See you later | — |
-| à tout à l'heure | То пас аз лаҳзае | Увидимся чуть позже | See you in a while | — |
+| à plus tard | То баъд | До скорого | See you later | — |
+| à tout à l'heure | То каме баъд | До скорого (сегодня же) | See you in a bit | — |
 | merci | Ташаккур | Спасибо | Thank you | — |
 - Grammar (definiteness, gender, number) goes ONLY in form, never as text in meaning, hint or note ("(m.)", "with article").
 - Tajik text is the Persian of Iran in Tajik Cyrillic: article — шиносвожа (not «артикл»), word — вожа, phrase — ибора. Better not to write grammar as text at all.
@@ -249,13 +249,13 @@ IF YOU RECEIVED A CHECK REPORT FROM THE MANA APP
 - К1 (same meaning as an installed deck's entry with another answer) — tell the meanings apart or add hint / form. К2 (the entry is already in an installed deck) — remove the repeat or say it is intended. (The report itself is in Russian.)`;
 
 const TASK: Record<Lang, string> = {
-  tg: `СУПОРИШ (ЗАДАНИЕ)
+  tg: `ДАРХОСТ (ЗАДАНИЕ)
 Забони омӯзиш (язык): fr-FR
-Забонҳои маъно (языки значений): tg
+Забони маъноҳо (языки значений): tg
 Садо (звук): нест
 id ва номи маҷмӯа (id и название): my-fr-<мавзӯъ>-01; ном — …
 Муҳтаво (содержание): <мавзӯъ, вожаҳо ё матни дарс>
-Маҷмӯаҳои насбшуда (уже установленные колоды): <«Нусхаи омӯзбаргҳои насбшуда»-ро ин ҷо гузоред>`,
+Маҷмӯаҳои насбшуда (уже установленные колоды): <«Нусхаи омӯзбаргҳои насбшуда»-ро ин ҷо часпонед>`,
   ru: `ЗАДАНИЕ
 Язык: fr-FR
 Языки значений: ru
