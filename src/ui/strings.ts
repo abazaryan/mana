@@ -410,7 +410,7 @@ export const STRINGS = {
     en: 'Audio is optional: without it the browser voice reads the cards.',
   },
   'prompt.personal': {
-    tg: 'Масъули мӯҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ҳуши маснӯӣ ислоҳ кунед.',
+    tg: 'Масъули муҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ҳуши маснӯӣ ислоҳ кунед.',
     ru: 'За содержание своей колоды отвечаете вы. Если верный ответ засчитан как неверный — исправьте колоду с ИИ.',
     en: 'You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI.',
   },
