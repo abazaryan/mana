@@ -24,6 +24,7 @@ npm run deck:check -- колода.zip   # проверить колоду до 
 npm run i18n:table   # обновить docs/I18N_TG.md после правки строк интерфейса
 npm run glossary:terms   # обновить список отклонённых слов для проверки колоды после правки GLOSSARY_TG.md
 npm run deck:test-speak  # собрать тестовую колоду decks/test-speak.zip
+npm run icons   # пересобрать PNG-иконки из public/icon.svg и public/icons/maskable.svg
 ```
 
 ## Структура
@@ -33,4 +34,6 @@ npm run deck:test-speak  # собрать тестовую колоду decks/te
 - `src/ui/` — интерфейс на React (tg/ru/en); экран прототипа — `#/prototype`.
 - `scripts/` — инструменты вне приложения: проверка колоды, конвертер урока 1 из Anki, сборка тестовой колоды, таблицы для глоссария и переводов.
 
-Публикация — GitHub Pages через `.github/workflows/deploy.yml` при каждом push в `main`.
+Приложение: **https://mana.amisipehr.workers.dev** — Cloudflare Workers, только статические файлы (Р32). Публикация — Workers Builds при каждом push в `main`: `npm test && npm run build`, затем `npx wrangler deploy`; при упавших тестах публикации нет. Настройки — [wrangler.jsonc](wrangler.jsonc), заголовки и CSP — [public/_headers](public/_headers), подключение в панели Cloudflare и установка на телефон — [docs/DEPLOY.md](docs/DEPLOY.md).
+
+Старый адрес https://abazaryan.github.io/mana/ — только страница «переехала» со ссылкой ([pages-moved/index.html](pages-moved/index.html), `.github/workflows/deploy.yml`).
