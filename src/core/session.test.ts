@@ -217,11 +217,25 @@ describe('buildSession: three skills (Р25)', () => {
     expect(shape(plan.items)).toEqual(['intro:a', 'speak:a*', 'write:a*', 'listen:a*']);
   });
 
-  it('`listen` without deck audio is not issued', () => {
+  it('`listen` without deck audio is not issued until the browser voice is checked (Р33 п. 14)', () => {
     const plan = run({ entries: [all('a', 0, { audio: null })] });
     expect(shape(plan.items)).toEqual(['intro:a', 'speak:a*', 'write:a*']);
     const onlyListen = run({ entries: [entry('b', 0, { skills: ['listen'] })] });
     expect(onlyListen).toMatchObject({ items: [], noNew: 'noMaterial' });
+    // Voice checked for this deck's language: the browser voice plays it.
+    const voiced = run({ entries: [all('a', 0, { audio: null })], voiceDecks: new Set(['d']) });
+    expect(shape(voiced.items)).toEqual(['intro:a', 'speak:a*', 'write:a*', 'listen:a*']);
+    // Checked for another deck only: still not issued here.
+    const other = run({ entries: [all('a', 0, { audio: null })], voiceDecks: new Set(['other']) });
+    expect(shape(other.items)).toEqual(['intro:a', 'speak:a*', 'write:a*']);
+  });
+
+  it('a due `listen` card without deck audio waits for the voice check, then comes back', () => {
+    const e = all('a', 0, { audio: null });
+    const due = card('a', new Date(NOW.getTime() - DAY), 'listen');
+    const log = [intro('a', new Date(NOW.getTime() - 3 * DAY))];
+    expect(shape(run({ entries: [e], cards: [due], log }).items).join()).not.toContain('listen:a');
+    expect(shape(run({ entries: [e], cards: [due], log, voiceDecks: new Set(['d']) }).items).join()).toContain('listen:a');
   });
 
   it('first cards of new entries go in rounds: every speak, then every write, then every listen', () => {

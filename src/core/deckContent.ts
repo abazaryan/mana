@@ -131,10 +131,8 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
         }
       }
     }
-    // В9. `listen` needs deck audio (Р25).
-    if (e.skills.includes('listen') && !e.audio) {
-      warn(`entries[${e.i}].skills`, `${n(e)}: есть listen, но нет audio — карточка listen не будет выдаваться (Р25).`);
-    }
+    // В9 (`listen` without deck audio) is gone: such a card plays the browser voice once
+    // it is checked on the device (Р33 п. 14); the audio summary of the deck check says so.
     // В10. tu / vous: the English meaning must say which (Р22, 16.10.2026).
     const en = e.meaning.en;
     if (rules && typeof en === 'string') {

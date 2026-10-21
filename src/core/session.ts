@@ -100,6 +100,11 @@ export interface DayInput {
   entries: readonly EntryRow[];
   /** FSRS cards of the user in every deck. */
   cards: readonly CardRow[];
+  /**
+   * Decks whose language has the browser voice checked on this device ("Voice check":
+   * yes, Р33 п. 14): their entries without deck audio may get `listen`. Absent = none.
+   */
+  voiceDecks?: ReadonlySet<string>;
 }
 
 export interface SessionInput extends DayInput {
@@ -115,17 +120,20 @@ export interface SessionInput extends DayInput {
 
 /**
  * The one definition of "a card the session may issue" (Р17.8): the entry is not
- * hidden, has the skill, and for `listen` has deck audio — the browser voice does
- * not teach pronunciation (Р25). For a card with a state, also: its due day has come.
+ * hidden, has the skill, and for `listen` has deck audio or the browser voice of its
+ * language checked on this device (`voice`, Р33 п. 14, replacing Р25 п. 2). For a card
+ * with a state, also: its due day has come.
  */
-export function issuable(e: EntryRow, skill: Skill): boolean {
-  return !e.hidden && e.skills.includes(skill) && (skill !== 'listen' || !!e.audio);
+export function issuable(e: EntryRow, skill: Skill, voice = false): boolean {
+  return !e.hidden && e.skills.includes(skill) && (skill !== 'listen' || !!e.audio || voice);
 }
 
 /** Skills of the entry the session may issue, in the order of SKILL_ORDER. */
-export function issuableSkills(e: EntryRow): Skill[] {
-  return SKILL_ORDER.filter((s) => issuable(e, s));
+export function issuableSkills(e: EntryRow, voice = false): Skill[] {
+  return SKILL_ORDER.filter((s) => issuable(e, s, voice));
 }
+
+const hasVoice = (input: Pick<DayInput, 'voiceDecks'>, deckId: string) => input.voiceDecks?.has(deckId) ?? false;
 
 const pairKey = (deckId: string, entryId: string) => `${deckId}/${entryId}`;
 
@@ -142,7 +150,7 @@ function dueCards(input: DayInput): { today: number; cards: DueCard[] } {
   const cards: DueCard[] = [];
   for (const c of input.cards) {
     const e = byKey.get(pairKey(c.deckId, c.entryId));
-    if (e && issuable(e, c.skill)) cards.push({ entry: e, card: c, day: dueDay(c) });
+    if (e && issuable(e, c.skill, hasVoice(input, c.deckId))) cards.push({ entry: e, card: c, day: dueDay(c) });
   }
   return { today, cards };
 }
@@ -261,13 +269,14 @@ function newMaterial(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>):
   }
   // An entry with a card but no introduction in this journal (an old or restored one) is known already.
   for (const c of cards) if (!introAt.has(c.entryId)) introAt.set(c.entryId, -Infinity);
-  const ordered = [...entries].filter((e) => issuableSkills(e).length > 0).sort((a, b) => a.position - b.position);
-  const missing = (e: EntryRow): Recall => ({ entry: e, skills: issuableSkills(e).filter((s) => !has.has(`${e.entryId}/${s}`)) });
+  const voice = hasVoice(input, deckId);
+  const ordered = [...entries].filter((e) => issuableSkills(e, voice).length > 0).sort((a, b) => a.position - b.position);
+  const missing = (e: EntryRow): Recall => ({ entry: e, skills: issuableSkills(e, voice).filter((s) => !has.has(`${e.entryId}/${s}`)) });
   const started = ordered.filter((e) => introAt.has(e.entryId)).map(missing).filter((r) => r.skills.length > 0);
   return {
     startedToday: started.filter((r) => introAt.get(r.entry.entryId)! >= start),
     startedBefore: started.filter((r) => introAt.get(r.entry.entryId)! < start),
-    notIntroduced: ordered.filter((e) => !introAt.has(e.entryId)).map((e) => ({ entry: e, skills: issuableSkills(e) })),
+    notIntroduced: ordered.filter((e) => !introAt.has(e.entryId)).map((e) => ({ entry: e, skills: issuableSkills(e, voice) })),
     budget: Math.max(0, input.newPerDay - introsToday(input.log, input.now, input.tz)),
     catchBudget: Math.max(0, CATCH_UP_PER_DAY - catchUpToday(input.log, input.now, input.tz)),
   };

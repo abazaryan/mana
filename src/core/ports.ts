@@ -76,8 +76,11 @@ export interface SpeechRecognizer {
 }
 
 export interface Speaker {
-  /** `onEnd`: the utterance finished (not called when cancelled). */
-  speak(text: string, lang: string, onEnd?: () => void): void;
+  /**
+   * `onEnd`: the utterance finished, or failed other than by cancelling (not called when
+   * cancelled). `onStart`: it began, with the name of the voice (null if the browser chose).
+   */
+  speak(text: string, lang: string, onEnd?: () => void, onStart?: (voice: string | null) => void): void;
   cancel(): void;
 }
 

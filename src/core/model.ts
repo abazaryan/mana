@@ -33,7 +33,15 @@ export interface MetaRow {
    * Settings, off by default). Device-only, never synced.
    */
   systemKeyboard?: boolean;
+  /**
+   * "Voice check" of the browser voice by primary language (`fr`), answered on this device
+   * (Р33 п. 14): `yes` — entries without deck audio of that language may get `listen`;
+   * `no` — heard nothing. Device-only, never synced.
+   */
+  voiceChecks?: Record<string, VoiceCheck>;
 }
+
+export type VoiceCheck = 'yes' | 'no';
 
 export interface SettingsRow {
   userId: string;
@@ -111,7 +119,16 @@ interface LogBase {
   tz?: string;
   /** Minutes east of UTC at the moment in that zone; the app day of the record is counted with it. */
   tzOffsetMin?: number;
+  /**
+   * How the entry sounded on this card (Р33 п. 14): the deck audio file, the browser
+   * voice, or nothing (no play, or it failed). Absent in records before 21.10.2026.
+   */
+  audioSource?: AudioSource;
+  /** The browser voice that spoke (`audioSource: browser`), when the browser named it. */
+  voice?: string | null;
 }
+
+export type AudioSource = 'file' | 'browser' | 'none';
 
 /** "Say it aloud" during an introduction (Р22.5): recognised, never rated. */
 export interface IntroEcho {

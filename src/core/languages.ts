@@ -131,6 +131,8 @@ export interface LanguagePack extends LanguageSupport {
    * the grammar differs. Absent → the plain "Say it" / "Type…".
    */
   inLanguage?: Record<UiLang, string>;
+  /** "Voice check" (Р33 п. 14): a phrase the browser voice says, and the ready question after it. */
+  voiceCheck?: { sample: string; question: Record<UiLang, string> };
   /** The on-screen phone keyboard (Р31). */
   keyboard: KeyboardLayout;
   /** Rules for the written answer (skill `write`, Р5). */
@@ -150,6 +152,10 @@ export const FRENCH: LanguagePack = {
   defaultLocale: 'fr-FR',
   name: { tg: 'фаронсавӣ', ru: 'французский', en: 'French' },
   inLanguage: { tg: 'ба фаронсавӣ', ru: 'по-французски', en: 'in French' },
+  voiceCheck: {
+    sample: "Bonjour ! Je m'appelle Marie. Un, deux, trois.",
+    question: { tg: 'Овози фаронсавӣ шунидед?', ru: 'Слышен французский голос?', en: 'Did you hear a French voice?' },
+  },
   genders: ['m', 'f'],
   sameSound: (a, b) => soundsSame(a, b, FRENCH_SPOKEN),
   deckRules: {

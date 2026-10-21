@@ -23,6 +23,7 @@ import type {
   MetaRow,
   ReviewRecord,
   SettingsRow,
+  VoiceCheck,
 } from '../core/model';
 import { RULES_VERSION } from '../core/scheduler';
 import type { ManaDb } from './db';
@@ -71,6 +72,22 @@ export async function setSystemKeyboard(db: ManaDb, value: boolean): Promise<Met
     await db.meta.put(next);
     return next;
   });
+}
+
+/** Remember the answer of the "Voice check" for a learning language (Р33 п. 14, device-only). */
+export async function setVoiceCheck(db: ManaDb, language: string, value: VoiceCheck): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const row = await db.meta.get('device');
+    if (!row) throw new Error('setVoiceCheck: no device row');
+    const next: MetaRow = { ...row, voiceChecks: { ...row.voiceChecks, [primaryLanguage(language)]: value } };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/** Deck ids whose learning language has the browser voice checked "yes" on this device. */
+export function voiceDecks(decks: readonly DeckRow[], meta: MetaRow): Set<string> {
+  return new Set(decks.filter((d) => meta.voiceChecks?.[primaryLanguage(d.language)] === 'yes').map((d) => d.id));
 }
 
 /** Texts of every visible entry of the installed decks in a learning language (hint vocabulary). */
@@ -164,7 +181,7 @@ export async function applyImport(db: ManaDb, plan: ImportPlan, audio: readonly 
 // ---------- Journal ----------
 
 export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRevision' | 'sessionId'> &
-  Partial<Pick<IntroRecord, 'echo' | 'copy' | 'tz' | 'tzOffsetMin'>>;
+  Partial<Pick<IntroRecord, 'echo' | 'copy' | 'tz' | 'tzOffsetMin' | 'audioSource' | 'voice'>>;
 export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs' | 'rules'>;
 
 export async function recordIntro(
@@ -258,17 +275,20 @@ export interface SessionData {
   cards: CardRow[];
   log: LogRecord[];
   decks: DeckRow[];
+  /** Decks whose language has the browser voice checked on this device: `listen` without a file (Р33 п. 14). */
+  voiceDecks: Set<string>;
 }
 
 /** What buildSession and the outlook need: every deck, since debts and the daily limits span them all. */
 export async function loadSessionData(db: ManaDb, userId: string): Promise<SessionData> {
-  const [entries, cards, log, decks] = await Promise.all([
+  const [entries, cards, log, decks, meta] = await Promise.all([
     db.entries.toArray(),
     db.cards.where('[userId+deckId]').between([userId, Dexie.minKey], [userId, Dexie.maxKey]).toArray(),
     userLog(db, userId),
     db.decks.toArray(),
+    db.meta.get('device'),
   ]);
-  return { entries, cards, log, decks };
+  return { entries, cards, log, decks, voiceDecks: meta ? voiceDecks(decks, meta) : new Set() };
 }
 
 async function replaceUserCards(db: ManaDb, scheduler: FSRS, userId: string): Promise<CardRow[]> {

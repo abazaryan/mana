@@ -87,9 +87,8 @@ describe('deck content (Р28)', () => {
     expect(has([e('le nom', { hint: { tg: 'шиносвожаи муайян' } })], 'по глоссарию')).toEqual([]);
   });
 
-  it('В9: listen without deck audio', () => {
-    expect(has([e('oui', { skills: ['listen'] })], 'нет audio')).toHaveLength(1);
-    expect(has([e('oui', { skills: ['listen'], audio: 'audio/oui.mp3' })], 'нет audio')).toEqual([]);
+  it('В9 is gone: listen without deck audio plays the browser voice (Р33 п. 14)', () => {
+    expect(has([e('oui', { skills: ['listen'] })], 'audio')).toEqual([]);
   });
 
   it('В10: tu / vous need (informal) / (formal) in the English meaning; rendez-vous is not address', () => {
@@ -103,8 +102,8 @@ describe('deck content (Р28)', () => {
   });
 
   it('without language rules only the language-neutral checks run', () => {
-    const msgs = contentWarnings([e('un'), e('le livre', { tags: ['word'] }), e('oui', { skills: ['listen'] })], undefined).map((w) => w.message);
-    expect(msgs.some((m) => m.includes('нет audio'))).toBe(true);
+    const msgs = contentWarnings([e('un'), e('le livre', { tags: ['word'] }), e('ami', { meaning: { ru: 'друг (м.)' } })], undefined).map((w) => w.message);
+    expect(msgs.some((m) => m.includes('грамматика текстом'))).toBe(true);
     expect(msgs.some((m) => m.includes('число с родом') || m.includes('form.determiner'))).toBe(false);
   });
 });

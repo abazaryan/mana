@@ -146,33 +146,55 @@ export function createBrowserRecognizer(): SpeechRecognizer {
   };
 }
 
-function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
+/** Voices of a language: exact tag first, then the same primary language; on-device ones first (Р33 п. 14). */
+function voicesOf(lang: string): SpeechSynthesisVoice[] {
   const voices = speechSynthesis.getVoices() ?? [];
   const want = lang.toLowerCase();
-  const prefix = want.slice(0, 2);
-  return (
-    voices.find((v) => v.lang.replace('_', '-').toLowerCase() === want) ??
-    voices.find((v) => v.lang.toLowerCase().startsWith(prefix))
-  );
+  const prefix = want.split('-')[0]!;
+  const tag = (v: SpeechSynthesisVoice) => v.lang.replace('_', '-').toLowerCase();
+  const rank = (v: SpeechSynthesisVoice) => (tag(v) === want ? 0 : 2) + (v.localService ? 0 : 1);
+  return voices.filter((v) => tag(v) === want || tag(v).split('-')[0] === prefix).sort((a, b) => rank(a) - rank(b));
+}
+
+function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
+  return voicesOf(lang)[0];
 }
 
 export function createBrowserSpeaker(): Speaker {
   const available = typeof window !== 'undefined' && 'speechSynthesis' in window;
   return {
-    speak(text, lang, onEnd) {
+    speak(text, lang, onEnd, onStart) {
       if (!available) return;
       const u = new SpeechSynthesisUtterance(text);
       if (onEnd) u.onend = () => onEnd();
+      u.onerror = (e) => {
+        if (e.error !== 'canceled' && e.error !== 'interrupted') onEnd?.();
+      };
       u.lang = lang;
       u.rate = 0.95;
       const v = pickVoice(lang);
       if (v) u.voice = v;
+      if (onStart) u.onstart = () => onStart(v?.name ?? null);
       speechSynthesis.speak(u);
     },
     cancel() {
       if (available) speechSynthesis.cancel();
     },
   };
+}
+
+/**
+ * What the browser says about voices of a language: `listed` false when it gives no
+ * list at all (Chrome and Edge on Android may not — then only listening tells), else
+ * the names of the matching voices, the one that will speak first.
+ */
+export function voicesFor(lang: string): { listed: boolean; names: string[] } {
+  try {
+    const all = speechSynthesis.getVoices() ?? [];
+    return { listed: all.length > 0, names: voicesOf(lang).map((v) => v.name) };
+  } catch {
+    return { listed: false, names: [] };
+  }
 }
 
 export function countFrenchVoices(): number {

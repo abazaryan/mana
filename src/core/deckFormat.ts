@@ -132,7 +132,8 @@ export interface DeckCheckOptions {
 }
 
 export interface DeckIssue {
-  level: 'error' | 'warning';
+  /** error: the deck is refused; warning: accepted, better fixed; info: nothing to fix (Р33 п. 15). */
+  level: 'error' | 'warning' | 'info';
   /** Machine-readable location, e.g. "entries[3].meaning.tg"; "" for the whole deck or archive. */
   path: string;
   /** Complete Russian sentence, including the location. */
@@ -144,6 +145,8 @@ export interface DeckCheck {
   deck: Deck | null;
   errors: DeckIssue[];
   warnings: DeckIssue[];
+  /** Information only, e.g. entries without audio play the browser voice (Р33 п. 14). */
+  notes: DeckIssue[];
 }
 
 const DECK_KEYS = new Set(['format', 'version', 'id', 'revision', 'language', 'tags', 'title', 'entries']);
@@ -247,7 +250,7 @@ export function primaryLanguage(tag: string): string {
  */
 export function deckNameFromFileName(fileName: string): string {
   const base = fileName.split(/[\\/]/).pop() ?? '';
-  return base.replace(/\.zip$/i, '').trim();
+  return base.replace(/\.(zip|json)$/i, '').trim();
 }
 
 /** Name of an installed deck in the interface language (Р30): its title, else the stored name (the file name). */
@@ -679,7 +682,7 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
   const c = new Collector();
   if (!isObject(value)) {
     c.error('', `${DECK_JSON}: в начале файла должен быть объект { ... }, а сейчас ${typeName(value)}.`);
-    return { deck: null, errors: c.errors, warnings: c.warnings };
+    return { deck: null, errors: c.errors, warnings: c.warnings, notes: [] };
   }
 
   if (value.format === LEGACY_DECK_FORMAT) {
@@ -796,6 +799,7 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
     deck: c.errors.length === 0 ? (value as unknown as Deck) : null,
     errors: c.errors,
     warnings: c.warnings,
+    notes: [],
   };
 }
 
@@ -806,6 +810,51 @@ function isJunk(path: string): boolean {
 
 function megabytes(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
+}
+
+/**
+ * Entries without deck audio play the browser voice (Р33 п. 14). A deck with no audio
+ * at all is a choice (a note); some entries without it is likely a forgotten file (a
+ * warning). `listen` of such an entry needs the voice checked on the device.
+ */
+function audioSummary(result: DeckCheck, entries: readonly unknown[], hasAudio: (e: Record<string, unknown>) => boolean): void {
+  const items = entries.filter(isObject);
+  const without = items.flatMap((e, i) => (hasAudio(e) ? [] : [i + 1]));
+  if (without.length === 0) return;
+  const listen = items.some((e, i) => without.includes(i + 1) && Array.isArray(e.skills) && e.skills.includes('listen'));
+  const tail = listen ? ' Карточки listen для них — голосом браузера, если голос проверен на устройстве (Р33 п. 14).' : '';
+  if (without.length === items.length) {
+    result.notes.push({ level: 'info', path: '', message: `В колоде нет звука: записи прозвучат голосом браузера.${tail}` });
+    return;
+  }
+  const shown = without.slice(0, 5).join(', ') + (without.length > 5 ? '…' : '');
+  result.warnings.push({
+    level: 'warning',
+    path: '',
+    message: `Нет audio у ${without.length} из ${items.length} записей (записи ${shown}) — они прозвучат голосом браузера. Если звук для них есть, добавьте файлы.${tail}`,
+  });
+}
+
+/**
+ * Validates deck.json alone, without an archive (Р33 п. 15): pasted text or a .json
+ * file. Audio paths are not looked up; every entry plays the browser voice.
+ */
+export function checkDeckJson(deckJsonText: string, options: DeckCheckOptions = {}): DeckCheck {
+  const parsed = parseDeckJson(deckJsonText);
+  if (parsed.error) return { deck: null, errors: [parsed.error], warnings: [], notes: [] };
+  const result = validateDeck(parsed.value, options);
+  const entries = isObject(parsed.value) && Array.isArray(parsed.value.entries) ? parsed.value.entries : [];
+  const declared = entries.filter((e) => isObject(e) && typeof e.audio === 'string').length;
+  if (declared > 0) {
+    result.notes.push({
+      level: 'info',
+      path: '',
+      message: `Загружен только ${DECK_JSON}, без архива: файлы audio (${declared}) не приложены. Чтобы добавить звук, соберите ZIP с папкой audio/.`,
+    });
+  }
+  audioSummary(result, entries, () => false);
+  if (result.errors.length > 0) result.deck = null;
+  return result;
 }
 
 /**
@@ -823,11 +872,11 @@ export function checkDeckArchive(
     const message = nested
       ? `${DECK_JSON} лежит в папке (${q(nested)}), а должен — в корне архива. Заархивируйте содержимое папки, а не саму папку.`
       : `В архиве нет файла ${DECK_JSON}.`;
-    return { deck: null, errors: [{ level: 'error', path: '', message }], warnings: [] };
+    return { deck: null, errors: [{ level: 'error', path: '', message }], warnings: [], notes: [] };
   }
 
   const parsed = parseDeckJson(deckJsonText);
-  if (parsed.error) return { deck: null, errors: [parsed.error], warnings: [] };
+  if (parsed.error) return { deck: null, errors: [parsed.error], warnings: [], notes: [] };
   const result = validateDeck(parsed.value, options);
 
   const present = new Set(files);
@@ -859,6 +908,7 @@ export function checkDeckArchive(
         : `Лишний файл ${q(p)} — будет пропущен (нужны только ${DECK_JSON} и папка audio/).`,
     });
   }
+  audioSummary(result, entries, (e) => typeof e.audio === 'string');
   if (options.archiveBytes !== undefined && options.archiveBytes > LARGE_ARCHIVE_BYTES) {
     const wav = [...used].filter((p) => p.endsWith('.wav')).length;
     result.warnings.push({

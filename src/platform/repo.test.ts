@@ -26,6 +26,7 @@ import {
   recordReview,
   restoreJournal,
   setSystemKeyboard,
+  setVoiceCheck,
   userLog,
   type Actor,
   type ReviewInput,
@@ -526,5 +527,29 @@ describe('system keyboard setting (Р31)', () => {
     expect((await db.meta.get('device'))?.systemKeyboard).toBe(true);
     expect((await db.meta.get('device'))?.userId).toBe(meta.userId);
     expect((await setSystemKeyboard(db, false)).systemKeyboard).toBe(false);
+  });
+
+  it('the voice check is kept per learning language on the device and opens listen without files there (Р33 п. 14)', async () => {
+    const db = freshDb();
+    const meta = await ensureDevice(db);
+    await importDeck(db);
+    expect((await loadSessionData(db, meta.userId)).voiceDecks.size).toBe(0);
+    const next = await setVoiceCheck(db, 'fr-FR', 'yes');
+    expect(next.voiceChecks).toEqual({ fr: 'yes' });
+    expect(next.userId).toBe(meta.userId);
+    expect([...(await loadSessionData(db, meta.userId)).voiceDecks]).toEqual(['fr-test-01']);
+    await setVoiceCheck(db, 'fr-CA', 'no');
+    expect((await db.meta.get('device'))?.voiceChecks).toEqual({ fr: 'no' });
+    expect((await loadSessionData(db, meta.userId)).voiceDecks.size).toBe(0);
+  });
+
+  it('the sound of a card is journaled and survives a backup (Р33 п. 14)', async () => {
+    const db = freshDb();
+    const meta = await ensureDevice(db);
+    await importDeck(db);
+    await recordIntro(db, meta, { at: new Date(T0), deckId: 'fr-test-01', entryId: 'a', deckRevision: 1, sessionId: 's', audioSource: 'browser', voice: 'Google français' });
+    const { json } = await exportJournal(db, meta);
+    const parsed = parseBackup(json);
+    expect(parsed.ok && parsed.backup.records[0]).toMatchObject({ audioSource: 'browser', voice: 'Google français' });
   });
 });

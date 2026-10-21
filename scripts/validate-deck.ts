@@ -61,6 +61,7 @@ if (r.deck && withFiles.length > 0) {
 for (const e of r.errors) console.log(`ОШИБКА: ${e.message}`);
 for (const w of r.warnings) console.log(`Предупреждение: ${w.message}`);
 for (const w of cross) console.log(`Предупреждение: ${w}`);
+for (const n of r.notes) console.log(`Сведение: ${n.message}`);
 if (r.deck) {
   const audio = r.deck.entries.filter((e) => e.audio).length;
   // Р30: the name from deck.json (in Russian, else any); the file name only without it.
