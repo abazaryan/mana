@@ -39,7 +39,7 @@ GitHub-приложение «Cloudflare Workers and Pages» уже устано
    | Non-production branch deploy command / Preview command | оставить по умолчанию (см. п. 6)                                            |
    | Root directory (Path)                                  | пусто или `/`                                                               |
    | Build variables                                        | `WRANGLER_SEND_METRICS` = `false` (см. п. 8)                                |
-   | API token                                              | не трогать — Cloudflare создаст сам                                         |
+   | API token                                              | при подключении — как предложит Cloudflare; с 6а.0 — `mana build token` (раздел «Токены и база D1») |
 
 6. **Advanced settings** **(?)** → снять галочку **Builds for non-production branches** **(?)**:
    нужен только `main`. Если пропустить — не страшно: превью-адреса в `wrangler.jsonc`
@@ -91,6 +91,104 @@ Worker и `name` в `wrangler.jsonc`.
   публикации (так же в Rechenwege, его решение D-8).
 - `Some chunks are larger than 500 kB` — предупреждение Vite о размере файла приложения, не
   ошибка; было и на GitHub Pages.
+
+## Токены и база D1 (этап 6а, шаг 6а.0)
+
+Значения токенов нигде не записываются — ни здесь, ни в коммитах, ни в чате. Здесь — только
+названия, права и сроки.
+
+### Токен сборки «mana build token (Builds)»
+
+Им Workers Builds публикует Worker `mana`. Общий «rechenwege build token» не менять и не
+удалять: им публикуется Rechenwege. По документации изменённый или удалённый токен становится
+«stale» и ломает сборку
+([troubleshoot](https://developers.cloudflare.com/workers/ci-cd/builds/troubleshoot/)); на деле
+правка прав токена Маны 22.10.2026 сборку не сломала (см. ниже), но удаление сломает точно.
+
+**Как сделано 22.10.2026 (по факту, так и повторять):**
+
+1. Worker `mana` → **Settings** → **Builds** → **API token** → **Create new token**.
+   Токен из **My Profile → API Tokens** в этот список выбрать нельзя: Workers Builds показывает
+   только токены, созданные через этот список (вопреки ожиданию по
+   [builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)).
+2. **Сразу сузить** в **My Profile** → **API Tokens** → этот токен → **Edit**. Автоматический
+   токен получает около 27 прав, в том числе **D1 Edit, R2 Edit**, KV Edit, Secrets Store Edit,
+   Queues, AI и права на все зоны (Email Routing Rules, Workers Routes, SSL and Certificates),
+   без срока. **Без сужения нарушается Р33 п. 3** (токен сборки — без права на D1).
+   Оставить шесть прав:
+
+   | Группа  | Право            | Уровень |
+   | ------- | ---------------- | ------- |
+   | Account | Workers Scripts  | Edit    |
+   | Account | Account Settings | Read    |
+   | Account | Artifacts        | Edit    |
+   | Account | Artifacts        | Read    |
+   | User    | User Details     | Read    |
+   | User    | Memberships      | Read    |
+
+   **Account Resources:** аккаунт `amisipehr`; зон нет. **TTL:** 22.10.2026 – **31.10.2027**.
+   Имя: `mana build token (Builds)`. Нужно ли Artifacts — не проверялось, оставлено.
+3. Worker `mana` → **Deployments** → **Retry build** → должно быть **Ready**. 22.10.2026:
+   Ready, активна версия `30cc13e7` — правка прав токен не сломала.
+
+Ручной «mana build token» из My Profile (созданный по первому плану) удалён.
+
+**Срок.** После 31.10.2027 публикация перестанет работать (сайт останется на прежней версии,
+проверка на GitHub — красная). Заранее: пп. 1–3 заново, затем старый токен удалить.
+
+**Если понадобится добавить право** (например, D1 Read, если сборка с привязкой D1 в 6а.1 упадёт
+на доступе): правка в My Profile → Edit, затем **Retry build**; если сборка скажет, что токен
+«stale», — выбрать его заново в Settings → Builds → API token.
+
+**Откат:** в Settings → Builds → API token выбрать `rechenwege build token` → **Retry build**.
+
+### Токен администратора «mana admin token»
+
+Им я выполняю `wrangler d1 …` с ноутбука: создание базы, миграции, скрипты администратора.
+
+1. **My Profile** → **API Tokens** → **Create Token** → **Create Custom Token**, имя
+   `mana admin token`.
+2. Права: **Account → D1 → Edit**; **Account Resources:** Include → `amisipehr`. Больше ничего.
+   Право D1 действует на все базы аккаунта — сузить до одной базы нельзя. В 6б понадобится
+   R2 — тогда новый токен с D1 Edit и R2 Edit.
+3. **TTL:** до **30.04.2027**. IP-фильтр не задавать (домашний адрес меняется).
+4. Значение вписать в `tools/.env` (файл вне git) в текстовом редакторе:
+   `MANA_ADMIN_API_TOKEN=…` и `CLOUDFLARE_ACCOUNT_ID=…` (Account ID — на странице аккаунта
+   или Workers & Pages, обычно справа **(?)**). Образец без значений — `tools/.env.example`.
+5. **Замена** (до истечения или при подозрении на утечку): создать новый токен с теми же
+   правами → заменить значение в `tools/.env` → `node tools/admin/check-token.ts` → удалить
+   старый токен в панели.
+
+Как пользоваться (только имена переменных, значения не печатаются):
+
+- `node tools/admin/check-token.ts` — «есть / статус / срок»;
+- `node tools/admin/wrangler.ts <команда wrangler>` — например, `d1 info mana`. Обёртка
+  читает `tools/.env` сама, передаёт токен только дочернему `wrangler` как
+  `CLOUDFLARE_API_TOKEN` (в своё окружение не копирует), выключает телеметрию, не даёт уровень
+  логов `debug` и заменяет значение токена в выводе на `***`.
+- Claude Code: `.claude/settings.json` запрещает инструментам чтения открывать `tools/.env`.
+
+`tools/lab/check-cloudflare.ts` (лаборатория распознавания, Р23) читает
+`CLOUDFLARE_API_TOKEN` и после перехода на `MANA_ADMIN_API_TOKEN` больше не работает.
+
+### База D1
+
+- Имя `mana`, юрисдикция **`eu`** — задаётся только при создании, изменить нельзя
+  ([data location](https://developers.cloudflare.com/d1/configuration/data-location/)).
+- Создана 22.10.2026 командой
+  `node tools/admin/wrangler.ts d1 create mana --jurisdiction=eu --update-config=false`
+  (подтверждена владельцем дословно).
+- **`database_id`: `402d25f9-3390-45f4-9177-57621f470661`**. Это идентификатор, не секрет:
+  без токена доступа к базе он не даёт; id ресурсов и аккаунта держат в публичном
+  `wrangler.jsonc` ([обсуждение workers-sdk #7115](https://github.com/cloudflare/workers-sdk/discussions/7115);
+  официальной страницы Cloudflare об этом нет).
+- Юрисдикция видна в `node tools/admin/wrangler.ts d1 info mana --json` и `d1 list --json` —
+  поле `"jurisdiction": "eu"`; `running_in_region` — `EEUR` (место внутри юрисдикции).
+- Привязку в `wrangler.jsonc` добавляет шаг 6а.1.
+- **Привязки D1 (в 6б — и R2) — только с явным идентификатором ресурса**, созданного с
+  юрисдикцией `eu`. wrangler ≥ 4.45 при `deploy` сам создаёт ресурс для привязки без id, и
+  такой ресурс будет без юрисдикции
+  ([changelog 24.10.2025](https://developers.cloudflare.com/changelog/2025-10-24-automatic-resource-provisioning/)).
 
 ## 5. Установить на телефон (Android, Chrome)
 
