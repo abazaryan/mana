@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && npm run worker:check && vite build",
+    "worker:types": "wrangler types worker/worker-configuration.d.ts",
+    "worker:check": "npm run worker:types && tsc --noEmit -p worker/tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -35,6 +37,6 @@
   },
   "allowScripts": {
     "esbuild": false,
-    "workerd": false
+    "workerd": true
   }
 }

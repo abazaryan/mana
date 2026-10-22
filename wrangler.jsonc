@@ -1,18 +1,35 @@
-// Cloudflare Workers, static assets only: no Worker script (no "main"). Decision Р32.
-// Workers Builds on every push to main: build command `npm test && npm run build`,
-// deploy command `npx wrangler deploy`. Headers (CSP, caching) live in public/_headers.
-// Step-by-step setup in the Cloudflare dashboard: docs/DEPLOY.md.
+// Cloudflare Workers: the static site (dist/) and the API (/api/*, worker/) on one address —
+// decisions Р32, Р33 п. 2, Р36. Workers Builds on every push to main: build command
+// `npm test && npm run build`, deploy command `npx wrangler deploy`. Headers of the static
+// files live in public/_headers; headers of API responses — in worker/http.ts.
+// Step-by-step setup in the Cloudflare dashboard, migrations, checks: docs/DEPLOY.md.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "mana",
-  // Navigation requests never invoke a Worker script from 2025-04-01 on (matters at stage 6a).
+  "main": "worker/index.ts",
+  // Navigation requests never invoke a Worker script from 2025-04-01 on.
   "compatibility_date": "2026-10-20",
   "assets": {
     "directory": "./dist",
+    // Lets the Worker hand paths with no file back to the static files (worker/index.ts).
+    "binding": "ASSETS",
     // The app routes by #/…: only / is needed. An unknown path gets a plain 404, not
     // index.html — with base './' a nested path would load its scripts from a wrong folder.
     "not_found_handling": "none",
+    // Only the API runs the Worker before the files.
+    "run_worker_first": ["/api/*"],
   },
+  // Only with an explicit id of a database created with jurisdiction eu: without one, wrangler
+  // creates a database of its own on deploy, without the jurisdiction (worker/wrangler-config.test.ts).
+  // Migrations are applied by hand before the push that needs them (docs/DEPLOY.md).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mana",
+      "database_id": "402d25f9-3390-45f4-9177-57621f470661",
+      "migrations_dir": "migrations",
+    },
+  ],
   // No Cloudflare logs or analytics: answers and recordings stay on the device.
   "observability": { "enabled": false },
   // No Wrangler usage telemetry from the build machine.

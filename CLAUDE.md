@@ -25,7 +25,7 @@
 - Тесты: Vitest для всей «чистой» логики.
 - PWA: vite-plugin-pwa (этап 7).
 - Бэкенд (этап 6): Cloudflare Workers + D1 + R2. Запасной вариант — Supabase Pro. Перед этапом перепроверить цены, лимиты и хранение данных в ЕС.
-- Хостинг: Cloudflare Workers, только статические файлы, https://mana.amisipehr.workers.dev (Р32). Публикация — Workers Builds при push в `main` (`npm test && npm run build`, `npx wrangler deploy`); настройки — `wrangler.jsonc`, заголовки и CSP — `public/_headers`, шаги в панели — `docs/DEPLOY.md`. Старый адрес https://abazaryan.github.io/mana/ — страница «переехала» (`pages-moved/`, GitHub Actions). HTTPS обязателен для микрофона.
+- Хостинг: Cloudflare Workers, https://mana.amisipehr.workers.dev (Р32): статические файлы и с 6а.1 API `/api/*` (код — `worker/`, база D1 `mana`, миграции — `migrations/`, только вручную до push; Р33, Р36). Публикация — Workers Builds при push в `main` (`npm test && npm run build`, `npx wrangler deploy`); настройки — `wrangler.jsonc`, заголовки и CSP — `public/_headers`, шаги в панели — `docs/DEPLOY.md`. Старый адрес https://abazaryan.github.io/mana/ — страница «переехала» (`pages-moved/`, GitHub Actions). HTTPS обязателен для микрофона.
 
 Новые зависимости сверх этого списка — только с объяснением, зачем они нужны.
 

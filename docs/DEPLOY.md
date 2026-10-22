@@ -1,6 +1,7 @@
 # Публикация на Cloudflare
 
-Сайт — только статические файлы (`dist/`), без кода Worker (Р32). После подключения каждый
+Один Worker `mana`: статические файлы сайта (`dist/`, Р32) и API `/api/*` (код — `worker/`,
+с шага 6а.1, Р33 п. 2, Р36; раздел «Worker и API» ниже). После подключения каждый
 `git push` в `main` запускает тесты и сборку; если всё прошло — публикует новую версию
 на `https://mana.amisipehr.workers.dev` (Workers Builds). Если тесты упали — публикации нет,
 на сайте остаётся прежняя версия.
@@ -85,10 +86,13 @@ Worker и `name` в `wrangler.jsonc`.
 
 ### Предупреждения в логе сборки
 
-- `npm warn allow-scripts … esbuild, workerd` — в `package.json` записано
-  `allowScripts: { "esbuild": false, "workerd": false }`: install-скрипты этих пакетов только
-  скачивают или проверяют программы, которые нужны для `wrangler dev`, но не для сборки и
-  публикации (так же в Rechenwege, его решение D-8).
+- `npm warn allow-scripts … esbuild` — в `package.json` записано
+  `allowScripts: { "esbuild": false, "workerd": true }`. Скрипт `esbuild` только проверяет
+  программу; сборке Worker он не нужен (проверено `wrangler deploy --dry-run`, 23.10.2026).
+  Скрипт `workerd` разрешён с 6а.1 (Р33 п. 17): он проверяет программу для `wrangler dev`, а
+  если пакета для системы нет — скачивает его той же версии с registry.npmjs.org.
+- `wrangler types` (часть `npm run build`) пишет «Action required Install @types/node» — не
+  нужно: Worker не использует Node.js API.
 - `Some chunks are larger than 500 kB` — предупреждение Vite о размере файла приложения, не
   ошибка; было и на GitHub Pages.
 
@@ -184,11 +188,72 @@ Worker и `name` в `wrangler.jsonc`.
   официальной страницы Cloudflare об этом нет).
 - Юрисдикция видна в `node tools/admin/wrangler.ts d1 info mana --json` и `d1 list --json` —
   поле `"jurisdiction": "eu"`; `running_in_region` — `EEUR` (место внутри юрисдикции).
-- Привязку в `wrangler.jsonc` добавляет шаг 6а.1.
+- Привязка в `wrangler.jsonc` — с шага 6а.1: `DB` → `mana`, миграции — папка `migrations/`.
 - **Привязки D1 (в 6б — и R2) — только с явным идентификатором ресурса**, созданного с
   юрисдикцией `eu`. wrangler ≥ 4.45 при `deploy` сам создаёт ресурс для привязки без id, и
   такой ресурс будет без юрисдикции
   ([changelog 24.10.2025](https://developers.cloudflare.com/changelog/2025-10-24-automatic-resource-provisioning/)).
+  Следит тест `worker/wrangler-config.test.ts`: в нём список ресурсов `eu`; новый ресурс
+  вносится туда только после `d1 info` / `r2 bucket info` с `"jurisdiction": "eu"`.
+
+## Worker и API (этап 6а, шаг 6а.1, Р36)
+
+- **Код** — `worker/`: `index.ts` (вход), `api.ts` (маршруты и порядок проверок), `guards.ts`
+  (CSRF, JSON, размер тела, версия клиента), `http.ts` (заголовки ответов API), `profile.ts`,
+  `health.ts`, `config.ts` (`ORIGIN`, `MIN_CLIENT`, предел тела 4 КБ).
+- **Кто отвечает.** Файлы сайта отдаются без Worker. Worker вызывается для `/api/*`
+  (`run_worker_first`) и для путей, у которых нет файла: их он возвращает статике
+  (`env.ASSETS.fetch`, прежний пустой 404) с меткой `X-Mana-Worker: assets`. Логов нет — по
+  заголовкам видно: у `/` нет ни метки, ни заголовков API; у ответов API — `Cache-Control:
+  no-store`, CSP `default-src 'none'`, `Cross-Origin-Resource-Policy`, HSTS.
+- **Тесты** — `npm test` (Vitest в Node, база — `worker/test/sqlite-d1.ts` на `node:sqlite`).
+  **Типы** — `npm run worker:check` (часть `npm run build`): `wrangler types` →
+  `worker/worker-configuration.d.ts` (не в git) → `tsc -p worker/tsconfig.json`.
+- **Местная проверка:** `npm run build` → `npx wrangler d1 migrations apply mana --local` →
+  `npx wrangler dev --port 8787 --ip 127.0.0.1` → `curl.exe -si http://127.0.0.1:8787/api/health`.
+  Местная база — `.wrangler/state/` (не в git).
+
+### Миграции D1 — порядок
+
+Миграция — файл `migrations/000N_….sql`; только добавление (новые таблицы, столбцы со
+значением по умолчанию, индексы; тест `worker/migrations.test.ts`). Токену сборки права D1 нет:
+миграции к настоящей базе применяю я вручную **до** push кода, который их требует.
+
+1. Локально, движок D1: `npx wrangler d1 migrations apply mana --local` (+ `npm test`).
+2. Что применится на настоящей базе (только чтение):
+   `node tools/admin/wrangler.ts d1 migrations list mana --remote`.
+3. **Применение — после подтверждения владельца дословно:**
+   `node tools/admin/wrangler.ts d1 migrations apply mana --remote`.
+4. Проверка: `migrations list` ещё раз (нечего применять) и при необходимости
+   `node tools/admin/wrangler.ts d1 execute mana --remote --json --command "…"` (в `meta` —
+   `rows_read`).
+5. Push кода.
+
+Ошибочная миграция на пустой таблице исправляется следующей миграцией; восстановление базы
+целиком — Time Travel (`wrangler d1 time-travel restore`, 7 дней на Free).
+
+### Проверки после публикации
+
+```
+curl.exe -si https://mana.amisipehr.workers.dev/
+curl.exe -si https://mana.amisipehr.workers.dev/nope
+curl.exe -si https://mana.amisipehr.workers.dev/api/health
+curl.exe -si https://mana.amisipehr.workers.dev/api/nope
+curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.workers.dev/api/health
+```
+
+Ожидается: `/` — 200, CSP из `_headers`, без `X-Mana-Worker`; `/nope` — 404, пустое тело,
+`X-Mana-Worker: assets`; `/api/health` — 200 `{"ok":true,"db":true}` и заголовки API;
+`/api/nope` — 404 `{"error":"not_found"}`; чужой `Origin` — 403 `{"error":"forbidden"}`.
+`/api/health` 503 `{"ok":false,"db":false}` — база не отвечает или миграция не применена.
+
+### Откат
+
+- **Быстро:** Worker `mana` → **Deployments** → прежняя версия (до 6а.1 — только статика) →
+  **Rollback** **(?)**: без сборки, сразу.
+- **Надёжно:** `git revert` коммита и push — сборка снова без Worker.
+- Таблицы, добавленные миграциями, при откате кода остаются — они только добавлены и старой
+  версии не мешают.
 
 ## 5. Установить на телефон (Android, Chrome)
 

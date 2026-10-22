@@ -1,0 +1,24 @@
+{
+  // The Worker's own type check (npm run worker:check, part of npm run build): Workers runtime
+  // types from `wrangler types` (worker-configuration.d.ts, generated, not in git), no DOM.
+  // Tests run in Node under Vitest and are not checked here (they use node:sqlite).
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["*.ts", "worker-configuration.d.ts"],
+  "exclude": ["*.test.ts", "test"]
+}
