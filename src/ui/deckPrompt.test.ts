@@ -40,4 +40,17 @@ describe('the instructions for the AI (Р34)', () => {
       expect(text).toContain('"speech": "tchao"');
     }
   });
+
+  it('close expressions: 2–3 per group by default, situation hints, "in full" for the full form', () => {
+    const ru = deckPromptText({ lang: 'ru', meaningLang: 'ru', language: 'fr-FR', installed: installed('ru') });
+    expect(ru).toContain('БЛИЗКИЕ ВЫРАЖЕНИЯ');
+    expect(ru).toContain('не больше 2–3 записей одной группы');
+    expect(ru).toContain('Если ученик сам просит колоду про эту группу');
+    expect(ru).toContain('hint с ситуацией употребления');
+    expect(ru).toContain('«полностью»');
+    const en = deckPromptText({ lang: 'en', meaningLang: 'en', language: 'fr-FR', installed: installed('en') });
+    expect(en).toContain('CLOSE EXPRESSIONS');
+    expect(en).toContain('no more than 2–3 entries of one group');
+    expect(en).toContain('("in full")');
+  });
 });

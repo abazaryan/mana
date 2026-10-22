@@ -42,7 +42,7 @@ const RULES_RU = `Ты помогаешь ученику сделать личн
 3. Покажи таблицу всех записей на проверку — без JSON:
    | № | text | значение | форма | подсказка | голос |
    «форма» — form словами (определённый / неопределённый артикль, м. / ж. род, ед. / мн. число); «подсказка» — hint; «голос» — speech (что прочитает голос браузера вместо text) или «без listen»; пусто, если ничего из этого нет.
-   Под таблицей коротко перечисли спорные места: синонимы, пересечения по смыслу с установленными колодами, намеренные повторы.
+   Под таблицей коротко перечисли спорные места: синонимы, пересечения по смыслу с установленными колодами, намеренные повторы; отдельной строкой — группы близких выражений («Прощания: salut (при прощании), à plus, ciao»).
 4. Жди ответа ученика. Исправь по замечаниям; если правок много — покажи таблицу снова.
 5. deck.json — ТОЛЬКО после явного согласия ученика («да», «бале», «ok»). Потом скажи одной строкой: скопировать ответ, вставить его в «Ману» как текст колоды, проверить и установить.
 
@@ -150,8 +150,17 @@ const RULES_RU = `Ты помогаешь ученику сделать личн
 - Грамматика (определённость, род, число) — ТОЛЬКО в form, никогда текстом в meaning, hint или note («(м.)», «(мард)», «с артиклем»).
 - Таджикский текст — персидский язык Ирана в таджикской кириллице: артикль — шиносвожа (не «артикл»), слово — вожа, фраза — ибора. Лучше вообще не писать грамматику текстом.
 
+БЛИЗКИЕ ВЫРАЖЕНИЯ (приветствия, прощания, благодарности, извинения, согласие и отказ)
+Ученики путают их между собой, даже когда значения разные: «à plus» вместо «à plus tard», «au revoir salut» вместо «Salut, à plus !».
+- Найди в материале такие группы до таблицы.
+- По умолчанию — не больше 2–3 записей одной группы в колоде; остальные — в следующую колоду, когда эти выучены. Если ученик сам просит колоду про эту группу — делай её, но с подсказками по следующему пункту.
+- Если в колоде две и больше записей одной группы — у каждой hint с ситуацией употребления: кто, кому, когда («другу, увидитесь сегодня же» — à tout à l'heure; «другу, когда — неизвестно» — à plus). Не синоним и не перевод другой записи. hint из таблицы синонимов уточни ситуацией.
+- Краткая и полная форма (à plus / à plus tard) — одна запись, вторая форма — в note. Если в колоде полная форма, hint прямо говорит, какую ждут («полностью»), иначе сказанное «à plus» получит «Снова».
+- Фраза из двух выражений («Salut, à plus !») — только если оба уже есть отдельными записями в этой колоде или в установленных колодах.
+
 ПРОВЕРЬ ПЕРЕД ТАБЛИЦЕЙ И ПЕРЕД deck.json
 - Каждая запись: значение + form + hint допускают ровно один ответ; синонимы и пересечения с установленными колодами разведены.
+- Близкие выражения: не больше 2–3 записей одной группы (если ученик не просил иного), у каждой — hint с ситуацией; у полной формы при краткой в note — hint «полностью».
 - form.gender есть у слов с изменяемым родом, у фраз с il / elle / ils / elles, у un / une; у существительных с артиклем — gender и form.determiner, и есть вторая запись с другой формой.
 - Нет грамматики текстом; tu / vous помечены в en.
 - Записи без audio, которые голос прочитает неверно, — со speech или без listen.
@@ -179,7 +188,7 @@ HOW TO WORK (this order is required)
 3. Show a table of all entries for checking — no JSON:
    | # | text | meaning | form | hint | voice |
    "form" — form in words (definite / indefinite article, m. / f. gender, singular / plural); "hint" — hint; "voice" — speech (what the browser voice reads instead of text) or "no listen"; empty if neither.
-   Under the table, briefly list doubtful points: synonyms, overlaps in meaning with the installed decks, intended repeats.
+   Under the table, briefly list doubtful points: synonyms, overlaps in meaning with the installed decks, intended repeats; on a separate line — the groups of close expressions ("Farewells: salut (when leaving), à plus, ciao").
 4. Wait for the learner's answer. Fix what they point out; if there are many changes, show the table again.
 5. deck.json — ONLY after the learner clearly agrees ("yes", "ok"). Then say in one line: copy the answer, paste it into Mana as deck text, check and install.
 
@@ -287,8 +296,17 @@ THE MAIN PRINCIPLE
 - Grammar (definiteness, gender, number) goes ONLY in form, never as text in meaning, hint or note ("(m.)", "with article").
 - Tajik text is the Persian of Iran in Tajik Cyrillic: article — шиносвожа (not «артикл»), word — вожа, phrase — ибора. Better not to write grammar as text at all.
 
+CLOSE EXPRESSIONS (greetings, farewells, thanks, apologies, yes and no)
+Learners mix them up even when the meanings differ: "à plus" for "à plus tard", "au revoir salut" for "Salut, à plus !".
+- Find such groups in the material before the table.
+- By default, no more than 2–3 entries of one group per deck; the rest go to the next deck, once these are learned. If the learner asks for a deck about the group, make it, but with hints as in the next point.
+- If the deck has two or more entries of one group, each gets a hint with the situation of use: who, to whom, when ("to a friend, you meet again today" — à tout à l'heure; "to a friend, no idea when" — à plus). Not a synonym or a translation of another entry. Refine hints from the synonym table with the situation.
+- A short and a full form (à plus / à plus tard) — one entry, the other form goes to note. If the deck has the full form, the hint says plainly which form is wanted ("in full"), or a spoken "à plus" gets Again.
+- A phrase of two expressions ("Salut, à plus !") — only if both are already separate entries in this deck or in the installed decks.
+
 CHECK BEFORE THE TABLE AND BEFORE deck.json
 - Each entry: meaning + form + hint allow exactly one answer; synonyms and overlaps with the installed decks are told apart.
+- Close expressions: no more than 2–3 entries of one group (unless the learner asked otherwise), each with a situation hint; a full form with the short one in note has the hint "in full".
 - form.gender on words whose gender changes, on phrases with il / elle / ils / elles, on un / une; nouns with an article have gender and form.determiner and a second entry with the other form.
 - No grammar as text; tu / vous marked in en.
 - Entries without audio that the voice would read wrong have speech or no listen.
