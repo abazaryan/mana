@@ -23,6 +23,8 @@ decks/
 tools/.env
 tools/.env.*
 !tools/.env.example
+# Invitation and recovery links from the admin scripts (stage 6a.2)
+tools/.out/
 mana-lab/
 *.key.json
 
