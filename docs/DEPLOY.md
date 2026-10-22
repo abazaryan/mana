@@ -140,8 +140,10 @@ Worker и `name` в `wrangler.jsonc`.
 **Срок.** После 31.10.2027 публикация перестанет работать (сайт останется на прежней версии,
 проверка на GitHub — красная). Заранее: пп. 1–3 заново, затем старый токен удалить.
 
-**Если понадобится добавить право** (например, D1 Read, если сборка с привязкой D1 в 6а.1 упадёт
-на доступе): правка в My Profile → Edit, затем **Retry build**; если сборка скажет, что токен
+**Привязка D1 прав D1 не требует:** первая сборка с привязкой (6а.1, 23.10.2026) прошла с этими
+шестью правами.
+
+**Если понадобится добавить право:** правка в My Profile → Edit, затем **Retry build**; если сборка скажет, что токен
 «stale», — выбрать его заново в Settings → Builds → API token.
 
 **Откат:** в Settings → Builds → API token выбрать `rechenwege build token` → **Retry build**.
@@ -246,6 +248,8 @@ curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.wo
 `X-Mana-Worker: assets`; `/api/health` — 200 `{"ok":true,"db":true}` и заголовки API;
 `/api/nope` — 404 `{"error":"not_found"}`; чужой `Origin` — 403 `{"error":"forbidden"}`.
 `/api/health` 503 `{"ok":false,"db":false}` — база не отвечает или миграция не применена.
+Так и было 23.10.2026; у `/nope` заголовки `_headers` на месте (статика применяет их и к
+`env.ASSETS.fetch`). Итоги — `docs/STATUS.md`, шаг 6а.1.
 
 ### Откат
 
