@@ -27,6 +27,7 @@ import type {
 } from '../core/model';
 import { createScheduler, RULES_VERSION } from '../core/scheduler';
 import type { ManaDb } from './db';
+import { notifyQueued } from './syncEvents';
 
 export type NewId = () => string;
 export const randomId: NewId = () => crypto.randomUUID();
@@ -215,6 +216,27 @@ export type IntroInput = Pick<IntroRecord, 'at' | 'deckId' | 'entryId' | 'deckRe
   Partial<Pick<IntroRecord, 'echo' | 'copy' | 'tz' | 'tzOffsetMin' | 'audioSource' | 'voice'>>;
 export type ReviewInput = Omit<ReviewRecord, 'id' | 'type' | 'userId' | 'deviceId' | 'fsrs' | 'rules'>;
 
+/**
+ * A new record of this device goes into the send queue in the same transaction — only while the
+ * device is signed in and the record is the account's (stage 6a.3). Read here, not from memory:
+ * another window may have signed in or out.
+ */
+async function enqueue(db: ManaDb, record: LogRecord): Promise<boolean> {
+  const meta = await db.meta.get('device');
+  if (!meta?.account || meta.account.userId !== record.userId) return false;
+  await db.outbox.add({ id: record.id, status: 'pending', queuedAt: record.at.getTime() });
+  return true;
+}
+
+/** Appends a record of this device (and queues it for the server). */
+async function appendRecord(db: ManaDb, record: LogRecord): Promise<void> {
+  const queued = await db.transaction('rw', [db.log, db.meta, db.outbox], async () => {
+    await db.log.add(record);
+    return enqueue(db, record);
+  });
+  if (queued) notifyQueued();
+}
+
 export async function recordIntro(
   db: ManaDb,
   actor: Actor,
@@ -222,7 +244,7 @@ export async function recordIntro(
   newId: NewId = randomId,
 ): Promise<IntroRecord> {
   const record: IntroRecord = { ...input, id: newId(), type: 'intro', skill: null, ...who(actor) };
-  await db.log.add(record);
+  await appendRecord(db, record);
   return record;
 }
 
@@ -231,13 +253,17 @@ export type DrillInput = Omit<DrillRecord, 'id' | 'type' | 'userId' | 'deviceId'
 /** Appends the short practice after Again (R25); never touches the card. */
 export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, newId: NewId = randomId): Promise<DrillRecord> {
   const record: DrillRecord = { ...input, id: newId(), type: 'drill', ...who(actor) };
-  await db.log.add(record);
+  await appendRecord(db, record);
   return record;
 }
 
 /**
- * Appends an answer and updates its card in one transaction. A return after Again
- * (R29.2) is journaled, and the card stays as the first Again left it.
+ * Appends an answer and updates its card in one transaction (and queues it for the server). A
+ * return after Again (R29.2) is journaled, and the card stays as the first Again left it.
+ *
+ * The card is read inside the transaction, so a rebuild after records came from the server is
+ * the base. If that card already holds a later answer (the other device's clock was ahead), a
+ * step on top would differ from the journal order: the card is rebuilt from its history then.
  */
 export async function recordReview(
   db: ManaDb,
@@ -246,15 +272,20 @@ export async function recordReview(
   input: ReviewInput,
   newId: NewId = randomId,
 ): Promise<{ record: ReviewRecord; card: CardRow }> {
-  return db.transaction('rw', db.log, db.cards, async () => {
+  const out = await db.transaction('rw', [db.log, db.cards, db.meta, db.outbox], async () => {
     const key: [string, string, string, string] = [actor.userId, input.deckId, input.entryId, input.skill];
     const prev = (await db.cards.get(key)) ?? null;
-    const step = answerCard(scheduler, prev, input);
+    const late = prev?.lastReview != null && prev.lastReview.getTime() >= input.at.getTime();
+    // Late: the snapshot is taken from the card as its answers before this one left it.
+    const step = answerCard(scheduler, late ? await cardBefore(db, scheduler, key, input.at) : prev, input);
     const record: ReviewRecord = { ...input, id: newId(), type: 'review', ...who(actor), rules: RULES_VERSION, fsrs: step.fsrs };
-    if (!step.changed && prev) {
-      await db.log.add(record);
-      return { record, card: prev };
+    await db.log.add(record);
+    const queued = await enqueue(db, record);
+    if (late) {
+      const [card] = await rebuildCardKeys(db, scheduler, actor.userId, [key]);
+      return { record, card: card ?? prev!, queued };
     }
+    if (!step.changed && prev) return { record, card: prev, queued };
     const card: CardRow = {
       ...step.card,
       userId: actor.userId,
@@ -263,10 +294,47 @@ export async function recordReview(
       skill: input.skill,
       lastLogId: record.id,
     };
-    await db.log.add(record);
     await db.cards.put(card);
-    return { record, card };
+    return { record, card, queued };
   });
+  if (out.queued) notifyQueued();
+  return { record: out.record, card: out.card };
+}
+
+async function cardHistory(db: ManaDb, [userId, deckId, entryId, skill]: readonly [string, string, string, string]): Promise<LogRecord[]> {
+  return db.log
+    .where('[userId+deckId+entryId+skill+at]')
+    .between([userId, deckId, entryId, skill, Dexie.minKey], [userId, deckId, entryId, skill, Dexie.maxKey])
+    .toArray();
+}
+
+/** One card as the answers before `at` left it (null — none). */
+async function cardBefore(db: ManaDb, scheduler: FSRS, key: readonly [string, string, string, string], at: Date): Promise<CardRow | null> {
+  const earlier = (await cardHistory(db, key)).filter((r) => r.at.getTime() < at.getTime());
+  return rebuildCards(scheduler, earlier, key[0])[0] ?? null;
+}
+
+/**
+ * The cards of the given keys (user, deck, entry, skill) rebuilt from their whole history — inside
+ * the caller's transaction (log and cards). A card is a function of its own answers only.
+ */
+export async function rebuildCardKeys(
+  db: ManaDb,
+  scheduler: FSRS,
+  userId: string,
+  keys: readonly (readonly [string, string, string, string])[],
+): Promise<CardRow[]> {
+  const out: CardRow[] = [];
+  for (const [, deckId, entryId, skill] of keys) {
+    const [card] = rebuildCards(scheduler, await cardHistory(db, [userId, deckId, entryId, skill]), userId);
+    if (card) {
+      await db.cards.put(card);
+      out.push(card);
+    } else {
+      await db.cards.delete([userId, deckId, entryId, skill]);
+    }
+  }
+  return out;
 }
 
 export async function userLog(db: ManaDb, userId: string): Promise<LogRecord[]> {
@@ -458,7 +526,9 @@ export async function markSignedIn(db: ManaDb, userId: string, deviceName: strin
         await db.settings.put({ ...settings, userId });
       }
     }
-    const next: MetaRow = { ...meta, userId, account: { userId, deviceName, since: now } };
+    // A new account: its sync starts from nothing (cursor 0, settings first taken from the server).
+    const { sync: _old, ...rest } = meta;
+    const next: MetaRow = { ...rest, userId, account: { userId, deviceName, since: now } };
     await db.meta.put(next);
     return next;
   });

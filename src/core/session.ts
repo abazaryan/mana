@@ -201,9 +201,13 @@ function inToday(at: Date, now: Date, tz: string): boolean {
   return at.getTime() >= dayStart(now, tz).getTime() && at.getTime() <= now.getTime();
 }
 
-/** Introductions since the start of today, in any deck, hidden entries included (R17.5, R17.9). */
+/**
+ * Entries introduced since the start of today, in any deck, hidden entries included (R17.5,
+ * R17.9). An entry counts once: after sync, one entry introduced on two devices offline has
+ * two introductions in the journal (stage 6a.3, R39).
+ */
 export function introsToday(log: readonly LogRecord[], now: Date, tz: string): number {
-  return log.filter((r) => r.type === 'intro' && inToday(r.at, now, tz)).length;
+  return new Set(log.filter((r) => r.type === 'intro' && inToday(r.at, now, tz)).map((r) => pairKey(r.deckId, r.entryId))).size;
 }
 
 /**

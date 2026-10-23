@@ -5,6 +5,7 @@
  */
 import type { Consent } from '../core/auth';
 import { BUILD } from '../core/build';
+import type { PullResponse, PushResponse } from '../core/syncProtocol';
 
 /** One account per device for now (R33 item 11): the first profile. */
 export const PROFILE = 1;
@@ -18,17 +19,26 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>> {
+interface RequestOptions {
+  /** The body as JSON text already (the sync push builds it to know its size). */
+  raw?: string;
+  /** fetch keepalive: the request may outlive the page (sent while it goes to the background). */
+  keepalive?: boolean;
+}
+
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, options: RequestOptions = {}): Promise<ApiResult<T>> {
   const headers: Record<string, string> = { 'X-Mana-Version': String(BUILD), 'X-Mana-Profile': String(PROFILE) };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const text = options.raw ?? (body === undefined ? undefined : JSON.stringify(body));
+  if (text !== undefined) headers['Content-Type'] = 'application/json';
   let response: Response;
   try {
     response = await fetch(`/api/${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: text,
       credentials: 'same-origin',
       cache: 'no-store',
+      keepalive: options.keepalive === true,
     });
   } catch {
     return { ok: false, status: 0, error: 'offline' };
@@ -67,3 +77,14 @@ export const listDevices = () => request<{ devices: DeviceInfo[] }>('GET', 'auth
 export const renameDevice = (name: string) => request<{ ok: true; name: string }>('POST', 'auth/device', { name });
 export const revokeDevice = (deviceId: string) => request<{ ok: true }>('POST', 'auth/devices/revoke', { deviceId });
 export const signOut = () => request<{ ok: true }>('POST', 'auth/logout');
+
+/** The sync exchange (stage 6a.3): what the engine needs, so tests can give it a fake server. */
+export interface SyncTransport {
+  push(body: string, keepalive: boolean): Promise<ApiResult<PushResponse>>;
+  pull(after: number, limit: number): Promise<ApiResult<PullResponse>>;
+}
+
+export const syncTransport: SyncTransport = {
+  push: (body, keepalive) => request<PushResponse>('POST', 'sync/push', undefined, { raw: body, keepalive }),
+  pull: (after, limit) => request<PullResponse>('GET', `sync/pull?after=${after}&limit=${limit}`),
+};

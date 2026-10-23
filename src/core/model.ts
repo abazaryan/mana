@@ -44,6 +44,44 @@ export interface MetaRow {
    * mode. The session itself is an HttpOnly cookie the app cannot read. Device-only, never synced.
    */
   account?: AccountMark;
+  /** Sync with the account (stage 6a.3); absent until the first exchange after sign-in. Device-only. */
+  sync?: SyncState;
+}
+
+/**
+ * Where this device stands with the server (stage 6a.3, R39). The send status of each record
+ * lives in `outbox`, never in the record itself: its canonical JSON must not change.
+ */
+export interface SyncState {
+  /** The server's seq of the last record received (STAGE6_RESEARCH 5.1). */
+  cursor: number;
+  /** Change number of each synced setting as last taken from the server. */
+  settingsRev: Partial<Record<string, number>>;
+  /** Synced settings changed here and not yet accepted by the server. */
+  dirty: string[];
+  /** The last exchange that went through to the end. */
+  lastOkAt?: Date;
+  /**
+   * This version of the app is older than the account's data: the server said 426, or records
+   * came with newer scheduling rules. No exchange until the app is updated.
+   */
+  needsUpdate?: { reason: 'client' | 'rules'; build: number; at: Date };
+  /** Records came with newer rules and the cards were not rebuilt: rebuild after the update. */
+  needsRebuild?: boolean;
+}
+
+export type OutboxStatus = 'pending' | 'rejected' | 'conflict';
+
+/** A record of this device waiting for the server (stage 6a.3). Received records are never here. */
+export interface OutboxRow {
+  /** The record's id in `log`. */
+  id: string;
+  /** pending — to send; rejected / conflict — the server refused it: kept, never sent again by itself. */
+  status: OutboxStatus;
+  /** Why the server refused it (`future`, `schema`, …). */
+  reason?: string;
+  /** Order of sending: the record's time, ms. */
+  queuedAt: number;
 }
 
 export interface AccountMark {

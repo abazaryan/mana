@@ -110,6 +110,11 @@ describe('introsToday', () => {
     expect(introsToday(log, NOW, LUX)).toBe(2);
     expect(introsToday(log, local(14, 3, 59), LUX)).toBe(1);
   });
+
+  it('one entry introduced on two devices (two records after sync) counts once (R39)', () => {
+    const log: LogRecord[] = [intro('a', local(14, 5)), intro('a', local(14, 6)), intro('a', local(14, 7), 'other')];
+    expect(introsToday(log, NOW, LUX)).toBe(2);
+  });
 });
 
 describe('buildSession', () => {
@@ -316,6 +321,11 @@ describe('catchUpToday', () => {
       firstAnswer('a', local(13, 10), 'speak'),
     ];
     expect(catchUpToday(log, NOW, LUX)).toBe(2);
+  });
+
+  it('the first answer of one pair made on two devices (both "new" there) counts once (R39)', () => {
+    const log: LogRecord[] = [intro('a', local(13, 9)), firstAnswer('a', local(14, 6), 'write'), firstAnswer('a', local(14, 8), 'write')];
+    expect(catchUpToday(log, NOW, LUX)).toBe(1);
   });
 
   it('an answer that is not the first on its pair does not count', () => {

@@ -3,7 +3,7 @@
  * Changing indexes means a new `version(n)`; never edit version 1 in place.
  */
 import Dexie, { type DexieOptions, type Table } from 'dexie';
-import type { CardRow, DeckRow, EntryRow, LogRecord, MediaRow, MetaRow, SettingsRow } from '../core/model';
+import type { CardRow, DeckRow, EntryRow, LogRecord, MediaRow, MetaRow, OutboxRow, SettingsRow } from '../core/model';
 
 export const DB_NAME = 'mana';
 
@@ -15,6 +15,7 @@ export class ManaDb extends Dexie {
   media!: Table<MediaRow, [string, string]>;
   log!: Table<LogRecord, string>;
   cards!: Table<CardRow, [string, string, string, string]>;
+  outbox!: Table<OutboxRow, string>;
 
   constructor(name = DB_NAME, options?: DexieOptions) {
     super(name, options);
@@ -27,6 +28,9 @@ export class ManaDb extends Dexie {
       log: 'id, [userId+at], [userId+deckId+entryId+skill+at], [userId+deckId+entryId+type]',
       cards: '[userId+deckId+entryId+skill], [userId+due], [userId+deckId]',
     });
+    // Stage 6a.3: the send queue. Only a new table — nothing is copied or changed (the first
+    // upgrade of the phone's database).
+    this.version(2).stores({ outbox: 'id, [status+queuedAt]' });
   }
 }
 
