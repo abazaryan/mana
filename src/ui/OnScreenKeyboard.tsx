@@ -1,8 +1,8 @@
 /**
- * The on-screen phone keyboard (Р6, Р31). Shown by TypeField while its field has the
+ * The on-screen phone keyboard (R6, R31). Shown by TypeField while its field has the
  * focus on a touch device; the system keyboard is hidden by inputmode="none".
  *
- * Layout and long-press variants come from the language pack (Р13). A tap types on
+ * Layout and long-press variants come from the language pack (R13). A tap types on
  * release; holding a key with variants opens them above it (the first preselected),
  * sliding picks one, releasing types it. A second finger types the first key at once.
  * Backspace deletes on press and repeats while held. Keys never take the focus, so the
@@ -80,7 +80,7 @@ export function OnScreenKeyboard({
   onChar(ch: string): void;
   onBackspace(): void;
   onEnter(): void;
-  /** Any key touched (latency, Р21). */
+  /** Any key touched (latency, R21). */
   onTouch(): void;
 }) {
   const { t } = useI18n();

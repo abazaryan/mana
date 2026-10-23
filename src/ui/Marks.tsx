@@ -1,5 +1,5 @@
 /**
- * Answer marks (Р22.9 and its amendments of 15.10.2026).
+ * Answer marks (R22.9 and its amendments of 15.10.2026).
  *
  * All correct → one line with ✓ (words matched by sound carry a muted ≈).
  * Otherwise word blocks: the answer on top (🎤 voice / ⌨ typed at its start), the
@@ -232,7 +232,7 @@ export function CharMarks({ cells, lang }: { cells: readonly CharCell[]; lang: s
   );
 }
 
-/** "Say it aloud" while speaking: reference words light up as they are recognised (Р22.9в). */
+/** "Say it aloud" while speaking: reference words light up as they are recognised (R22.9v). */
 export function LiveWords({ words, heard, lang }: { words: { text: string; join: string }[]; heard: boolean[]; lang: string }) {
   return (
     <p className="live-words" lang={lang} aria-live="polite">

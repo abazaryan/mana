@@ -1,6 +1,6 @@
 /**
  * One card's microphone: recognition attempts, retries, errors and the timings for
- * the journal (Р22.3). Core logic behind the SpeechRecognizer port; tests drive it
+ * the journal (R22.3). Core logic behind the SpeechRecognizer port; tests drive it
  * with a fake recognizer and fake clocks.
  *
  * Timing. `visibleMs()` is the visible-time clock of the card (it stops while the
@@ -36,7 +36,7 @@ export const FATAL_RECOGNITION_ERRORS: readonly string[] = [
   'start',
 ];
 
-/** Failed attempts that count as "not recognised" (Р22 amendments: three in a row → typing). */
+/** Failed attempts that count as "not recognised" (R22 amendments: three in a row → typing). */
 export const UNRECOGNISED_CODES: readonly string[] = ['no-speech', 'no-result'];
 
 /** Error codes that mean the answer was hard to get: Easy is not offered after them. */
@@ -84,7 +84,7 @@ export interface VoiceOutcome {
   /** Hints sent with the attempt that gave the answer (0 = none). */
   phrasesCount: number;
   processLocally: boolean;
-  /** The "say the word 2–3 times" hint was shown: an attempt ended with nothing recognised (Р23, 16.10.2026). */
+  /** The "say the word 2–3 times" hint was shown: an attempt ended with nothing recognised (R23, 16.10.2026). */
   repeatHint: boolean;
   /** Before the answer there were retries or attempts with nothing recognised (no Easy). */
   troubled: boolean;

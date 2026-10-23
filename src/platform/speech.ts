@@ -147,7 +147,7 @@ export function createBrowserRecognizer(): SpeechRecognizer {
   };
 }
 
-/** The voice that speaks `lang`: on-device first (Р33 п. 14, `src/core/voices.ts`). */
+/** The voice that speaks `lang`: on-device first (R33 item 14, `src/core/voices.ts`). */
 function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
   return voicesOf(speechSynthesis.getVoices() ?? [], lang)[0];
 }

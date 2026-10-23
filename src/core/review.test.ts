@@ -7,7 +7,7 @@ import { checkSpoken } from './spoken';
 const prev = (final: FinalRating, latencyMs: number | null, wordCount = 2) =>
   ({ final, latencyMs, wordCount, expected: 'le nom' }) as ReviewRecord;
 
-describe('correction (Р4)', () => {
+describe('correction (R4)', () => {
   it('lowering is free', () => {
     expect(chooseRating(3, 1)).toEqual({ final: 1, correction: 'lowered' });
     expect(chooseRating(4, 2)).toEqual({ final: 2, correction: 'lowered' });
@@ -83,14 +83,14 @@ describe('suggestSpeak', () => {
   });
 });
 
-describe('stage 4.3 (Р25)', () => {
+describe('stage 4.3 (R25)', () => {
   const check = (heard: string) => checkSpoken('le nom', [heard], FRENCH.spoken);
 
   it('`listen` is rated Good at most, with its own reason', () => {
     expect(suggestSpeak(check('le nom'), 1500, prev(3, 1200), false, 'listen')).toEqual({ rating: 3, reason: 'listen-no-easy' });
     expect(suggestSpeak(check('le nom'), 1500, null, false, 'listen')).toEqual({ rating: 3, reason: 'correct-fast' });
     expect(suggestSpeak(check('nom'), 1500, null, false, 'listen')).toEqual({ rating: 2, reason: 'almost' });
-    // A raise by the user stays allowed (Р4).
+    // A raise by the user stays allowed (R4).
     expect(chooseRating(3, 4)).toEqual({ final: 4, correction: 'raised' });
   });
 

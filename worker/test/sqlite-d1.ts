@@ -1,6 +1,6 @@
 /**
  * The part of D1 the Worker uses, over Node's built-in SQLite (node:sqlite), for Vitest
- * without workerd (Р36). Not the D1 engine: rows_read and engine limits are checked with
+ * without workerd (R36). Not the D1 engine: rows_read and engine limits are checked with
  * `wrangler d1 … --local` / `wrangler dev` and on the real database. batch runs in one
  * transaction like D1 (all or nothing) — in 6a.3 also check that through wrangler dev.
  */

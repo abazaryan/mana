@@ -1,13 +1,13 @@
 /**
- * The voice skills (Р22.6, Р25):
+ * The voice skills (R22.6, R25):
  *   `speak`  — the meaning and the form hints; say the answer;
  *   `listen` — only the audio (it plays by itself; "Replay" plays it again); say what
  *              was heard. The microphone starts when the sound ends, so the latency
  *              counts from there, not from the card shown.
  * Answer by voice, typed (same sound-based check) or "I don't know"; then the
  * reference with the word marks, the suggested rating, four buttons and "Next".
- * The reference text is not in the page before the answer (Р17.13); in `speak` no
- * audio plays before it (Р17.12).
+ * The reference text is not in the page before the answer (R17.13); in `speak` no
+ * audio plays before it (R17.12).
  */
 import { useEffect, useRef, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
@@ -43,7 +43,7 @@ interface Answered {
   latencySource: ReviewRecord['latencySource'];
   totalMs: number | null;
   suggestion: RatingSuggestion;
-  /** Typed: which keyboard, anything pasted (Р31). */
+  /** Typed: which keyboard, anything pasted (R31). */
   input?: TypedInputInfo;
 }
 
@@ -254,7 +254,7 @@ export function VoiceCard({
   const note = pickLocalizedWithLang(entry.note, meaningLang);
   const hints = formHints(entry.form, lang);
   const listening = phase === 'starting' || phase === 'listening';
-  // Р27: `speak` names the language of the answer ("Say it in French"); `listen` and a
+  // R27: `speak` names the language of the answer ("Say it in French"); `listen` and a
   // language without the ready-made form say just "Say it" / "Type…".
   const inLang = listenSkill ? undefined : pack.inLanguage?.[lang];
   const capital = (s: string) => s.charAt(0).toLocaleUpperCase(lang) + s.slice(1);
@@ -272,7 +272,7 @@ export function VoiceCard({
     </p>
   );
 
-  // `listen` shows nothing of the answer before it: no text, no meaning, no hints (Р17.13, Р25).
+  // `listen` shows nothing of the answer before it: no text, no meaning, no hints (R17.13, R25).
   const prompt = listenSkill ? (
     <>
       <CardKicker skill={skill} requeue={requeue} />

@@ -36,7 +36,7 @@ describe('Enter in a text field', () => {
   });
 });
 
-describe('"Next" after the check (Р26)', () => {
+describe('"Next" after the check (R26)', () => {
   it('Enter on the focused button goes next only after the delay', () => {
     expect(nextPress({ byKeyboard: true, sinceShownMs: 0 })).toBe('ignore');
     expect(nextPress({ byKeyboard: true, sinceShownMs: 699 })).toBe('ignore');

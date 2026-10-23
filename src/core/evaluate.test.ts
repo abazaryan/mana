@@ -169,7 +169,7 @@ describe('editDistance', () => {
   });
 });
 
-describe('checkWritten: the article in `write` (Р24)', () => {
+describe('checkWritten: the article in `write` (R24)', () => {
   const HINT: ArticleForm = { determiner: true, gender: 'm' };
   const NO_HINT: ArticleForm = { determiner: false, gender: 'm' };
   const w = (e: string, a: string, form: ArticleForm) => checkWritten(e, a, fr, form).evaluation;
@@ -224,7 +224,7 @@ describe('checkWritten: the article in `write` (Р24)', () => {
   });
 });
 
-describe('checkWritten: punctuation is not counted (Р26)', () => {
+describe('checkWritten: punctuation is not counted (R26)', () => {
   const NONE: ArticleForm = { determiner: false };
   const show = (cells: readonly CharCell[]) => cells.filter((c) => c.status !== 'ok').map((c) => `${c.status}:${c.top ?? '_'}/${c.bottom ?? '_'}`);
 

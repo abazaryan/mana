@@ -215,7 +215,7 @@ describe('deck import', () => {
   });
 });
 
-describe('deleting a deck (Р34)', () => {
+describe('deleting a deck (R34)', () => {
   it('removes the deck, its entries, audio and cards; keeps the journal and other decks; a reinstall brings the progress back', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
@@ -320,7 +320,7 @@ describe('session data (stage 4.2)', () => {
     expect(await lastReview(db, 'someone-else', 'fr-test-01', 'a', 'speak')).toBeNull();
   });
 
-  it('loadSessionData: entries of every deck with hidden ones, all the cards, the whole journal (Р29.5)', async () => {
+  it('loadSessionData: entries of every deck with hidden ones, all the cards, the whole journal (R29.5)', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
     await importDeck(db);
@@ -333,7 +333,7 @@ describe('session data (stage 4.2)', () => {
     expect(data.decks.map((d) => d.id)).toEqual(['fr-test-01']);
   });
 
-  it('a return after Again is journaled with its rating and leaves the card as it was (Р29.2)', async () => {
+  it('a return after Again is journaled with its rating and leaves the card as it was (R29.2)', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
     const scheduler = createScheduler();
@@ -349,7 +349,7 @@ describe('session data (stage 4.2)', () => {
     expect(await rebuildUserCards(db, scheduler, actor.userId)).toEqual([first.card]);
   });
 
-  it('records keep their zone (Р29.3)', async () => {
+  it('records keep their zone (R29.3)', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
     const zone = { tz: 'Asia/Dushanbe', tzOffsetMin: 300 };
@@ -443,7 +443,7 @@ describe('backup', () => {
   });
 });
 
-describe('drill records (Р25)', () => {
+describe('drill records (R25)', () => {
   it('written after the answer; the Easy rule and the rebuild skip it; the backup keeps it', async () => {
     const db = freshDb();
     const actor = await ensureDevice(db);
@@ -475,7 +475,7 @@ describe('drill records (Р25)', () => {
   });
 });
 
-describe('new scheduling rules (Р29.7)', () => {
+describe('new scheduling rules (R29.7)', () => {
   it('no answers: nothing to rebuild, the version is remembered', async () => {
     const db = freshDb();
     const meta = await ensureDevice(db);
@@ -501,7 +501,7 @@ describe('new scheduling rules (Р29.7)', () => {
     expect(await needsRulesUpdate(db, after)).toBe(false);
   });
 
-  it('a new address (Р32): first start, then restore of the old journal → no rebuild screen, after the reload too', async () => {
+  it('a new address (R32): first start, then restore of the old journal → no rebuild screen, after the reload too', async () => {
     const old = freshDb();
     const actorOld = await ensureDevice(old);
     await someProgress(old, actorOld);
@@ -520,8 +520,8 @@ describe('new scheduling rules (Р29.7)', () => {
   });
 });
 
-describe('checks between decks on import (Р28 п. 8)', () => {
-  it('a repeated entry of another installed deck of the language → К2; hidden entries, the deck itself and other languages do not count', async () => {
+describe('checks between decks on import (R28 item 8)', () => {
+  it('a repeated entry of another installed deck of the language → K2; hidden entries, the deck itself and other languages do not count', async () => {
     const db = freshDb();
     await importDeck(db, deck(1, ['a', 'b', 'c']), 'Урок 1.zip');
     await importDeck(db, deck(2, ['a', 'b']), 'Урок 1.zip'); // c is hidden now
@@ -538,8 +538,8 @@ describe('checks between decks on import (Р28 п. 8)', () => {
   });
 });
 
-describe('deck title in the checks between decks (Р30)', () => {
-  it('К2 names the other deck by its title in the interface language', async () => {
+describe('deck title in the checks between decks (R30)', () => {
+  it('K2 names the other deck by its title in the interface language', async () => {
     const db = freshDb();
     await importDeck(db, deck(1, ['a'], { title: { tg: 'Фаронсавӣ · Дарси 1', ru: 'Французский · Урок 1' } }), 'Фаронсавӣ · Дарси 01-1.zip');
     const archive = await readDeckArchive(await deckZip(deck(1, ['a'], { id: 'fr-test-02' })), 'test-speak-2.zip');
@@ -548,7 +548,7 @@ describe('deck title in the checks between decks (Р30)', () => {
   });
 });
 
-describe('system keyboard setting (Р31)', () => {
+describe('system keyboard setting (R31)', () => {
   it('off by default, kept on the device row, switched back off', async () => {
     const db = freshDb();
     const meta = await ensureDevice(db);
@@ -559,7 +559,7 @@ describe('system keyboard setting (Р31)', () => {
     expect((await setSystemKeyboard(db, false)).systemKeyboard).toBe(false);
   });
 
-  it('the voice check is kept per learning language on the device and opens listen without files there (Р33 п. 14)', async () => {
+  it('the voice check is kept per learning language on the device and opens listen without files there (R33 item 14)', async () => {
     const db = freshDb();
     const meta = await ensureDevice(db);
     await importDeck(db);
@@ -573,7 +573,7 @@ describe('system keyboard setting (Р31)', () => {
     expect((await loadSessionData(db, meta.userId)).voiceDecks.size).toBe(0);
   });
 
-  it('the sound of a card is journaled and survives a backup (Р33 п. 14)', async () => {
+  it('the sound of a card is journaled and survives a backup (R33 item 14)', async () => {
     const db = freshDb();
     const meta = await ensureDevice(db);
     await importDeck(db);

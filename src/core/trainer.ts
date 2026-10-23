@@ -7,7 +7,7 @@ import type { Settings } from './settings';
 
 /** If the microphone has not started within this time, give up and offer typing. */
 export const MIC_WATCHDOG_MS = 5000;
-/** A card graded «Снова» is shown again at the end of the series, up to this many times in total. */
+/** A card graded "Again" is shown again at the end of the series, up to this many times in total. */
 export const MAX_TRIES_PER_CARD = 3;
 
 export const RECOGNITION_ERROR_TEXT: Record<string, string> = {

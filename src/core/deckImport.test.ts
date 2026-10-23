@@ -37,11 +37,11 @@ describe('planImport', () => {
     const byId = new Map(p.entries.map((e) => [e.entryId, e]));
     expect(byId.get('a')).toMatchObject({ text: 'a corrigé', position: 0, hidden: 0 });
     expect(byId.get('b')).toMatchObject({ text: 'b', hidden: 1 });
-    // Р30: an update without a title keeps the installed name, whatever the file is called.
+    // R30: an update without a title keeps the installed name, whatever the file is called.
     expect(p.deck).toMatchObject({ name: 'Урок', revision: 2, entryCount: 3, hiddenCount: 1, importedAt: T0, updatedAt: T1 });
   });
 
-  it('keeps speech (Р34) and drops it when the new revision has none', () => {
+  it('keeps speech (R34) and drops it when the new revision has none', () => {
     const first = deck(1, ['a', 'b']);
     first.entries[0]!.speech = 'tchao';
     const p = planImport(first, 'Урок', 0, null, T0);
@@ -103,7 +103,7 @@ describe('planImport', () => {
   });
 });
 
-describe('deck name (Р30)', () => {
+describe('deck name (R30)', () => {
   const title = { tg: 'Фаронсавӣ · Дарси 1', ru: 'Французский · Урок 1', en: 'French · Lesson 1' };
 
   it('install without a title: the file name; with a title: the title, the file name only stored', () => {

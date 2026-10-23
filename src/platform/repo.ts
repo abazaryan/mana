@@ -63,7 +63,7 @@ export async function setPhrasesUnsupported(db: ManaDb, value: boolean): Promise
   });
 }
 
-/** Type answers on the device's own keyboard instead of the on-screen one (Р31, device-only). */
+/** Type answers on the device's own keyboard instead of the on-screen one (R31, device-only). */
 export async function setSystemKeyboard(db: ManaDb, value: boolean): Promise<MetaRow> {
   return db.transaction('rw', db.meta, async () => {
     const row = await db.meta.get('device');
@@ -74,7 +74,7 @@ export async function setSystemKeyboard(db: ManaDb, value: boolean): Promise<Met
   });
 }
 
-/** Remember the answer of the "Voice check" for a learning language (Р33 п. 14, device-only). */
+/** Remember the answer of the "Voice check" for a learning language (R33 item 14, device-only). */
 export async function setVoiceCheck(db: ManaDb, language: string, value: VoiceCheck): Promise<MetaRow> {
   return db.transaction('rw', db.meta, async () => {
     const row = await db.meta.get('device');
@@ -142,7 +142,7 @@ async function loadInstalled(db: ManaDb, deckId: string): Promise<InstalledDeck 
 
 /**
  * The import plan for a checked archive (no errors). Nothing is written. Adds the
- * checks against the other installed decks of the same learning language (Р28 п. 8):
+ * checks against the other installed decks of the same learning language (R28 item 8):
  * their visible entries, the deck itself left out (a new revision is no repeat).
  */
 export async function prepareImport(db: ManaDb, archive: DeckArchive, now = new Date(), uiLang: UiLang = 'ru'): Promise<ImportPlan> {
@@ -162,7 +162,7 @@ export async function prepareImport(db: ManaDb, archive: DeckArchive, now = new 
 /**
  * Writes an import plan in one transaction. The journal is not touched. A deck
  * installed anew (first time, or again after `deleteDeck`) gets its cards rebuilt
- * from the journal, so its progress comes back (Р34); an update keeps the cards.
+ * from the journal, so its progress comes back (R34); an update keeps the cards.
  */
 export async function applyImport(
   db: ManaDb,
@@ -196,8 +196,8 @@ async function rebuildDeckCards(db: ManaDb, scheduler: FSRS, deckId: string): Pr
 }
 
 /**
- * Deletes a deck from this device (Р34): the deck, its entries (hidden ones too), its
- * audio and its cards. The journal stays (Р10): installing the deck again rebuilds the
+ * Deletes a deck from this device (R34): the deck, its entries (hidden ones too), its
+ * audio and its cards. The journal stays (R10): installing the deck again rebuilds the
  * cards from it, and entries already introduced are not introduced again.
  */
 export async function deleteDeck(db: ManaDb, deckId: string): Promise<void> {
@@ -228,7 +228,7 @@ export async function recordIntro(
 
 export type DrillInput = Omit<DrillRecord, 'id' | 'type' | 'userId' | 'deviceId'>;
 
-/** Appends the short practice after Again (Р25); never touches the card. */
+/** Appends the short practice after Again (R25); never touches the card. */
 export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, newId: NewId = randomId): Promise<DrillRecord> {
   const record: DrillRecord = { ...input, id: newId(), type: 'drill', ...who(actor) };
   await db.log.add(record);
@@ -237,7 +237,7 @@ export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, n
 
 /**
  * Appends an answer and updates its card in one transaction. A return after Again
- * (Р29.2) is journaled, and the card stays as the first Again left it.
+ * (R29.2) is journaled, and the card stays as the first Again left it.
  */
 export async function recordReview(
   db: ManaDb,
@@ -278,7 +278,7 @@ export async function userLog(db: ManaDb, userId: string): Promise<LogRecord[]> 
 
 /**
  * The last answer on one card (entry × skill); null if none. `skipReturns`: leave out
- * returns after Again — the Easy rule looks past them (Р29.2); the seconds since the
+ * returns after Again — the Easy rule looks past them (R29.2); the seconds since the
  * previous answer (`sincePairSec`) do not.
  */
 export async function lastReview(
@@ -289,7 +289,7 @@ export async function lastReview(
   skill: Skill,
   skipReturns = false,
 ): Promise<ReviewRecord | null> {
-  // Drills after Again share the index (they have a skill); they are no answers (Р25).
+  // Drills after Again share the index (they have a skill); they are no answers (R25).
   const last = await db.log
     .where('[userId+deckId+entryId+skill+at]')
     .between([userId, deckId, entryId, skill, Dexie.minKey], [userId, deckId, entryId, skill, Dexie.maxKey])
@@ -302,11 +302,11 @@ export async function lastReview(
 export interface SessionData {
   /** Entries of every installed deck, hidden ones included. */
   entries: EntryRow[];
-  /** The user's cards in every deck: debts and the outlook count all decks (Р29.5, Р29.6). */
+  /** The user's cards in every deck: debts and the outlook count all decks (R29.5, R29.6). */
   cards: CardRow[];
   log: LogRecord[];
   decks: DeckRow[];
-  /** Decks whose language has the browser voice checked on this device: `listen` without a file (Р33 п. 14). */
+  /** Decks whose language has the browser voice checked on this device: `listen` without a file (R33 item 14). */
   voiceDecks: Set<string>;
 }
 
@@ -337,7 +337,7 @@ export async function rebuildUserCards(db: ManaDb, scheduler: FSRS, userId: stri
   return db.transaction('rw', db.log, db.cards, () => replaceUserCards(db, scheduler, userId));
 }
 
-// ---------- New scheduling rules (Р29.7) ----------
+// ---------- New scheduling rules (R29.7) ----------
 
 /**
  * The stored cards were built with older rules and the user has answers: the app

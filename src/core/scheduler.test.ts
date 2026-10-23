@@ -38,7 +38,7 @@ describe('applyReview', () => {
       errorType: null,
     });
 
-    // Р29.1: no steps in minutes — the first answer already sets days.
+    // R29.1: no steps in minutes — the first answer already sets days.
     expect(card.state).toBe(State.Review);
     expect(card.scheduledDays).toBe(2);
     expect(card.reps).toBe(1);
@@ -104,7 +104,7 @@ describe('applyReview', () => {
   });
 });
 
-/** Figures of the 4.4a plan (Р29.1, Р29.3): answers at 10:00 in Luxembourg unless said otherwise. */
+/** Figures of the 4.4a plan (R29.1, R29.3): answers at 10:00 in Luxembourg unless said otherwise. */
 describe('stage 4.4a rules', () => {
   const s = createScheduler();
   const LUX_SUMMER = 120;

@@ -10,13 +10,13 @@ export const GRADE_NAMES: Record<Grade, string> = {
 };
 
 export interface GradeThresholds {
-  /** Seconds to start speaking for «Легко» (4-word phrase). */
+  /** Seconds to start speaking for "Easy" (4-word phrase). */
   easy: number;
-  /** Seconds to start speaking for «Хорошо» (4-word phrase). */
+  /** Seconds to start speaking for "Good" (4-word phrase). */
   good: number;
-  /** Accuracy % below which the grade is «Снова». */
+  /** Accuracy % below which the grade is "Again". */
   again: number;
-  /** Accuracy % below which the grade is at most «Трудно». */
+  /** Accuracy % below which the grade is at most "Hard". */
   hard: number;
 }
 

@@ -7,7 +7,7 @@ import { languageName } from './DecksScreen';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 
-/** Check results of one deck: errors refuse it, warnings need "Add anyway", notes only inform (Р33 п. 15). */
+/** Check results of one deck: errors refuse it, warnings need "Add anyway", notes only inform (R33 item 15). */
 export interface Checked {
   deckId: string | null;
   revision: number | null;
@@ -111,7 +111,7 @@ export function ImportSheet({ state, onConfirm, onClose }: Props) {
     );
   }
   // Every deck that passed shows its check result and is installed only by a button,
-  // even with notes alone (Р34).
+  // even with notes alone (R34).
   if (state.phase === 'confirm') {
     const { plan, archive, checked } = state;
     const warned = checked.warnings.length > 0;

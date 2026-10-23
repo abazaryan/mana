@@ -1,5 +1,5 @@
 /**
- * New scheduling rules (Р29.7): before any study the journal is saved to a file and
+ * New scheduling rules (R29.7): before any study the journal is saved to a file and
  * the cards are rebuilt from it. One tap does both: a download started by a tap is
  * what browsers allow. Closed without the tap, nothing changes and the screen comes
  * back next time. The journal itself is never touched.

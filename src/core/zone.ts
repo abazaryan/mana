@@ -1,5 +1,5 @@
 /**
- * Local days of the app and time zones (Р17.10, Р29.3). Pure: the zone is an IANA
+ * Local days of the app and time zones (R17.10, R29.3). Pure: the zone is an IANA
  * name passed in (the device zone comes from src/platform), so every rule is
  * testable in any zone.
  *
@@ -8,9 +8,9 @@
  * answer, with the offset of that very date (summer and winter time differ).
  */
 
-/** The local day starts at 04:00 (Р17.10). */
+/** The local day starts at 04:00 (R17.10). */
 export const DAY_START_HOUR = 4;
-/** Zone of journal records written before stage 4.4a, which have none (Р29.3). */
+/** Zone of journal records written before stage 4.4a, which have none (R29.3). */
 export const LEGACY_ZONE = 'Europe/Luxembourg';
 
 const MINUTE = 60_000;
@@ -65,7 +65,7 @@ export function zoneStamp(tz: string, at: Date): ZoneStamp {
   return { tz, tzOffsetMin: offsetAt(tz, at) };
 }
 
-/** The offset a record was written with; records before stage 4.4a count as Luxembourg (Р29.3). */
+/** The offset a record was written with; records before stage 4.4a count as Luxembourg (R29.3). */
 export function recordOffset(r: { at: Date; tzOffsetMin?: number }): number {
   return typeof r.tzOffsetMin === 'number' ? r.tzOffsetMin : offsetAt(LEGACY_ZONE, r.at);
 }
@@ -98,7 +98,7 @@ export function dayStart(now: Date, tz: string): Date {
 
 /**
  * The shift that makes ts-fsrs see app days: it counts days between UTC dates, so a
- * moment moved by (offset − 04:00) falls on the UTC date of its app day (Р29.3).
+ * moment moved by (offset − 04:00) falls on the UTC date of its app day (R29.3).
  */
 export function fsrsShiftMs(offsetMin: number): number {
   return offsetMin * MINUTE - DAY_START_HOUR * HOUR;

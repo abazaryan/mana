@@ -3,7 +3,7 @@ import text from '../wrangler.jsonc?raw';
 import { parseJsonc } from './test/jsonc.ts';
 
 /**
- * Resources created with jurisdiction eu (Р33 п. 3, docs/DEPLOY.md). A binding may name only
+ * Resources created with jurisdiction eu (R33 item 3, docs/DEPLOY.md). A binding may name only
  * these: wrangler ≥ 4.45 creates a resource of its own for a binding without an id on deploy,
  * and that one has no jurisdiction (rules of 6a, docs/STATUS.md). Add a resource here only
  * after `d1 info` / `r2 bucket info` showed "jurisdiction": "eu".
@@ -50,7 +50,7 @@ describe('wrangler.jsonc: every binding names its resource', () => {
   });
 });
 
-describe('wrangler.jsonc: the rest of Р32 / Р33 stays', () => {
+describe('wrangler.jsonc: the rest of R32 / R33 stays', () => {
   it('the Worker runs first only for /api/*; unknown paths — plain 404', () => {
     expect(config.main).toBe('worker/index.ts');
     expect(config.assets?.run_worker_first).toEqual(['/api/*']);

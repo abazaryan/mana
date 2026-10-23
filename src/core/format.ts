@@ -1,9 +1,9 @@
-/** 1234 → "1,2 с" */
+/** 1234 → 1.2 seconds, with a decimal comma and the Russian unit. */
 export function fmtSec(ms: number): string {
   return (ms / 1000).toFixed(1).replace('.', ',') + ' с';
 }
 
-/** Russian plural: 1 карточка, 2 карточки, 5 карточек. */
+/** Russian plural: the form for 1, for 2–4 and for 5 or more (one, few, many). */
 export function pluralRu(n: number, one: string, few: string, many: string): string {
   const m10 = n % 10;
   const m100 = n % 100;

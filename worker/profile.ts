@@ -1,5 +1,5 @@
 /**
- * Profiles (STAGE6_RESEARCH 5.11, Р33 п. 11): each account on a device has its own IndexedDB and
+ * Profiles (STAGE6_RESEARCH 5.11, R33 item 11): each account on a device has its own IndexedDB and
  * its own session cookie; the client names its profile in X-Mana-Profile on every request.
  * Laid down in 6a so a second account later needs no migration. Sessions come in 6a.2.
  */

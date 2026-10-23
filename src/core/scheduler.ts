@@ -6,7 +6,7 @@
  * log snapshot. Ported from LivreVivant (src/lib/learning/fsrs.ts @ 503f4af);
  * storage (Dexie transaction) is stage 4.
  *
- * Stage 4.4a (Р29): no steps in minutes — every answer sets a due date in days — and
+ * Stage 4.4a (R29): no steps in minutes — every answer sets a due date in days — and
  * ts-fsrs counts app days (local, from 04:00, in the zone of each answer) instead of
  * UTC dates. The time shift that does it lives here and nowhere else; stored dates
  * are real moments.
@@ -38,19 +38,19 @@ export interface CardState {
   learningSteps: number;
   state: State;
   lastReview: Date | null;
-  /** Zone offset (minutes east of UTC) of the last answer: its app day (Р29.3). Null before the first one. */
+  /** Zone offset (minutes east of UTC) of the last answer: its app day (R29.3). Null before the first one. */
   lastReviewOffsetMin: number | null;
 }
 
 /**
- * Version of the scheduling rules written into every answer (Р29.4). A replay applies
+ * Version of the scheduling rules written into every answer (R29.4). A replay applies
  * the rules of each record's version; records without one get the current rules.
  * 2 = stage 4.4a: no steps in minutes, app days by the zone of the answer.
  */
 export const RULES_VERSION = 2;
 
 /**
- * Default scheduler (Р29.1): no learning or relearning steps, short-term stability on
+ * Default scheduler (R29.1): no learning or relearning steps, short-term stability on
  * (an answer on the same app day), target retention 0.9 and FSRS-6 parameters by
  * default. Fuzz off keeps due dates (and tests) deterministic.
  */
@@ -96,7 +96,7 @@ export function fromFsrsCard(c: FsrsCard, lastReviewOffsetMin: number | null = n
 /**
  * The FSRS part of a review-log record: a full copy of the ts-fsrs ReviewLog
  * with the card state *before* the review, so a review can be undone. Stage 4
- * adds id, userId, the suggested and final rating and the reason (Р4, Р10).
+ * adds id, userId, the suggested and final rating and the reason (R4, R10).
  */
 export interface ReviewSnapshot {
   /** 1 = Again, 2 = Hard, 3 = Good, 4 = Easy. */
@@ -120,7 +120,7 @@ export interface ReviewSnapshot {
 export interface ReviewMeta {
   responseTimeMs?: number | null;
   errorType?: string | null;
-  /** Zone offset of this answer (minutes east of UTC); default: Luxembourg at `now` (Р29.3). */
+  /** Zone offset of this answer (minutes east of UTC); default: Luxembourg at `now` (R29.3). */
   offsetMin?: number;
 }
 

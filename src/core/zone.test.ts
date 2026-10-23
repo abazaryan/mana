@@ -3,7 +3,7 @@ import { appDay, dayStart, DAY_START_HOUR, LEGACY_ZONE, offsetAt, recordOffset, 
 
 const LUX = 'Europe/Luxembourg';
 const at = (iso: string) => new Date(iso);
-/** App days between two answers, each in its own zone (Р29.3). */
+/** App days between two answers, each in its own zone (R29.3). */
 const days = (a: string, za: string, b: string, zb: string) => appDay(at(b), offsetAt(zb, at(b))) - appDay(at(a), offsetAt(za, at(a)));
 const hours = (from: Date, to: Date) => (to.getTime() - from.getTime()) / 3_600_000;
 
@@ -80,7 +80,7 @@ describe('summer and winter time', () => {
   });
 });
 
-describe('travel: answers in two zones (Р29.3, figures of the 4.4a plan)', () => {
+describe('travel: answers in two zones (R29.3, figures of the 4.4a plan)', () => {
   it('east: Luxembourg 23:00 → Dushanbe 06:00 (3 h) is the next day; at home it would be the same day', () => {
     expect(days('2026-10-26T22:00:00Z', LUX, '2026-10-27T01:00:00Z', 'Asia/Dushanbe')).toBe(1);
     expect(days('2026-10-26T22:00:00Z', LUX, '2026-10-27T01:00:00Z', LUX)).toBe(0);

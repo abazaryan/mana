@@ -1,4 +1,4 @@
-# Cloudflare Workers static assets: response headers (Р32).
+# Cloudflare Workers static assets: response headers (R32).
 # Copied to dist/_headers by Vite; Cloudflare applies it and does not serve it.
 # No rule sets a header twice for one path (Cloudflare would join the values with a comma).
 # media-src blob: — deck audio plays from IndexedDB through object URLs.

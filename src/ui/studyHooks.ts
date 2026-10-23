@@ -92,7 +92,7 @@ export function useVoice(lang: string, visibleMs: () => number, setup: Recogniti
   };
 }
 
-/** How the entry sounded on the card on screen (Р33 п. 14); reset when a card is shown. */
+/** How the entry sounded on the card on screen (R33 item 14); reset when a card is shown. */
 let sounded: { audioSource: AudioSource; voice: string | null } = { audioSource: 'none', voice: null };
 
 /** Forget how the previous card sounded: call when a card (or its short practice) is shown. */
@@ -106,7 +106,7 @@ export function soundStamp(): { audioSource: AudioSource; voice: string | null }
 }
 
 /**
- * Deck audio of the entry; the browser voice only when the entry has none (Р33 п. 14).
+ * Deck audio of the entry; the browser voice only when the entry has none (R33 item 14).
  * Rejects if the file cannot play. `onEnded`: the sound played to the end (not called
  * when stopped; for the browser voice also after a failure, so `listen` goes on).
  */
@@ -125,7 +125,7 @@ export async function playEntry(db: ManaDb, entry: EntryRow, locale: string, onE
   sounded = { audioSource: 'file', voice: null };
 }
 
-/** A sample phrase in the browser voice of `locale` ("Voice check", Р33 п. 14). */
+/** A sample phrase in the browser voice of `locale` ("Voice check", R33 item 14). */
 export function speakSample(text: string, locale: string, onEnded?: () => void): void {
   stopAudio();
   speaker.cancel();

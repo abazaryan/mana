@@ -20,7 +20,7 @@ const non = { id: 'non', text: 'non', ipa: 'nɔ̃', meaning: { ru: 'нет' }, t
 const opts = { languages: LANGUAGE_PACKS };
 const fence = '`'.repeat(3);
 
-describe('audio is optional per entry (Р33 п. 14)', () => {
+describe('audio is optional per entry (R33 item 14)', () => {
   it('a deck without any audio is accepted with a note, not a warning', () => {
     const r = checkDeckArchive(['deck.json'], deck([oui, non]), opts);
     expect(r.deck).not.toBeNull();
@@ -44,7 +44,7 @@ describe('audio is optional per entry (Р33 п. 14)', () => {
   });
 });
 
-describe('deck.json without an archive (Р33 п. 15)', () => {
+describe('deck.json without an archive (R33 item 15)', () => {
   it('audio paths are not looked up, they are dropped, and the notes say so', () => {
     const r = checkDeckJson(deck([{ ...oui, audio: 'audio/oui.mp3' }, non]), opts);
     expect(r.errors).toEqual([]);

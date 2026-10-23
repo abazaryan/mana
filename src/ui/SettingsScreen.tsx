@@ -15,7 +15,7 @@ import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
 import { VoiceCheckSheet } from './VoiceCheck';
 
-/** The browser voice per learning language of the installed decks: its check and a button to (re)check (Р33 п. 14). */
+/** The browser voice per learning language of the installed decks: its check and a button to (re)check (R33 item 14). */
 function VoiceChecks({ db }: { db: ManaDb }) {
   const { t, lang } = useI18n();
   const [languages, setLanguages] = useState<string[]>([]);
@@ -65,7 +65,7 @@ interface Props {
   meta: MetaRow;
   newPerDay: number;
   biasing: boolean;
-  /** Answers on the device's own keyboard (Р31, device-only). */
+  /** Answers on the device's own keyboard (R31, device-only). */
   systemKeyboard: boolean;
   onSystemKeyboard(on: boolean): void;
   onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>): void;
@@ -76,7 +76,7 @@ interface Props {
 }
 
 const LANGS: Lang[] = ['tg', 'ru', 'en'];
-/** New entries per day (Р7): 5 by default, 10 the alternative; the user may go higher. */
+/** New entries per day (R7): 5 by default, 10 the alternative; the user may go higher. */
 const NEW_PER_DAY = [5, 10, 15, 20];
 
 const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {

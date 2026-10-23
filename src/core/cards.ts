@@ -1,17 +1,17 @@
 /**
- * FSRS state is derived from the journal (Р10): replaying the answers of one card
+ * FSRS state is derived from the journal (R10): replaying the answers of one card
  * in journal order through ts-fsrs with the final ratings gives its state.
  *
  * Determinism: the scheduler runs without fuzz. (Even with fuzz on, ts-fsrs 5.4.1
  * seeds its generator from the review time, reps and difficulty × stability, so a
  * replay would still match.) Days are app days in the zone stored in each record
- * (Р29.3; records before stage 4.4a count as Luxembourg), so the zone of the device
+ * (R29.3; records before stage 4.4a count as Luxembourg), so the zone of the device
  * replaying does not change the result. Each answer also stores the computed next
  * due date (`ReviewRecord.fsrs`); a test checks the rebuild reproduces it for
  * records of the current rules version (older records keep what was computed then).
  *
  * A return after Again in the same portion (`requeue` > 0) is journaled with its
- * rating but leaves FSRS alone (Р29.2): the first Again sets the due date. The
+ * rating but leaves FSRS alone (R29.2): the first Again sets the due date. The
  * replay skips such answers in records of any version.
  */
 import type { FSRS, Grade } from 'ts-fsrs';
@@ -47,7 +47,7 @@ function snapshot(before: CardState, after: CardState): ReviewFsrs {
 /** What of an answer the scheduler needs. */
 export type AnswerFacts = Pick<ReviewRecord, 'final' | 'at'> & Partial<Pick<ReviewRecord, 'requeue' | 'tzOffsetMin'>>;
 
-/** A return after Again (Р29.2) on a card that exists does not change it. */
+/** A return after Again (R29.2) on a card that exists does not change it. */
 export function changesCard(a: Pick<AnswerFacts, 'requeue'>, card: CardState | null): boolean {
   return !(card && (a.requeue ?? 0) > 0);
 }
@@ -72,7 +72,7 @@ export function rebuildCards(scheduler: FSRS, log: readonly LogRecord[], userId:
   for (const r of reviews) {
     const key = cardKey(r);
     const prev = cards.get(key) ?? null;
-    // One set of rules exists (RULES_VERSION 2); records without a version get it too (Р29.4).
+    // One set of rules exists (RULES_VERSION 2); records without a version get it too (R29.4).
     const { card, changed } = answerCard(scheduler, prev, r);
     if (!changed) continue;
     cards.set(key, { ...card, userId, deckId: r.deckId, entryId: r.entryId, skill: r.skill, lastLogId: r.id });

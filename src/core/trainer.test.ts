@@ -232,7 +232,7 @@ describe('Trainer', () => {
     expect(rec.sessions).toHaveLength(2);
   });
 
-  it('"Не знаю" suggests Again and always speaks the reference', () => {
+  it('the "do not know" button suggests Again and always speaks the reference', () => {
     settings = { ...settings, autoSpeak: false };
     tr.start();
     clock.advance(4000);

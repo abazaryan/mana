@@ -1,5 +1,5 @@
 /**
- * Browser voices of a learning language (speechSynthesis, Р33 п. 14), as pure logic:
+ * Browser voices of a learning language (speechSynthesis, R33 item 14), as pure logic:
  * which voice speaks first, and whether "this device has no voice for the language"
  * can be said at all.
  */

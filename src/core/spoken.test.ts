@@ -219,7 +219,7 @@ describe('sound rules: rejected (no false "correct")', () => {
   });
 });
 
-describe('verdict (Р22.2)', () => {
+describe('verdict (R22.2)', () => {
   it('threshold constant', () => expect(ALMOST_UNSAID_SHARE).toBe(0.25));
 
   it('N = 1', () => {
@@ -380,7 +380,7 @@ describe('alternatives', () => {
   });
 });
 
-describe('voice answer to an entry with speech (Р34)', () => {
+describe('voice answer to an entry with speech (R34)', () => {
   const ciao = { text: 'ciao', speech: 'tchao' };
 
   it('the text and the speech are both correct, shown over the text', () => {

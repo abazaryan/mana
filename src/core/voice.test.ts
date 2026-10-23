@@ -269,7 +269,7 @@ describe('VoiceCapture: unrecognised attempts in a row', () => {
   });
 });
 
-describe('VoiceCapture: "say it 2–3 times" hint (Р23)', () => {
+describe('VoiceCapture: "say it 2–3 times" hint (R23)', () => {
   it('is due after the first attempt with nothing recognised and gone after an answer; the journal says it was shown', () => {
     const { v, h } = setup();
     v.start();

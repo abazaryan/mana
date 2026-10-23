@@ -1,7 +1,7 @@
 /**
- * Written-answer cascade (skill `write`, Р5). Ported from LivreVivant
+ * Written-answer cascade (skill `write`, R5). Ported from LivreVivant
  * (src/lib/learning/evaluate.ts @ 503f4af); language rules moved into the
- * language pack (Р13).
+ * language pack (R13).
  *
  * fold (case / spaces / apostrophes / comma / closing stop / typographic spaces)
  * → missing article → diacritics only → small typo (bounded edit distance).
@@ -14,7 +14,7 @@ import type { WritingRules } from './languages';
 import type { Alternate } from './printConventions';
 
 export type Verdict = 'correct' | 'almost' | 'incorrect';
-/** `elision`: `le hôpital` for `l'hôpital` (Р24) — the written check only, never the ported cascade. */
+/** `elision`: `le hôpital` for `l'hôpital` (R24) — the written check only, never the ported cascade. */
 export type ErrorType = 'diacritic' | 'typo' | 'article' | 'elision';
 
 export interface Evaluation {
@@ -26,7 +26,7 @@ export interface Evaluation {
    * reference carries (`ça va?` for `ça va ?`). A hint for the UI, never an error.
    */
   typographyNote?: true;
-  /** The written check (Р26): the answer differs from the reference in punctuation only there, never in the verdict. */
+  /** The written check (R26): the answer differs from the reference in punctuation only there, never in the verdict. */
   punctuationNote?: true;
 }
 
@@ -113,7 +113,7 @@ const VERDICT_RANK: Record<Verdict, number> = { correct: 0, almost: 1, incorrect
  * accepting it here would mean that form is never asked for. The best verdict
  * wins; the reference breaks ties.
  *
- * Note (Р3, Р16): a Mana deck entry has exactly one correct answer, so the app
+ * Note (R3, R16): a Mana deck entry has exactly one correct answer, so the app
  * passes no alternates; the parameter is kept from the ported module.
  */
 export function evaluate(
@@ -167,9 +167,9 @@ function evaluateAgainst(expected: string, actual: string, rules: WritingRules):
   return { verdict: 'incorrect' };
 }
 
-// ---------- Character marks (Р22.9а) ----------
+// ---------- Character marks (R22.9a) ----------
 
-/** `punct`: punctuation missing, extra or another mark — neutral, not an error (Р26, written check only). */
+/** `punct`: punctuation missing, extra or another mark — neutral, not an error (R26, written check only). */
 export type CharStatus = 'ok' | 'wrong' | 'missing' | 'extra' | 'diacritic' | 'punct';
 
 /** One column: the typed character (top) over the reference character (bottom). */
@@ -297,7 +297,7 @@ function alignChars(e: FoldedChar[], a: FoldedChar[]): CharCell[] {
 }
 
 /**
- * The written-answer verdict together with its character marks (Р22.9а). The marks
+ * The written-answer verdict together with its character marks (R22.9a). The marks
  * are built from the step of the cascade that decided the verdict, on the same
  * folded text, so the colours cannot disagree with it:
  * correct → all ok; article → the article missing, the rest ok; diacritic → only
@@ -322,7 +322,7 @@ export function checkTyped(expected: string, actual: string, rules: WritingRules
 }
 
 /**
- * Display blocks (Р22.9г): cells grouped by word so a block wraps as a whole and the
+ * Display blocks (R22.9g): cells grouped by word so a block wraps as a whole and the
  * typed text stays over the reference. A block ends where either line has a space;
  * a space that is itself an error (missing, extra, or against a letter) is kept as
  * a block of its own so it stays visible.
@@ -346,9 +346,9 @@ export function charBlocks(cells: readonly CharCell[]): CharCell[][] {
   return blocks;
 }
 
-// ---------- The article in `write` (Р24) ----------
+// ---------- The article in `write` (R24) ----------
 
-/** What the entry says about the article it asks for (Р16, Р24). */
+/** What the entry says about the article it asks for (R16, R24). */
 export interface ArticleForm {
   /** The entry has the hint `form.determiner`: the article is part of the question. */
   determiner: boolean;
@@ -366,18 +366,18 @@ function splitArticle(s: string, rules: WritingRules): { article: string; rest: 
 }
 
 /**
- * The verdict of a written answer (skill `write`, intro copy-out) with Р24 on top of
+ * The verdict of a written answer (skill `write`, intro copy-out) with R24 on top of
  * the ported cascade. The article carries the gender, and `write` is the only skill
- * that checks it (Р23.4):
+ * that checks it (R23.4):
  *   another article → incorrect (`article`), with or without the form hint;
  *   no article where the entry has the hint → incorrect (`article`);
  *   no article without the hint → almost (`article`), as in the cascade;
  *   `le`/`la` where the word takes `l'` (or the other way) → almost (`elision`),
  *   unless the gender of the entry says `le`/`la` itself is wrong.
- * Stricter than the voice rule (Р22.2), which stays as it is.
+ * Stricter than the voice rule (R22.2), which stays as it is.
  */
 export function checkWritten(expected: string, actual: string, rules: WritingRules, form: ArticleForm): TypedCheck {
-  // Р26: punctuation never counts; the verdict is taken on both texts without it
+  // R26: punctuation never counts; the verdict is taken on both texts without it
   // (the spaces left around a removed mark fold as usual).
   const strip = (s: string) => (rules.ignoredPunctuation ? s.replace(rules.ignoredPunctuation, '') : s);
   const evaluation = writtenVerdict(strip(expected), strip(actual), rules, form);
@@ -389,7 +389,7 @@ export function checkWritten(expected: string, actual: string, rules: WritingRul
   return { evaluation: punct ? { ...evaluation, punctuationNote: true } : evaluation, cells };
 }
 
-/** Р24 on top of the ported cascade, on texts already without ignored punctuation. */
+/** R24 on top of the ported cascade, on texts already without ignored punctuation. */
 function writtenVerdict(expected: string, actual: string, rules: WritingRules, form: ArticleForm): Evaluation {
   const base = evaluate(expected, actual, rules);
   const e = normalize(expected, rules);
@@ -414,7 +414,7 @@ function writtenVerdict(expected: string, actual: string, rules: WritingRules, f
 }
 
 /**
- * The text as shown in the written marks (Р26): case, apostrophes, no-break and
+ * The text as shown in the written marks (R26): case, apostrophes, no-break and
  * repeated spaces folded as in the compared text, but the punctuation and the spaces
  * around it kept, so a missing or extra mark can be shown.
  */
@@ -456,7 +456,7 @@ function freeChars(xs: readonly FoldedChar[], isP: (c: string) => boolean): bool
 }
 
 /**
- * Character alignment for the written marks (Р26): as `alignChars`, but a punctuation
+ * Character alignment for the written marks (R26): as `alignChars`, but a punctuation
  * mark — and a space next to one — costs nothing to add, drop or replace by another
  * mark, and is marked `punct`. So the other marked edits are exactly the ones the
  * verdict counted, and a correct answer never shows an error colour.

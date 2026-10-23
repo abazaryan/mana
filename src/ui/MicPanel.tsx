@@ -21,7 +21,7 @@ export function MicPanel({
   state: VoiceState;
   onStart(): void;
   startLabel: StringKey;
-  /** The one instruction of the step (Р26), under the circle while it listens; already translated. */
+  /** The one instruction of the step (R26), under the circle while it listens; already translated. */
   prompt: string;
   /** The question's audio is playing (`listen`); the microphone starts when it ends. */
   playing?: boolean;
@@ -29,7 +29,7 @@ export function MicPanel({
   const { t } = useI18n();
   const listening = state.phase === 'starting' || state.phase === 'listening';
   // A short line under the circle: listening → "Say the answer"; stopped (or never started
-  // on its own) → "Tap and speak" (Р25); "Speak" / "Once more" names the button for screen readers.
+  // on its own) → "Tap and speak" (R25); "Speak" / "Once more" names the button for screen readers.
   const caption =
     state.phase === 'starting'
       ? t('mic.starting')

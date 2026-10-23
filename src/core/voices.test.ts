@@ -3,7 +3,7 @@ import { voiceAvailability, voicesOf, type VoiceInfo } from './voices';
 
 const v = (name: string, lang: string, localService = true): VoiceInfo => ({ name, lang, localService });
 
-describe('browser voices of a language (Р33 п. 14)', () => {
+describe('browser voices of a language (R33 item 14)', () => {
   it('an empty list is "unknown", not "missing": Chrome on Android may list no voices at all', () => {
     expect(voiceAvailability([], 'fr-FR')).toBe('unknown');
   });

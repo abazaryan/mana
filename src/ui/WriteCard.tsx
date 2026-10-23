@@ -1,10 +1,10 @@
 /**
- * The skill `write` (Р3, Р21, Р24): the meaning, the form hints and `hint`; the field
+ * The skill `write` (R3, R21, R24): the meaning, the form hints and `hint`; the field
  * is open at once with the cursor in it (the keyboard comes up by itself). Checked by
- * the written cascade with the article rule (Р24) and marked letter by letter. The
- * latency is the time to the first key (Р21); the time to "Check" is kept for analysis.
+ * the written cascade with the article rule (R24) and marked letter by letter. The
+ * latency is the time to the first key (R21); the time to "Check" is kept for analysis.
  * After the answer: the reference, its audio, the suggested rating, four buttons, "Next".
- * The reference is not in the page before the answer (Р17.13), no audio before it (Р17.12).
+ * The reference is not in the page before the answer (R17.13), no audio before it (R17.12).
  */
 import { useEffect, useRef, useState } from 'react';
 import { formHints, pickLocalizedWithLang } from '../core/deckFormat';
@@ -31,7 +31,7 @@ interface Answered {
   latencyMs: number | null;
   totalMs: number;
   suggestion: RatingSuggestion;
-  /** Typed: which keyboard, anything pasted (Р31). */
+  /** Typed: which keyboard, anything pasted (R31). */
   input: TypedInputInfo | null;
 }
 

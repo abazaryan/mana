@@ -128,7 +128,7 @@ describe('buildSession', () => {
     expect(shape(plan.items)).toEqual(['intro:d', 'speak:b', 'speak:a', 'speak:d*']);
   });
 
-  it('a card is due all of its due day, even later than now (Р29.3)', () => {
+  it('a card is due all of its due day, even later than now (R29.3)', () => {
     const plan = run({ entries: five.slice(0, 2), cards: [card('a', local(14, 23)), card('b', local(15, 3, 30))], newPerDay: 0 });
     expect(shape(plan.items)).toEqual(['speak:a', 'speak:b']);
     expect(run({ entries: five.slice(0, 2), cards: [card('a', local(15, 4))], newPerDay: 0 }).items).toEqual([]);
@@ -159,7 +159,7 @@ describe('buildSession', () => {
     expect(plan).toMatchObject({ pending: 1, catchUp: 0, introduced: 1 });
   });
 
-  it('introduced on an earlier day and never answered: a catch-up entry (Р25)', () => {
+  it('introduced on an earlier day and never answered: a catch-up entry (R25)', () => {
     const log = [intro('a', local(13, 10))];
     const plan = run({ entries: five.slice(0, 2), log });
     expect(shape(plan.items)).toEqual(['intro:b', 'speak:a*', 'speak:b*']);
@@ -208,7 +208,7 @@ describe('buildSession', () => {
   });
 });
 
-describe('buildSession: three skills (Р25)', () => {
+describe('buildSession: three skills (R25)', () => {
   const all = (id: string, k: number, extra: Partial<EntryRow> = {}) =>
     entry(id, k, { skills: ['listen', 'speak', 'write'], audio: `audio/${id}.wav`, ...extra });
 
@@ -217,7 +217,7 @@ describe('buildSession: three skills (Р25)', () => {
     expect(shape(plan.items)).toEqual(['intro:a', 'speak:a*', 'write:a*', 'listen:a*']);
   });
 
-  it('`listen` without deck audio is not issued until the browser voice is checked (Р33 п. 14)', () => {
+  it('`listen` without deck audio is not issued until the browser voice is checked (R33 item 14)', () => {
     const plan = run({ entries: [all('a', 0, { audio: null })] });
     expect(shape(plan.items)).toEqual(['intro:a', 'speak:a*', 'write:a*']);
     const onlyListen = run({ entries: [entry('b', 0, { skills: ['listen'] })] });
@@ -278,7 +278,7 @@ describe('buildSession: three skills (Р25)', () => {
     expect(shape(plan.items)).toEqual(['speak:a', 'speak:b', 'speak:c', 'write:a']);
   });
 
-  it('entries that sound the same are kept apart like one entry (Р16)', () => {
+  it('entries that sound the same are kept apart like one entry (R16)', () => {
     const entries = [entry('ravi', 0, { skills: ['speak', 'write'] }), entry('ravie', 1, { skills: ['write'] }), entry('x', 2)];
     const sameSound = (p: EntryRow, q: EntryRow) => p.entryId.startsWith('ravi') && q.entryId.startsWith('ravi');
     const cards = [card('ravi', local(9, 0), 'write'), card('ravie', local(9, 1), 'write'), card('x', local(9, 2)), card('ravi', local(30, 0))];
@@ -324,7 +324,7 @@ describe('catchUpToday', () => {
   });
 });
 
-describe('requeueAfterAgain (Р25)', () => {
+describe('requeueAfterAgain (R25)', () => {
   const r = (id: string, requeue = 0): SessionItem => ({ kind: 'review', skill: 'speak', entry: entry(id, 0), card: null, requeue });
   const items = ['a', 'b', 'c', 'd', 'e'].map((id) => r(id));
 
@@ -362,7 +362,7 @@ describe('sinceEntry', () => {
   });
 });
 
-describe('due day (Р29.3)', () => {
+describe('due day (R29.3)', () => {
   const at = (iso: string) => new Date(iso);
   const answered = (iso: string, days: number, offsetMin: number) => ({ due: new Date(at(iso).getTime() + days * DAY), lastReview: at(iso), lastReviewOffsetMin: offsetMin, scheduledDays: days });
 
@@ -391,7 +391,7 @@ describe('due day (Р29.3)', () => {
   });
 });
 
-describe('debts hold back new entries (Р17.4, Р29.5)', () => {
+describe('debts hold back new entries (R17.4, R29.5)', () => {
   const five = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => entry(id, k));
   const other = (id: string, k: number, extra: Partial<EntryRow> = {}) => entry(id, k, { deckId: 'o', ...extra });
 
@@ -419,7 +419,7 @@ describe('debts hold back new entries (Р17.4, Р29.5)', () => {
     expect(run({ entries, cards, newPerDay: 1 })).toMatchObject({ introduced: 1, noNew: null, debts: [] });
   });
 
-  it('the recalls of today\'s introductions are never held back (Р17.3); catch-up is', () => {
+  it('the recalls of today\'s introductions are never held back (R17.3); catch-up is', () => {
     const entries = [entry('a', 0), entry('b', 1, { skills: ['speak', 'write'] }), entry('c', 2)];
     const log = [intro('a', local(14, 5)), intro('b', local(10, 9))];
     const cards = [card('b', local(12, 9))];
@@ -463,7 +463,7 @@ describe('debts hold back new entries (Р17.4, Р29.5)', () => {
   });
 });
 
-describe('outlook (Р29.6)', () => {
+describe('outlook (R29.6)', () => {
   const entries = ['a', 'b', 'c', 'd', 'e'].map((id, k) => entry(id, k));
   const others = ['x', 'y'].map((id, k) => entry(id, k, { deckId: 'o' }));
   const day = { now: NOW, tz: LUX, deckId: 'd', entries: [...entries, ...others], log: [] as LogRecord[], newPerDay: 0 };
@@ -489,7 +489,7 @@ describe('outlook (Р29.6)', () => {
   });
 });
 
-describe('today is counted in the zone of the device (Р29.3)', () => {
+describe('today is counted in the zone of the device (R29.3)', () => {
   const five = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => entry(id, k));
   const at = (iso: string) => new Date(iso);
   const intros = (iso: string) => five.slice(0, 5).map((e, k) => intro(e.entryId, new Date(at(iso).getTime() + k * 60_000), 'old'));
@@ -514,7 +514,7 @@ describe('today is counted in the zone of the device (Р29.3)', () => {
   });
 });
 
-describe('last places keep the cards of one entry apart at the tail (Р25.8, phone check 19.10.2026)', () => {
+describe('last places keep the cards of one entry apart at the tail (R25.8, phone check 19.10.2026)', () => {
   const speakOnly = (n: number) => Array.from({ length: n }, (_, k) => entry(`r${k}`, k));
   const dueToday = (ids: string[]) => ids.map((id) => card(id, local(14, 5)));
   /** Known since an earlier day, `speak` answered (due later), `write` and `listen` still to come: catch-up. */

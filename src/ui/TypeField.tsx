@@ -4,11 +4,11 @@
  * unrecognised attempts). Enter is the form's submit — Gboard's `keydown` Enter is
  * unreliable — and means "Check" the first time and "Next" the second, not sooner than
  * ENTER_NEXT_DELAY_MS after the result (src/core/enterFlow.ts).
- * After the check "Next" takes the focus (src/ui/NextButton.tsx, Р26): on a phone the
+ * After the check "Next" takes the focus (src/ui/NextButton.tsx, R26): on a phone the
  * keyboard goes down and the marks are in view. On the next card with a field the
  * field takes the focus itself (`autoFocus`).
  *
- * On a touch device the on-screen keyboard types (Р31): the system one is hidden
+ * On a touch device the on-screen keyboard types (R31): the system one is hidden
  * (inputmode="none"), ours is up while the field has the focus, its Enter submits the
  * form, Android Back folds it. Settings → System keyboard, a laptop, or a language
  * without a layout — the browser's own input as before.
@@ -58,7 +58,7 @@ export function TypeField({
   loud?: boolean;
   /** A result is on screen. */
   checked: boolean;
-  /** The keyboard of the first character and whether anything was pasted, for the journal (Р31). */
+  /** The keyboard of the first character and whether anything was pasted, for the journal (R31). */
   onCheck(info: TypedInputInfo): void;
   onNext(): void;
   /** The answer is final: typing changes nothing, but the field stays focused. */
@@ -105,7 +105,7 @@ export function TypeField({
 
   const keyboardUp = onscreen && focused;
 
-  // Android Back folds the keyboard instead of leaving the page (Р31).
+  // Android Back folds the keyboard instead of leaving the page (R31).
   useEffect(() => {
     if (!keyboardUp) return;
     return watchClose(() => input.current?.blur());

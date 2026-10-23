@@ -3,7 +3,7 @@ import { translate, type Lang, type StringKey, type Vars } from './strings';
 
 export interface I18n {
   lang: Lang;
-  /** Language of meanings, hints and notes (Р8). */
+  /** Language of meanings, hints and notes (R8). */
   meaningLang: Lang;
   t(key: StringKey, vars?: Vars): string;
 }

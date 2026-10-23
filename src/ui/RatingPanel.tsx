@@ -1,5 +1,5 @@
 /**
- * The suggested rating, the four buttons, "I was misrecognised" and "Next" (Р4) —
+ * The suggested rating, the four buttons, "I was misrecognised" and "Next" (R4) —
  * the same under every skill. Lowering is free; Again is raised only by
  * "I was misrecognised", and only after a voice answer.
  */

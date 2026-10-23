@@ -147,7 +147,7 @@ describe('validateDeck: deck-level errors', () => {
     expect(validateDeck(deck({ language: 'sr-Latn-RS' })).errors).toEqual([]);
   });
 
-  it('title (Р30): in interface languages, a warning without it, an error for a wrong type; description only warns', () => {
+  it('title (R30): in interface languages, a warning without it, an error for a wrong type; description only warns', () => {
     const r = validateDeck(deck({ title: { ru: 'Урок 1' }, description: 'x' }), withPacks);
     expect(r.errors).toEqual([]);
     expect(r.deck?.title).toEqual({ ru: 'Урок 1' });
@@ -359,7 +359,7 @@ describe('validateDeck: entry errors', () => {
   });
 });
 
-describe('speech: the text for the browser voice (Р34)', () => {
+describe('speech: the text for the browser voice (R34)', () => {
   it('is optional plain text', () => {
     const r = validateDeck(deck({ entries: [entry({ id: 'ciao', text: 'ciao', speech: 'tchao', audio: undefined })] }), withPacks);
     expect(r.errors).toEqual([]);
@@ -588,7 +588,7 @@ describe('pickLocalizedWithLang', () => {
   });
 });
 
-describe('validateDeck: forms that sound the same (Р16)', () => {
+describe('validateDeck: forms that sound the same (R16)', () => {
   const pair = (skillsOfSecond: string[]) =>
     deck({
       entries: [
@@ -614,7 +614,7 @@ describe('validateDeck: rejected Tajik terms in deck text', () => {
   const termWarnings = (over: Record<string, unknown>) =>
     messages(validateDeck(deck({ entries: [entry(over)] }), withPacks).warnings).filter((m) => m.includes('по глоссарию'));
 
-  it('warns about «артикл» in a tg hint, meaning or note, naming the approved term', () => {
+  it('warns about the rejected loanword for "article" in a tg hint, meaning or note, naming the approved term', () => {
     const w = termWarnings({ hint: { tg: 'бо артикл', ru: 'с артиклем' } });
     expect(w).toHaveLength(1);
     expect(w[0]).toContain('hint.tg');
@@ -628,7 +628,7 @@ describe('validateDeck: rejected Tajik terms in deck text', () => {
   });
 });
 
-describe('introHints (Р16, 18.10.2026)', () => {
+describe('introHints (R16, 18.10.2026)', () => {
   it('leaves out the word gender when the form shows the same gender', () => {
     expect(introHints('m', { determiner: 'indefinite', gender: 'm' }, 'tg')).toEqual(['номуай.', 'музак.']);
   });

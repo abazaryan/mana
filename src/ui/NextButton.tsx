@@ -1,5 +1,5 @@
 /**
- * "Next" after a result (Р26, replaces Р22 п. 5): it takes the focus as soon as it is
+ * "Next" after a result (R26, replaces R22 item 5): it takes the focus as soon as it is
  * enabled — the text field loses it, so on a phone the keyboard goes down and the
  * marks are in view; on a laptop the next Enter presses this button, but not sooner
  * than ENTER_NEXT_DELAY_MS (a double Enter cannot skip the marks). A tap or a mouse

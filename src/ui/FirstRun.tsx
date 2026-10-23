@@ -2,7 +2,7 @@ import { FIRST_RUN_TITLE, LANG_NAMES, type Lang } from './strings';
 
 const ORDER: Lang[] = ['tg', 'ru', 'en'];
 
-/** Shown once: the interface language; the meaning language starts the same (Р8). */
+/** Shown once: the interface language; the meaning language starts the same (R8). */
 export function FirstRun({ onChoose }: { onChoose(lang: Lang): void }) {
   return (
     <main id="app">

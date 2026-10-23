@@ -132,7 +132,7 @@ describe('rebuildCards', () => {
   });
 });
 
-describe('drill records (Р25)', () => {
+describe('drill records (R25)', () => {
   it('the rebuild with and without the practice after Again gives the same next due dates', () => {
     const { log } = recordIncrementally();
     const drills: DrillRecord[] = log
@@ -161,7 +161,7 @@ describe('drill records (Р25)', () => {
   });
 });
 
-describe('returns after Again do not change FSRS (Р29.2)', () => {
+describe('returns after Again do not change FSRS (R29.2)', () => {
   const s = createScheduler();
   const days = (c: { due: Date }, from: number) => Math.round((c.due.getTime() - from) / D);
   const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -229,7 +229,7 @@ describe('returns after Again do not change FSRS (Р29.2)', () => {
   });
 });
 
-describe('zones in the replay (Р29.3)', () => {
+describe('zones in the replay (R29.3)', () => {
   const s = createScheduler();
   it('records without a zone count as Luxembourg; with one, its offset is used', () => {
     // 23:45Z → 00:05Z: 01:45 → 02:05 in Luxembourg (one app day), 04:45 → 05:05 in Dushanbe (one too),

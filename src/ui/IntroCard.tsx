@@ -1,10 +1,10 @@
 /**
- * Introduction of an entry (Р3, Р22.5), step by step — each step replaces the one
+ * Introduction of an entry (R3, R22.5), step by step — each step replaces the one
  * before it (amendments of 15.10.2026):
  *   1. the card: text, IPA, meaning, gender, form, hint, note; the audio plays;
  *   2. "say it aloud": recognised and marked, never rated, may be skipped;
  *   3. "copy it out" (entries with the skill `write` only): checked by the written
- *      check (Р24), never rated.
+ *      check (R24), never rated.
  * Nothing goes to FSRS; the journal gets one introduction record at the end.
  */
 import { useEffect, useState } from 'react';

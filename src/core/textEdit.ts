@@ -1,5 +1,5 @@
 /**
- * Text edits of the custom phone keyboard (Р6): a key inserts at the caret, Backspace
+ * Text edits of the custom phone keyboard (R6): a key inserts at the caret, Backspace
  * deletes before it. Pure, so the keyboard can be tested without a browser. Positions
  * are UTF-16 offsets, as in `HTMLInputElement.selectionStart` / `selectionEnd`.
  */

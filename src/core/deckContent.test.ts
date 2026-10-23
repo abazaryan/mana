@@ -17,14 +17,14 @@ const e = (text: string, over: Record<string, unknown> = {}) => ({
 const warns = (entries: unknown[]) => contentWarnings(entries, rules).map((w) => w.message);
 const has = (entries: unknown[], part: string) => warns(entries).filter((m) => m.includes(part));
 
-describe('deck content (Р28)', () => {
+describe('deck content (R28)', () => {
   it('splits a leading article, elided or not', () => {
     expect(splitLeadingArticle("l'ami", rules.articles)).toEqual({ article: "l'", rest: 'ami' });
     expect(splitLeadingArticle('la maison', rules.articles)).toEqual({ article: 'la', rest: 'maison' });
     expect(splitLeadingArticle('lait', rules.articles)).toBeNull();
   });
 
-  it('В1: the same meaning and nothing to tell the entries apart', () => {
+  it('V1: the same meaning and nothing to tell the entries apart', () => {
     const a = e('bonjour', { meaning: { tg: 'салом', ru: 'добрый день' } });
     const b = e('salut', { meaning: { tg: 'Салом.', ru: 'привет' } });
     expect(has([a, b], 'одинаковое значение (tg)')).toHaveLength(1);
@@ -35,13 +35,13 @@ describe('deck content (Р28)', () => {
     expect(has([ravi, ravie], 'одинаковое значение')).toEqual([]);
   });
 
-  it('В2: a word with an article needs form.determiner; phrases and untagged entries are not judged', () => {
+  it('V2: a word with an article needs form.determiner; phrases and untagged entries are not judged', () => {
     expect(has([e('le livre', { tags: ['word'], skills: ['write'] })], 'без form.determiner')).toHaveLength(1);
     expect(has([e('le livre', { tags: ['word'], form: { determiner: 'definite' }, skills: ['write'] })], 'без form.determiner')).toEqual([]);
     expect(has([e('la vie est belle', { tags: ['phrase'] })], 'без form.determiner')).toEqual([]);
   });
 
-  it('В3: a noun with l\' needs its indefinite pair; le / la nouns do not', () => {
+  it('V3: a noun with l\' needs its indefinite pair; le / la nouns do not', () => {
     const lami = e("l'ami", { form: { determiner: 'definite', gender: 'm' }, skills: ['write'] });
     expect(has([lami], 'не виден')).toHaveLength(1);
     const unAmi = e('un ami', { form: { determiner: 'indefinite', gender: 'm' }, skills: ['write'] });
@@ -49,12 +49,12 @@ describe('deck content (Р28)', () => {
     expect(has([e('le livre', { form: { determiner: 'definite' }, skills: ['write'] })], 'не виден')).toEqual([]);
   });
 
-  it('В4: a noun with form.determiner and no write', () => {
+  it('V4: a noun with form.determiner and no write', () => {
     expect(has([e('le livre', { form: { determiner: 'definite' } })], 'без write')).toHaveLength(1);
     expect(has([e('le livre', { form: { determiner: 'definite' }, skills: ['speak', 'write'] })], 'без write')).toEqual([]);
   });
 
-  it('В5: two forms that differ only in the gender ending both need form.gender', () => {
+  it('V5: two forms that differ only in the gender ending both need form.gender', () => {
     expect(has([e('ravi'), e('ravie', { form: { gender: 'f' } })], 'другого рода')).toHaveLength(1);
     expect(has([e("l'ami"), e("l'amie")], 'другого рода')).toHaveLength(2);
     expect(has([e('heureux'), e('heureuse')], 'другого рода')).toHaveLength(2);
@@ -62,20 +62,20 @@ describe('deck content (Р28)', () => {
     expect(has([e('livre'), e('lire')], 'другого рода')).toEqual([]);
   });
 
-  it('В6: il / elle / ils / elles need form.gender, impersonal il does not', () => {
+  it('V6: il / elle / ils / elles need form.gender, impersonal il does not', () => {
     expect(has([e('ils parlent français')], 'подлежащее')).toHaveLength(1);
     expect(has([e('elle est seule', { form: { gender: 'f' } })], 'подлежащее')).toEqual([]);
     for (const t of ['il y a du pain', 'il faut partir', 'il pleut', 'Il fait beau.']) expect(has([e(t)], 'подлежащее'), t).toEqual([]);
     expect(has([e('illustre')], 'подлежащее')).toEqual([]);
   });
 
-  it('В7: un / une alone need form.gender', () => {
+  it('V7: un / une alone need form.gender', () => {
     expect(has([e('un')], 'число с родом')).toHaveLength(1);
     expect(has([e('une.')], 'число с родом')).toHaveLength(1);
     expect(has([e('un', { form: { gender: 'm' } })], 'число с родом')).toEqual([]);
   });
 
-  it('В8: grammar written into a meaning or hint', () => {
+  it('V8: grammar written into a meaning or hint', () => {
     expect(has([e('ravi', { meaning: { tg: 'шодам (мард)' } })], 'грамматика текстом')).toHaveLength(1);
     expect(has([e('ravi', { meaning: { en: 'glad (m.)' } })], 'грамматика текстом')).toHaveLength(1);
     expect(has([e('ravie', { meaning: { ru: 'рада (ж. р.)' } })], 'грамматика текстом')).toHaveLength(1);
@@ -87,11 +87,11 @@ describe('deck content (Р28)', () => {
     expect(has([e('le nom', { hint: { tg: 'шиносвожаи муайян' } })], 'по глоссарию')).toEqual([]);
   });
 
-  it('В9 is gone: listen without deck audio plays the browser voice (Р33 п. 14)', () => {
+  it('V9 is gone: listen without deck audio plays the browser voice (R33 item 14)', () => {
     expect(has([e('oui', { skills: ['listen'] })], 'audio')).toEqual([]);
   });
 
-  it('В10: tu / vous need (informal) / (formal) in the English meaning; rendez-vous is not address', () => {
+  it('V10: tu / vous need (informal) / (formal) in the English meaning; rendez-vous is not address', () => {
     expect(has([e('Tu parles français ?', { meaning: { en: 'Do you speak French?' } })], '(informal)')).toHaveLength(1);
     expect(has([e('Tu parles français ?', { meaning: { en: 'Do you speak French? (informal)' } })], '(informal)')).toEqual([]);
     expect(has([e('Parlez-vous français ?', { meaning: { en: 'Do you speak French?' } })], '(formal)')).toHaveLength(1);
@@ -128,7 +128,7 @@ describe('rejected deck words: docs/GLOSSARY_TG.md is the source', () => {
   });
 });
 
-describe('checks between decks (Р28 п. 8): К1 two right answers, К2 the same entry twice', () => {
+describe('checks between decks (R28 item 8): K1 two right answers, K2 the same entry twice', () => {
   // Real entries of lesson 1 (revision 2) and of the test deck (revision 8), 22.10.2026.
   const lesson1 = {
     name: 'Фаронсавӣ · Дарси 01',
@@ -142,13 +142,13 @@ describe('checks between decks (Р28 п. 8): К1 two right answers, К2 the same
   };
   const msgs = (incoming: unknown[], others: OtherDeck[] = [lesson1]) => crossDeckWarnings(incoming, others).map((w) => w.message);
 
-  it('un rendez-vous in both decks (added in both on 22.10.2026): К2, the same meaning', () => {
+  it('un rendez-vous in both decks (added in both on 22.10.2026): K2, the same meaning', () => {
     const m = msgs([{ text: 'un rendez-vous', meaning: { tg: 'вохӯрӣ', ru: 'встреча', en: 'an appointment' }, form: { determiner: 'indefinite' } }]);
     expect(m).toHaveLength(1);
     expect(m[0]).toContain('К2. Запись 1 «un rendez-vous» уже есть в колоде «Фаронсавӣ · Дарси 01» (запись 4), и значение то же (tg) «вохӯрӣ»');
   });
 
-  it('oui → К2; deux with another meaning → К2 without "the same meaning"; le nom with a hint → К2, no К1', () => {
+  it('oui → K2; deux with another meaning → K2 without "the same meaning"; le nom with a hint → K2, no K1', () => {
     expect(msgs([{ text: 'oui', meaning: { tg: 'ҳа', ru: 'да' } }])[0]).toMatch(/^К2.*значение то же/);
     const deux = msgs([{ text: 'deux', meaning: { tg: 'ду (2)' } }]);
     expect(deux).toHaveLength(1);
@@ -164,13 +164,13 @@ describe('checks between decks (Р28 п. 8): К1 two right answers, К2 the same
     expect(msgs([{ text: 'l’ami', meaning: { tg: 'дӯст' }, form: { gender: 'm' } }], [l])[0]).toMatch(/^К2/);
   });
 
-  it('salut «салом» without a hint against bonjour «салом» → К1', () => {
+  it('salut and bonjour with the same Tajik meaning, no hint → K1', () => {
     const m = msgs([{ text: 'salut', meaning: { tg: 'салом', ru: 'привет' } }]);
     expect(m).toHaveLength(1);
     expect(m[0]).toContain('К1. Запись 1 «salut»: то же значение (tg) «салом», что у «bonjour» в колоде «Фаронсавӣ · Дарси 01» (запись 1)');
   });
 
-  it('a hint or form on one of the two lifts К1 (as in В1, salut / ciao)', () => {
+  it('a hint or form on one of the two lifts K1 (as in V1, salut / ciao)', () => {
     expect(msgs([{ text: 'salut', meaning: { tg: 'салом' }, hint: { tg: 'ҳангоми вохӯрӣ' } }])).toEqual([]);
     expect(msgs([{ text: 'un', meaning: { tg: '2' }, form: { gender: 'm' } }])).toEqual([]);
   });

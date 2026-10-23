@@ -1,8 +1,8 @@
 /**
  * The two practice steps with the reference on screen, never rated:
  *   "say it aloud" — recognised and marked word by word, live while listening;
- *   "copy it out"  — checked by the written check (Р24) and marked letter by letter.
- * Used in an introduction (Р22.5) and as the short practice after Again (Р17.11, Р25).
+ *   "copy it out"  — checked by the written check (R24) and marked letter by letter.
+ * Used in an introduction (R22.5) and as the short practice after Again (R17.11, R25).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { checkWritten, type TypedCheck } from '../core/evaluate';
@@ -18,7 +18,7 @@ import { NextButton } from './NextButton';
 import { TypeField } from './TypeField';
 import { playEntry, recognitionSupported, stopEntryAudio, useVisibleClock, useVoice, type RecognitionSetup } from './studyHooks';
 
-/** What `write` checks about the article of this entry (Р24). */
+/** What `write` checks about the article of this entry (R24). */
 export function articleForm(entry: EntryRow) {
   return { determiner: entry.form?.determiner !== undefined, gender: entry.form?.gender ?? entry.gender };
 }

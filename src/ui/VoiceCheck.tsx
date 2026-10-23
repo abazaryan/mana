@@ -1,5 +1,5 @@
 /**
- * "Voice check" (Р33 п. 14): the browser voice says a phrase in the learning language,
+ * "Voice check" (R33 item 14): the browser voice says a phrase in the learning language,
  * the user answers whether they heard it. Yes — entries of that language without deck
  * audio may get `listen` on this device; No — how to install a voice, then "Once more".
  * The answer is kept on the device only, per language.

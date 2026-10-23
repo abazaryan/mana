@@ -17,7 +17,7 @@ import { FRENCH, marksPattern, type KeyboardLayout } from './languages';
 
 const units = (row: ReturnType<typeof keyboardRows>[number]) => row.indent * 2 + row.keys.reduce((n, k) => n + k.width, 0);
 
-describe('French layout (Р31)', () => {
+describe('French layout (R31)', () => {
   const rows = keyboardRows(FRENCH.keyboard);
 
   it('QWERTY, Shift and Backspace around the last row, then apostrophe, hyphen, space, period, Enter', () => {
@@ -39,7 +39,7 @@ describe('French layout (Р31)', () => {
     for (const ch of reachableChars(FRENCH.keyboard)) expect(/\d/.test(ch)).toBe(false);
   });
 
-  it('reaches every letter of Р6 and the apostrophe and hyphen', () => {
+  it('reaches every letter of R6 and the apostrophe and hyphen', () => {
     const all = reachableChars(FRENCH.keyboard);
     for (const ch of "é è ê ë à â ç î ï ô û ù ü œ æ ' -".split(' ')) expect(all.has(ch)).toBe(true);
   });
@@ -103,7 +103,7 @@ describe('Shift', () => {
   });
 });
 
-describe('another language from data only (Р13)', () => {
+describe('another language from data only (R13)', () => {
   const german: KeyboardLayout = { rows: ['qwertzuiop', 'asdfghjkl', 'yxcvbnm'], beforeSpace: ['-'], afterSpace: ['.'], variants: { a: ['ä'], s: ['ß'] } };
   it('a QWERTZ layout with its own variants', () => {
     const rows = keyboardRows(german);
@@ -160,7 +160,7 @@ describe('releasedChar', () => {
   });
 });
 
-describe('keyboard mode and the journal (Р31)', () => {
+describe('keyboard mode and the journal (R31)', () => {
   it('touch device: on-screen unless the system keyboard is chosen; otherwise physical', () => {
     expect(keyboardMode({ coarsePointer: true, systemKeyboard: false })).toBe('onscreen');
     expect(keyboardMode({ coarsePointer: true, systemKeyboard: true })).toBe('system');

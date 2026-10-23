@@ -1,5 +1,5 @@
 /**
- * Verdict → FSRS rating (decision Р4).
+ * Verdict → FSRS rating (decision R4).
  *
  * Correctness decides: incorrect → Again, almost → Hard, correct → Good.
  * Easy: correct and fast, provided the previous answer on the same
@@ -58,7 +58,7 @@ export function isCorrectAndFast(a: AnswerOutcome): boolean {
   return a.verdict === 'correct' && isFast(a.latencyMs, a.nWords);
 }
 
-/** Why the rating was suggested; the UI translates it (Р8). */
+/** Why the rating was suggested; the UI translates it (R8). */
 export type RatingReason =
   | 'incorrect'
   | 'almost'
@@ -67,7 +67,7 @@ export type RatingReason =
   | 'correct-fast-twice'
   /** Would be Easy, but this card needed retries or unrecognised attempts first (Good). */
   | 'correct-retried'
-  /** Would be Easy, but `listen` gives Good at most for now (Р25): it is an echo, intervals grow anyway. */
+  /** Would be Easy, but `listen` gives Good at most for now (R25): it is an echo, intervals grow anyway. */
   | 'listen-no-easy';
 
 export interface RatingSuggestion {

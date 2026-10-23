@@ -1,6 +1,6 @@
 /**
  * Journal backup: "save the journal to a file" and "restore from a file". Restore
- * only adds records, skipping UUIDs already present (the journal is append-only, Р10).
+ * only adds records, skipping UUIDs already present (the journal is append-only, R10).
  *
  * A backup belongs to one local user. Restoring into an installation with an empty
  * journal adopts that user (e.g. after clearing site data). Merging the journals of

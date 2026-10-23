@@ -18,7 +18,7 @@ import { VoiceCheckSheet } from './VoiceCheck';
 /**
  * `due`: reviews due today in this deck (debts included); `debt`: the first deck with
  * debts (this one first) and how many decks have them; `held`: debts hold back new
- * entries now, so "add anyway" is offered (Р29.5, Р29.6).
+ * entries now, so "add anyway" is offered (R29.5, R29.6).
  */
 type Day = { due: number; fresh: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
 type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day; voiceAsked: boolean } | 'missing' | null;
@@ -50,7 +50,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       };
       const held = buildSession(input).noNew === 'overdue';
       const day: Day = { due: o.today, fresh: o.fresh, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
-      // The first time a deck with entries without audio is chosen: "Voice check" (Р33 п. 14).
+      // The first time a deck with entries without audio is chosen: "Voice check" (R33 item 14).
       const voiceAsked = meta?.voiceChecks?.[primaryLanguage(deck.language)] !== undefined;
       if (live) {
         setData({ deck, entries, day, voiceAsked });
@@ -64,7 +64,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
     };
   }, [db, deckId, userId, newPerDay, lang, reload]);
 
-  // Deck audio, or the browser voice for an entry without it (Р33 п. 14).
+  // Deck audio, or the browser voice for an entry without it (R33 item 14).
   const play = async (e: EntryRow, language: string) => {
     setAudioError(false);
     try {
@@ -185,7 +185,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
   );
 }
 
-/** Deleting a deck asks first and says that the journal, and so the progress, stays (Р34, Р10). */
+/** Deleting a deck asks first and says that the journal, and so the progress, stays (R34, R10). */
 function DeleteSheet({ db, deck, onClose }: { db: ManaDb; deck: DeckRow; onClose(): void }) {
   const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);

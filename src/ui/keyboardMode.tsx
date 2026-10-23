@@ -1,5 +1,5 @@
 /**
- * Which keyboard answers are typed with (Р31), for every TypeField below: the on-screen
+ * Which keyboard answers are typed with (R31), for every TypeField below: the on-screen
  * one on a touch device, the device's own if chosen in Settings, a physical one on a laptop.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';

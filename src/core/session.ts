@@ -1,12 +1,12 @@
 /**
- * Session composition (Р17, Р22.4, Р25, Р29). Pure: the caller loads entries, cards
+ * Session composition (R17, R22.4, R25, R29). Pure: the caller loads entries, cards
  * and the journal; nothing here touches the database.
  *
- * A card is one (entry × skill) pair: `speak`, `write`, `listen` (Р3). A card is due
- * on its due day — the app day of its last answer + the interval in days (Р29.3) —
+ * A card is one (entry × skill) pair: `speak`, `write`, `listen` (R3). A card is due
+ * on its due day — the app day of its last answer + the interval in days (R29.3) —
  * and a debt once that day is past. Debts in any deck hold back new entries until
- * they are done, unless the user adds new ones anyway for one portion (Р17.4, Р29.5).
- * The volume advice of Р7 comes at stage 4.4b.
+ * they are done, unless the user adds new ones anyway for one portion (R17.4, R29.5).
+ * The volume advice of R7 comes at stage 4.4b.
  */
 import { State } from 'ts-fsrs';
 import type { Skill } from './deckFormat';
@@ -14,33 +14,33 @@ import type { CardRow, EntryRow, LogRecord } from './model';
 import type { CardState } from './scheduler';
 import { appDay, dayStart, LEGACY_ZONE, offsetAt, today as appToday } from './zone';
 
-/** Cards in one portion (Р17.1): overdue reviews + first cards of new entries; introductions and returns are extra. */
+/** Cards in one portion (R17.1): overdue reviews + first cards of new entries; introductions and returns are extra. */
 export const PORTION_SIZE = 15;
 /**
  * Entries introduced on an earlier day whose skills have no card yet (a skill added
  * by a new revision, a recall missed when the app was closed): at most this many a
- * day get their first cards (Р25). Counted apart from the limit of introductions.
+ * day get their first cards (R25). Counted apart from the limit of introductions.
  */
 export const CATCH_UP_PER_DAY = 5;
 /** Two cards of one entry (or of entries that sound the same) stand at least this many other cards apart, when there are enough cards. */
 export const ENTRY_GAP = 2;
-/** A card answered Again comes back after at least this many other cards (Р25). */
+/** A card answered Again comes back after at least this many other cards (R25). */
 export const REQUEUE_MIN_GAP = 3;
 /** At most this many returns of one card in a portion; the second only after Again on the first. */
 export const MAX_REQUEUES = 2;
-/** Counts on screen stop here: "25+" (Р17.6). Exact figures stay for calculations. */
+/** Counts on screen stop here: "25+" (R17.6). Exact figures stay for calculations. */
 export const SHOWN_CAP = 25;
 
-/** Order of the cards of one entry inside a portion: `listen` never before `speak`/`write` (Р17.2, Р25). */
+/** Order of the cards of one entry inside a portion: `listen` never before `speak`/`write` (R17.2, R25). */
 export const SKILL_ORDER: readonly Skill[] = ['speak', 'write', 'listen'];
 
-/** A count as shown: at most "25+" (Р17.6). */
+/** A count as shown: at most "25+" (R17.6). */
 export function capped(n: number): string {
   return n > SHOWN_CAP ? `${SHOWN_CAP}+` : String(n);
 }
 
 /**
- * The due day of a card (Р29.3): the app day of its last answer, in the zone of that
+ * The due day of a card (R29.3): the app day of its last answer, in the zone of that
  * answer, + the interval in days. A card is due once this day has come.
  */
 export function dueDay(c: Pick<CardState, 'due' | 'lastReview' | 'lastReviewOffsetMin' | 'scheduledDays'>): number {
@@ -60,9 +60,9 @@ export type SessionItem =
 export type ReviewItem = Extract<SessionItem, { kind: 'review' }>;
 
 /**
- * Why no new card was added (Р17.7): no material / a daily limit / debts / reviews took
+ * Why no new card was added (R17.7): no material / a daily limit / debts / reviews took
  * the places. "New" = first cards of new entries and of skills of known entries
- * (catch-up, Р25.9); one line for both daily limits (phone check 19.10.2026).
+ * (catch-up, R25.9); one line for both daily limits (phone check 19.10.2026).
  */
 export type NoNewReason = 'noMaterial' | 'dailyLimit' | 'overdue' | 'portionFull';
 
@@ -80,19 +80,19 @@ export interface SessionPlan {
   introduced: number;
   /** Entries introduced today but not answered in every skill, finished now. */
   pending: number;
-  /** Entries introduced on an earlier day that get first cards of a skill now (Р25). */
+  /** Entries introduced on an earlier day that get first cards of a skill now (R25). */
   catchUp: number;
   /** Introductions left for today after this portion. */
   newLeft: number;
   noNew: NoNewReason | null;
-  /** Debts by deck, exact (this deck first, then by count): any of them holds back new entries (Р29.5). */
+  /** Debts by deck, exact (this deck first, then by count): any of them holds back new entries (R29.5). */
   debts: DeckCount[];
 }
 
 /** What the session and the outlook see: every deck of the user (debts and limits span them all). */
 export interface DayInput {
   now: Date;
-  /** Zone of the device now (IANA): "today" is counted in it (Р29.3). */
+  /** Zone of the device now (IANA): "today" is counted in it (R29.3). */
   tz: string;
   /** The deck being studied. */
   deckId: string;
@@ -102,7 +102,7 @@ export interface DayInput {
   cards: readonly CardRow[];
   /**
    * Decks whose language has the browser voice checked on this device ("Voice check":
-   * yes, Р33 п. 14): their entries without deck audio may get `listen`. Absent = none.
+   * yes, R33 item 14): their entries without deck audio may get `listen`. Absent = none.
    */
   voiceDecks?: ReadonlySet<string>;
 }
@@ -112,16 +112,16 @@ export interface SessionInput extends DayInput {
   log: readonly LogRecord[];
   newPerDay: number;
   portion?: number;
-  /** Two entries sound the same (ravi / ravie, Р16): kept apart like cards of one entry. */
+  /** Two entries sound the same (ravi / ravie, R16): kept apart like cards of one entry. */
   sameSound?(a: EntryRow, b: EntryRow): boolean;
-  /** "Add anyway" (Р29.5): this one portion gets new entries in spite of debts; their recalls take places first. */
+  /** "Add anyway" (R29.5): this one portion gets new entries in spite of debts; their recalls take places first. */
   addAnyway?: boolean;
 }
 
 /**
- * The one definition of "a card the session may issue" (Р17.8): the entry is not
+ * The one definition of "a card the session may issue" (R17.8): the entry is not
  * hidden, has the skill, and for `listen` has deck audio or the browser voice of its
- * language checked on this device (`voice`, Р33 п. 14, replacing Р25 п. 2). For a card
+ * language checked on this device (`voice`, R33 item 14, replacing R25 item 2). For a card
  * with a state, also: its due day has come.
  */
 export function issuable(e: EntryRow, skill: Skill, voice = false): boolean {
@@ -143,7 +143,7 @@ interface DueCard {
   day: number;
 }
 
-/** Cards of every deck that may be issued (Р17.8) with their due day; `today` in the zone of the device. */
+/** Cards of every deck that may be issued (R17.8) with their due day; `today` in the zone of the device. */
 function dueCards(input: DayInput): { today: number; cards: DueCard[] } {
   const today = appToday(input.now, input.tz);
   const byKey = new Map(input.entries.map((e) => [pairKey(e.deckId, e.entryId), e]));
@@ -163,7 +163,7 @@ function debtsOf(cards: readonly DueCard[], today: number, deckId: string): Deck
     .sort((a, b) => Number(b.deckId === deckId) - Number(a.deckId === deckId) || b.count - a.count || a.deckId.localeCompare(b.deckId));
 }
 
-/** Figures for the end of a portion, the empty queue and the deck screen (Р29.6); exact, capped only when shown. */
+/** Figures for the end of a portion, the empty queue and the deck screen (R29.6); exact, capped only when shown. */
 export interface Outlook {
   /** Reviews due today or earlier in this deck: "today still N", tied to "Another round". */
   today: number;
@@ -174,7 +174,7 @@ export interface Outlook {
   /**
    * New cards this deck may still give today: recalls of entries introduced today,
    * catch-up within its daily limit and new entries within theirs, every skill
-   * counted. Debts do not lower it (they only hold the new cards back, Р29.5).
+   * counted. Debts do not lower it (they only hold the new cards back, R29.5).
    */
   fresh: number;
   debts: DeckCount[];
@@ -201,14 +201,14 @@ function inToday(at: Date, now: Date, tz: string): boolean {
   return at.getTime() >= dayStart(now, tz).getTime() && at.getTime() <= now.getTime();
 }
 
-/** Introductions since the start of today, in any deck, hidden entries included (Р17.5, Р17.9). */
+/** Introductions since the start of today, in any deck, hidden entries included (R17.5, R17.9). */
 export function introsToday(log: readonly LogRecord[], now: Date, tz: string): number {
   return log.filter((r) => r.type === 'intro' && inToday(r.at, now, tz)).length;
 }
 
 /**
  * Entries, in any deck, introduced before today that had the first answer of some
- * skill today: the catch-up count (Р25).
+ * skill today: the catch-up count (R25).
  */
 export function catchUpToday(log: readonly LogRecord[], now: Date, tz: string): number {
   const from = dayStart(now, tz).getTime();
@@ -246,12 +246,12 @@ function fit(list: readonly Recall[], room: number, maxEntries = Infinity): Reca
 
 /** First cards this deck could give: today's introductions, catch-up, new entries; with the room the daily limits leave. */
 interface NewMaterial {
-  /** Entries introduced today with skills still unanswered (Р17.3): always issued. */
+  /** Entries introduced today with skills still unanswered (R17.3): always issued. */
   startedToday: Recall[];
-  /** Entries known from an earlier day with skills never answered: catch-up (Р25.9). */
+  /** Entries known from an earlier day with skills never answered: catch-up (R25.9). */
   startedBefore: Recall[];
   notIntroduced: Recall[];
-  /** Introductions left today (Р17.5). */
+  /** Introductions left today (R17.5). */
   budget: number;
   /** Catch-up entries left today. */
   catchBudget: number;
@@ -288,14 +288,14 @@ function newMaterial(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>):
  * Places, as a rule: due cards of this deck (debts and today's, oldest first), then
  * first cards of entries introduced today and not finished, then catch-up entries,
  * then new entries in deck order, each with all its skills. Checks for new entries:
- * material → daily limit → debts in any deck → room (Р17.5, Р29.5). With debts, no
+ * material → daily limit → debts in any deck → room (R17.5, R29.5). With debts, no
  * introductions and no catch-up; the recalls of today's introductions always come
- * (Р17.3). "Add anyway" (one portion): the recalls of new entries — today's and the
+ * (R17.3). "Add anyway" (one portion): the recalls of new entries — today's and the
  * new ones within the limit — take places first, the due cards the rest, catch-up last.
  *
  * Shown as: introductions → due cards → first cards in rounds (every `speak`, then
  * every `write`, then every `listen`), so reviews stand between an introduction and
- * its recall (Р22.4); then `arrange` keeps the cards of one entry apart and in the
+ * its recall (R22.4); then `arrange` keeps the cards of one entry apart and in the
  * order speak → write → listen.
  */
 export function buildSession(input: SessionInput): SessionPlan {
@@ -342,7 +342,7 @@ export function buildSession(input: SessionInput): SessionPlan {
     }
   }
 
-  // New cards: new entries and catch-up (Р25.9). Checks: material → daily limits → debts → room (Р29.5).
+  // New cards: new entries and catch-up (R25.9). Checks: material → daily limits → debts → room (R29.5).
   let noNew: NoNewReason | null = null;
   if (fresher.length + catchUp.length === 0) {
     const newLeft = notIntroduced.length > 0 && budget > 0;
@@ -374,7 +374,7 @@ export function buildSession(input: SessionInput): SessionPlan {
   };
 }
 
-/** entryId → spacing key: entries that sound the same share one (Р16). */
+/** entryId → spacing key: entries that sound the same share one (R16). */
 export function soundGroups(entries: readonly EntryRow[], sameSound?: (a: EntryRow, b: EntryRow) => boolean): Map<string, string> {
   const group = new Map(entries.map((e) => [e.entryId, e.entryId]));
   if (!sameSound) return group;
@@ -397,7 +397,7 @@ export function soundGroups(entries: readonly EntryRow[], sameSound?: (a: EntryR
  * waiting (speak → write → listen, always) and whose spacing key is not among the
  * last ENTRY_GAP items; if every waiting card is that close, the first allowed one.
  *
- * Last places (Р25.8, fixed after the phone check of 19.10.2026): the greedy order
+ * Last places (R25.8, fixed after the phone check of 19.10.2026): the greedy order
  * alone left the cards of one entry for the tail, where nothing was left to put
  * between them (oui/write, oui/listen after 12 reviews). A spacing key with k cards
  * left must start no later than place L − 1 − (k − 1)·(ENTRY_GAP + 1), L being the
@@ -460,7 +460,7 @@ function lastPlaces(left: readonly ReviewItem[], key: (i: SessionItem) => string
 }
 
 /**
- * A card answered Again at `index` comes back at the end of the portion (Р25):
+ * A card answered Again at `index` comes back at the end of the portion (R25):
  * not sooner than REQUEUE_MIN_GAP other cards later, at most MAX_REQUEUES times.
  * Returns the new list, or null when it does not come back in this portion — FSRS
  * brings it back in 1–10 minutes anyway.

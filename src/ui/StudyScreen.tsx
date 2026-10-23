@@ -1,11 +1,11 @@
 /**
- * One round of study in a deck (Р17, Р22.4, Р25): buildSession decides the items; each
+ * One round of study in a deck (R17, R22.4, R25): buildSession decides the items; each
  * introduction, answer and practice is written to the journal as soon as it is
  * finished, so leaving in the middle loses nothing already done. An answer rated
  * Again is written first, then its short practice follows, and the card comes back
  * at the end of the portion (requeueAfterAgain). Every record carries the zone of the
- * device (Р29.3). After the portion — or when there is nothing to issue — the figures
- * of Р29.6 and the reason why no new entries came (Р17.7).
+ * device (R29.3). After the portion — or when there is nothing to issue — the figures
+ * of R29.6 and the reason why no new entries came (R17.7).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deckTitle } from '../core/deckFormat';
@@ -53,7 +53,7 @@ import { WriteCard } from './WriteCard';
 const scheduler = createScheduler();
 
 type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
-/** What comes after this portion (Р29.6): the figures and the portion "Another round" would build. */
+/** What comes after this portion (R29.6): the figures and the portion "Another round" would build. */
 type After = { outlook: Outlook; next: SessionPlan; decks: Map<string, DeckRow> };
 type Round =
   | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; decks: Map<string, DeckRow>; after: After | null }
@@ -79,7 +79,7 @@ async function prepareHints(db: ManaDb, deck: DeckRow, biasing: boolean): Promis
   return { options: { phrases, processLocally: speechPack === 'available' }, biasing: 'on', speechPack };
 }
 
-/** Two entries sound the same (ravi / ravie, Р16): kept apart in the portion. */
+/** Two entries sound the same (ravi / ravie, R16): kept apart in the portion. */
 function sameSoundOf(pack: LanguagePack | undefined) {
   const same = pack?.sameSound;
   return same ? (a: EntryRow, b: EntryRow) => same(a.text, b.text) : undefined;
@@ -115,14 +115,14 @@ export function StudyScreen({
   actor: Actor;
   newPerDay: number;
   biasing: boolean;
-  /** Opened with "add anyway" (Р29.5): the first portion only. */
+  /** Opened with "add anyway" (R29.5): the first portion only. */
   addAnyway?: boolean;
 }) {
   const { t, lang } = useI18n();
   const [round, setRound] = useState<Round>(null);
   const [index, setIndex] = useState(0);
   const [ratings, setRatings] = useState<FinalRating[]>([]);
-  /** `review`: the previous answer for the Easy rule (returns skipped, Р29.2); `last`: the previous answer of any kind, for `sincePairSec`. */
+  /** `review`: the previous answer for the Easy rule (returns skipped, R29.2); `last`: the previous answer of any kind, for `sincePairSec`. */
   const [previous, setPrevious] = useState<{ index: number; review: ReviewRecord | null; last: ReviewRecord | null } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   /** The short practice after Again of the card at `index`, answered in the record `reviewId`. */
@@ -156,7 +156,7 @@ export function StudyScreen({
   }, [start, addAnyway, deckId]);
 
   const item = round && round !== 'missing' ? round.items[index] : undefined;
-  // How the entry sounded is journaled per card and per short practice (Р33 п. 14).
+  // How the entry sounded is journaled per card and per short practice (R33 item 14).
   useEffect(resetSoundStamp, [index, drill]);
 
   // The previous answer on the card, for the Easy rule; loaded before the card shows.
@@ -201,7 +201,7 @@ export function StudyScreen({
   const recognition: RecognitionSetup = {
     ...round.hints,
     onPhrasesUnsupported: () => {
-      // Remembered on this device; later cards go without hints (Р22, amendments of 15.10.2026).
+      // Remembered on this device; later cards go without hints (R22, amendments of 15.10.2026).
       void setPhrasesUnsupported(db, true);
       setRound((r) => (r && r !== 'missing' ? { ...r, hints: { ...OFF, biasing: 'unavailable', speechPack: r.hints.speechPack } } : r));
     },
@@ -220,7 +220,7 @@ export function StudyScreen({
     );
   }
   const locale = speechLocale(deck.language) ?? pack.defaultLocale;
-  /** One line: why no new entries came (Р17.7). Debts elsewhere name the deck (Р29.5). */
+  /** One line: why no new entries came (R17.7). Debts elsewhere name the deck (R29.5). */
   const noNewText = (p: SessionPlan): string | null => {
     if (p.noNew === 'dailyLimit') return t('study.noNew.dailyLimit');
     if (p.noNew === 'portionFull') return t('study.noNew.portionFull');
@@ -235,7 +235,7 @@ export function StudyScreen({
   };
   const noNewLine = noNewText(plan);
 
-  /** The figures, the reason and the buttons after a portion or instead of an empty one (Р29.6). */
+  /** The figures, the reason and the buttons after a portion or instead of an empty one (R29.6). */
   const ahead = (after: After | null) => {
     if (!after) return <p className="m">{t('common.loading')}</p>;
     const why = noNewText(after.next);
@@ -296,7 +296,7 @@ export function StudyScreen({
       finishedAt.current.set(index, b.at);
     });
   const onAnswer = (it: ReviewItem, prev: ReviewRecord | null) => (a: CardAnswer) => {
-    // `prev`: the previous answer of any kind, returns included (seconds since it, as before Р29).
+    // `prev`: the previous answer of any kind, returns included (seconds since it, as before R29).
     setSaveError(null);
     void (async () => {
       try {
@@ -317,7 +317,7 @@ export function StudyScreen({
           setIndex((i) => i + 1);
           return;
         }
-        // Again (Р25): the answer is in the journal; now the short practice, and the card comes back later.
+        // Again (R25): the answer is in the journal; now the short practice, and the card comes back later.
         const requeued = requeueAfterAgain(items, index);
         if (requeued) setRound((r) => (r && r !== 'missing' ? { ...r, items: requeued } : r));
         setDrill({ index, reviewId: record.id });
@@ -352,7 +352,7 @@ export function StudyScreen({
     );
   }
 
-  // "X of N" counts cards to answer, not introductions (Р29.6); N still grows after Again.
+  // "X of N" counts cards to answer, not introductions (R29.6); N still grows after Again.
   const total = items.filter((i) => i.kind === 'review').length;
   const done = items.slice(0, index).filter((i) => i.kind === 'review').length;
   const cardKey = `${sessionId}-${index}`;
@@ -432,7 +432,7 @@ export function StudyScreen({
     <section>
       {back}
       <div className="progress">
-        {/* An introduction has no number (Р29.6): the place stays empty, the card shows its own title. */}
+        {/* An introduction has no number (R29.6): the place stays empty, the card shows its own title. */}
         <span>{item.kind === 'intro' ? '' : t('study.progress', { i: done + 1, n: total })}</span>
         <span className="bar">
           <i style={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }} />

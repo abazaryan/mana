@@ -1,5 +1,5 @@
 /**
- * Browser facts the on-screen keyboard needs (Р31): is the main pointer a finger, and
+ * Browser facts the on-screen keyboard needs (R31): is the main pointer a finger, and
  * the device's "close" action (Android Back) while the keyboard is up.
  */
 

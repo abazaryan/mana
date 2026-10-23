@@ -24,7 +24,7 @@ function pngSize(dataUrl: string | undefined): string {
   return `${v.getUint32(16)}x${v.getUint32(20)}`;
 }
 
-describe('web app manifest (Р32: installing on the home screen)', () => {
+describe('web app manifest (R32: installing on the home screen)', () => {
   it('the id never changes: Chrome tells installed apps apart by it', () => {
     expect(manifest.id).toBe('./');
   });

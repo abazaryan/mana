@@ -1,5 +1,5 @@
 /**
- * What a deck import changes (Р2, Р15, Р17.9). Pure: the caller reads the installed
+ * What a deck import changes (R2, R15, R17.9). Pure: the caller reads the installed
  * deck, asks the user to confirm when needed and writes the plan in one transaction.
  *
  * - Entries are matched by id: present → content and position updated, shown again
@@ -7,7 +7,7 @@
  * - The journal and the cards are never touched by an import.
  * - Same revision → "reinstall?"; older revision → warning; a deck with the same id
  *   but a mostly different set of entries (or another language) → warning.
- * - Name (Р30): the deck's `title` when it has one; the file name only when a deck
+ * - Name (R30): the deck's `title` when it has one; the file name only when a deck
  *   without a title is installed — an update never renames it from the file
  *   (Chrome on Android suffixes downloads again: "test-speak-2").
  */
@@ -27,7 +27,7 @@ export type ImportConfirm =
   | {
       type: 'different';
       installedName: string;
-      /** Title of the installed deck (Р30): shown with `deckTitle`. */
+      /** Title of the installed deck (R30): shown with `deckTitle`. */
       installedTitle?: DeckRow['title'];
       /** Entry ids present in both. */
       shared: number;
@@ -54,7 +54,7 @@ export interface ImportPlan {
   summary: ImportSummary;
   /** Questions to ask before writing; empty = write right away. */
   confirm: ImportConfirm[];
-  /** Checks against the other installed decks of the language (Р28 п. 8, К1/К2): warnings, the import goes on. */
+  /** Checks against the other installed decks of the language (R28 item 8, K1/K2): warnings, the import goes on. */
   crossDeck?: DeckIssue[];
 }
 

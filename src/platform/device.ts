@@ -8,7 +8,7 @@ export const browserClock: Clock = {
 };
 
 /**
- * IANA zone of the device right now (Р29.3), read at every use: a trip changes it.
+ * IANA zone of the device right now (R29.3), read at every use: a trip changes it.
  * 'local' when the browser does not tell; offsets then come from the device clock.
  */
 export function deviceZone(): string {

@@ -1,5 +1,5 @@
 /**
- * Copies a text to the clipboard (texts for an AI, Р33 п. 15). Where the browser does
+ * Copies a text to the clipboard (texts for an AI, R33 item 15). Where the browser does
  * not allow it, the text is shown in a read-only field to select by hand.
  */
 import { useState } from 'react';

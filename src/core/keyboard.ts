@@ -1,5 +1,5 @@
 /**
- * The on-screen phone keyboard (Р6, Р31), the parts that need no browser: the keys
+ * The on-screen phone keyboard (R6, R31), the parts that need no browser: the keys
  * built from the language pack's layout, Shift, the long-press popup, which keyboard
  * is in use and what the journal records about it.
  */
@@ -127,7 +127,7 @@ export function releasedChar(p: { char: string; variants: readonly string[]; pop
 }
 
 /**
- * Which keyboard answers are typed with (Р31): the on-screen one on a touch device,
+ * Which keyboard answers are typed with (R31): the on-screen one on a touch device,
  * the device's own when the owner chose it in Settings, a physical one elsewhere.
  */
 export type KeyboardMode = 'onscreen' | 'system' | 'physical';
@@ -150,7 +150,7 @@ export function typedKeyboard(mode: KeyboardMode, first: FirstInput): TypedKeybo
   return mode === 'system' ? 'system' : 'physical';
 }
 
-/** What the journal gets about a typed answer (Р31). */
+/** What the journal gets about a typed answer (R31). */
 export interface TypedInputInfo {
   keyboard: TypedKeyboard | null;
   pasted: boolean;

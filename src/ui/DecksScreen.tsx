@@ -31,7 +31,7 @@ function idOf(archive: DeckArchive): { deckId: string | null; revision: number |
   return { deckId: d?.id ?? null, revision: d?.revision ?? null };
 }
 
-/** Pasting the answer of an AI (Р33 п. 15). */
+/** Pasting the answer of an AI (R33 item 15). */
 function PasteSheet({ onCheck, onClose }: { onCheck(text: string): void; onClose(): void }) {
   const { t } = useI18n();
   const [text, setText] = useState('');
@@ -60,7 +60,7 @@ function PasteSheet({ onCheck, onClose }: { onCheck(text: string): void; onClose
   );
 }
 
-/** How to make a personal deck with an AI (Р33 п. 15): one text with the rules, the settings and the installed entries (Р34). */
+/** How to make a personal deck with an AI (R33 item 15): one text with the rules, the settings and the installed entries (R34). */
 function PromptSheet({ db, onClose }: { db: ManaDb; onClose(): void }) {
   const { t, lang, meaningLang } = useI18n();
   const [installed, setInstalled] = useState<string | null>(null);
@@ -118,8 +118,8 @@ export function DecksScreen({ db }: { db: ManaDb }) {
 
   /**
    * Errors refuse the deck; otherwise the check result is always shown and the deck is
-   * installed only by a button — "Add anyway" with warnings (the validator's and К1/К2,
-   * Р33 п. 15), "Install" without (Р34).
+   * installed only by a button — "Add anyway" with warnings (the validator's and K1/K2,
+   * R33 item 15), "Install" without (R34).
    */
   const consider = async (read: () => Promise<DeckArchive>) => {
     setImp({ phase: 'reading' });

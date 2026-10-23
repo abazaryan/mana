@@ -10,7 +10,7 @@ function stampTime(stamp: number): number {
   return new Date(time).toISOString().slice(0, 16).replace(/\D/g, '') === s ? time : NaN;
 }
 
-describe('build number (Р36)', () => {
+describe('build number (R36)', () => {
   it('BUILD — this build, UTC YYYYMMDDHHmm', () => {
     expect(stampTime(BUILD)).not.toBeNaN();
     expect(Math.abs(stampTime(BUILD) - Date.now())).toBeLessThan(24 * 3600_000);

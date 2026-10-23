@@ -1,5 +1,5 @@
 /**
- * What the Enter key does in a study step (Р26, replaces Р22 п. 5). Android's Gboard
+ * What the Enter key does in a study step (R26, replaces R22 item 5). Android's Gboard
  * delivers `keydown` Enter unreliably, so the field sits in a form and Enter is the
  * form's submit:
  *
