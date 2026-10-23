@@ -35,7 +35,7 @@
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
 | `deck.delete` | Удалить колоду | Delete deck | Пок кардани маҷмӯа |
 | `deck.deleteTitle` | Удалить колоду? | Delete this deck? | Маҷмӯа пок шавад? |
-| `deck.deleteText` | Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды. | “{name}” will be deleted from this device with its entries and audio. The answer journal is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text. | «{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст. |
+| `deck.deleteText` | Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал занятий остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды. | “{name}” will be deleted from this device with its entries and audio. The study log is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text. | «{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст. |
 | `deck.deleteConfirm` | Удалить | Delete | Пок кардан |
 | `skill.listen` | слушать | listen | гӯш додан |
 | `skill.speak` | говорить | speak | гуфтан |
@@ -129,7 +129,7 @@
 | `import.checkTitle` | Итог проверки | Check result | Натиҷаи санҷиш |
 | `import.clean` | Ошибок и предупреждений нет. | No errors or warnings. | Хато ва ҳушдор нест. |
 | `import.willChange` | После установки: | After installing: | Пас аз насб: |
-| `import.reinstall` | Редакция {rev} уже установлена. Переустановить? Прогресс и журнал не изменятся. | Revision {rev} is already installed. Reinstall it? Progress and the journal stay as they are. | Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи ҷавобҳо тағйир намеёбанд. |
+| `import.reinstall` | Редакция {rev} уже установлена. Переустановить? Прогресс и журнал не изменятся. | Revision {rev} is already installed. Reinstall it? Progress and the study log stay as they are. | Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи тамрин тағйир намеёбанд. |
 | `import.older` | Загружается редакция {incoming}, а установлена {installed} — загружаемая старее. Всё равно установить? | You are loading revision {incoming}, but revision {installed} is installed — the file is older. Install it anyway? | Шумо нусхаи {incoming}-ро дарунрезӣ мекунед, вале нусхаи {installed} насб шудааст — файли нав кӯҳнатар аст. Бо вуҷуди ин насб кунем? |
 | `import.different` | Колода с таким id уже установлена («{name}»), но записи почти не совпадают: общих {shared} из {installed}. Возможно, это другая колода с тем же id. Если установить, записи «{name}», которых нет в новом файле, будут скрыты. | A deck with this id is already installed ("{name}"), but the entries hardly match: {shared} of {installed} in common. It may be another deck with the same id. If you install it, the entries of "{name}" missing from the new file will be hidden. | Маҷмӯа бо ҳамин шиноса аз қабл ҳаст («{name}»), вале омӯзбаргҳо қариб мувофиқат намекунанд: муштарак {shared} аз {installed}. Шояд ин маҷмӯаи дигар бо ҳамон шиноса бошад. Агар насб кунед, омӯзбаргҳои «{name}», ки дар файли нав нестанд, пинҳон мешаванд. |
 | `import.languageChanged` | У колоды другой изучаемый язык: {from} → {to}. | The learning language differs: {from} → {to}. | Забони омӯзиши маҷмӯа дигар аст: {from} → {to}. |
@@ -157,7 +157,7 @@
 | `pack.unsupported` | Этот браузер не умеет распознавать на устройстве. | This browser has no on-device recognition. | Ин мурургар бозшиносӣ дар дастгоҳро надорад. |
 | `pack.download` | Скачать {lang} для распознавания на устройстве | Download {lang} for on-device recognition | Боргирии забони {lang} барои бозшиносӣ дар дастгоҳ |
 | `pack.failed` | Скачать не удалось. | The download failed. | Боргирӣ нашуд. |
-| `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old journal) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
+| `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old study log) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
 | `decks.paste` | Вставить текст колоды | Paste deck text | Часпондани матни маҷмӯа |
 | `decks.makeWithAi` | Сделать колоду с ИИ | Make a deck with AI | Сохтани маҷмӯа бо ҳуши маснӯӣ |
 | `privacy.voice` | Голосовой ответ распознаёт браузер: Chrome отправляет звук в Google, Edge — в Microsoft. | Your browser recognises voice answers: Chrome sends the audio to Google, Edge to Microsoft. | Гуфтори шуморо мурургар бозшиносӣ мекунад: Chrome садоро ба Google мефиристад, Edge — ба Microsoft. |
@@ -191,19 +191,20 @@
 | `voice.state.none` | Не проверено | Not checked | Санҷида нашудааст |
 | `settings.voice` | Голос браузера | Browser voice | Садои мурургар |
 | `settings.voiceHint` | Для карточек без звука колоды. | For cards without deck audio. | Барои омӯзбаргҳои бе файли садо. |
+| `log.title` | Журнал занятий | Study log | Таърихчаи тамрин |
 | `backup.title` | Резервная копия | Backup | Нусхаи пуштибон |
-| `backup.hint` | Журнал ответов (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл. | The answer journal (all your progress) lives only in this browser. Save it to a file from time to time. | Таърихчаи ҷавобҳо (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед. |
-| `backup.save` | Сохранить журнал в файл | Save the journal to a file | Захираи таърихча дар файл |
+| `backup.hint` | Журнал занятий (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл. | The study log (all your progress) lives only in this browser. Save it to a file from time to time. | Таърихчаи тамрин (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед. |
+| `backup.save` | Сохранить журнал в файл | Save the study log to a file | Захираи таърихча дар файл |
 | `backup.restore` | Восстановить из файла | Restore from a file | Бозёбӣ аз файл |
 | `backup.saved` | В файле записей: {n} | Records in the file: {n} | Дар файл сабтҳо: {n} |
 | `backup.restored` | Добавлено: {added} · уже было: {skipped} | Added: {added} · already present: {skipped} | Илова шуд: {added} · қаблан буд: {skipped} |
-| `backup.error.json` | Это не файл журнала «Маны». | This is not a Mana journal file. | Ин файли таърихчаи «Моно» нест. |
+| `backup.error.json` | Это не файл журнала «Маны». | This is not a Mana study log file. | Ин файли таърихчаи «Моно» нест. |
 | `backup.error.version` | Файл из более новой версии приложения. Обновите приложение. | The file comes from a newer version of the app. Update the app. | Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед. |
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |
 | `backup.error.failed` | Ошибка: {error} | Error: {error} | Хато: {error} |
 | `migrate.title` | Правила повторений обновлены | Review rules updated | Қоидаҳои такрор барӯз шуданд |
-| `migrate.text` | Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется. | Review dates will be recalculated with the new rules. First the journal is saved to a file, just in case; the journal itself does not change. | Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад. |
+| `migrate.text` | Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется. | Review dates will be recalculated with the new rules. First the study log is saved to a file, just in case; the log itself does not change. | Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад. |
 | `migrate.go` | Сохранить и продолжить | Save and continue | Захира ва идома |
 | `storage.title` | Хранилище | Storage | Захирагоҳ |
 | `storage.persisted` | Постоянное: браузер не удалит данные сам. | Persistent: the browser will not clear the data on its own. | Доимӣ: мурургар додаҳоро худ аз худ пок намекунад. |

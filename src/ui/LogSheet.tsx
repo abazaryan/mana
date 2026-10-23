@@ -3,6 +3,7 @@ import { fmtSec } from '../core/format';
 import { GRADE_NAMES } from '../core/grade';
 import { clearLog, loadLog } from '../platform/storage';
 import { copyText } from '../platform/device';
+import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 const SHOWN = 40;
 
 export function LogSheet({ onClose }: Props) {
+  const { t } = useI18n();
   const [log, setLog] = useState(loadLog);
   const [msg, setMsg] = useState<string | null>(null);
   const [fallbackText, setFallbackText] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function LogSheet({ onClose }: Props) {
   const status = msg ?? (log.length ? `Записей: ${log.length}` : 'Пока пусто. Пройдите хотя бы несколько карточек.');
 
   return (
-    <Sheet title="Журнал ответов" onClose={onClose}>
+    <Sheet title={t('log.title')} onClose={onClose}>
       <div className="row start">
         <button className="primary" type="button" onClick={() => void copy()}>
           Скопировать всё

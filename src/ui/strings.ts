@@ -70,9 +70,9 @@ export const STRINGS = {
   'deck.delete': { tg: 'Пок кардани маҷмӯа', ru: 'Удалить колоду', en: 'Delete deck' },
   'deck.deleteTitle': { tg: 'Маҷмӯа пок шавад?', ru: 'Удалить колоду?', en: 'Delete this deck?' },
   'deck.deleteText': {
-    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи ҷавобҳо мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
-    ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал ответов остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
-    en: '“{name}” will be deleted from this device with its entries and audio. The answer journal is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text.',
+    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
+    ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал занятий остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
+    en: '“{name}” will be deleted from this device with its entries and audio. The study log is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text.',
   },
   'deck.deleteConfirm': { tg: 'Пок кардан', ru: 'Удалить', en: 'Delete' },
 
@@ -260,9 +260,9 @@ export const STRINGS = {
   'import.clean': { tg: 'Хато ва ҳушдор нест.', ru: 'Ошибок и предупреждений нет.', en: 'No errors or warnings.' },
   'import.willChange': { tg: 'Пас аз насб:', ru: 'После установки:', en: 'After installing:' },
   'import.reinstall': {
-    tg: 'Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи ҷавобҳо тағйир намеёбанд.',
+    tg: 'Нусхаи {rev} қаблан насб шудааст. Дубора насб кунем? Пешрафт ва таърихчаи тамрин тағйир намеёбанд.',
     ru: 'Редакция {rev} уже установлена. Переустановить? Прогресс и журнал не изменятся.',
-    en: 'Revision {rev} is already installed. Reinstall it? Progress and the journal stay as they are.',
+    en: 'Revision {rev} is already installed. Reinstall it? Progress and the study log stay as they are.',
   },
   'import.older': {
     tg: 'Шумо нусхаи {incoming}-ро дарунрезӣ мекунед, вале нусхаи {installed} насб шудааст — файли нав кӯҳнатар аст. Бо вуҷуди ин насб кунем?',
@@ -365,7 +365,7 @@ export const STRINGS = {
   'settings.prototype': {
     tg: 'Саҳифаи пешнамуна (бо таърихчаи қаблӣ)',
     ru: 'Экран прототипа (со старым журналом)',
-    en: 'Prototype screen (with the old journal)',
+    en: 'Prototype screen (with the old study log)',
   },
 
   // Personal decks without a server, browser voice (Р33 пп. 14–16; tg — draft for the owner, 21.10.2026)
@@ -475,14 +475,17 @@ export const STRINGS = {
     en: 'For cards without deck audio.',
   },
 
+  // Study log sheet (prototype screen)
+  'log.title': { tg: 'Таърихчаи тамрин', ru: 'Журнал занятий', en: 'Study log' },
+
   // Backup
   'backup.title': { tg: 'Нусхаи пуштибон', ru: 'Резервная копия', en: 'Backup' },
   'backup.hint': {
-    tg: 'Таърихчаи ҷавобҳо (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед.',
-    ru: 'Журнал ответов (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл.',
-    en: 'The answer journal (all your progress) lives only in this browser. Save it to a file from time to time.',
+    tg: 'Таърихчаи тамрин (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед.',
+    ru: 'Журнал занятий (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл.',
+    en: 'The study log (all your progress) lives only in this browser. Save it to a file from time to time.',
   },
-  'backup.save': { tg: 'Захираи таърихча дар файл', ru: 'Сохранить журнал в файл', en: 'Save the journal to a file' },
+  'backup.save': { tg: 'Захираи таърихча дар файл', ru: 'Сохранить журнал в файл', en: 'Save the study log to a file' },
   'backup.restore': { tg: 'Бозёбӣ аз файл', ru: 'Восстановить из файла', en: 'Restore from a file' },
   'backup.saved': { tg: 'Дар файл сабтҳо: {n}', ru: 'В файле записей: {n}', en: 'Records in the file: {n}' },
   'backup.restored': {
@@ -493,7 +496,7 @@ export const STRINGS = {
   'backup.error.json': {
     tg: 'Ин файли таърихчаи «Моно» нест.',
     ru: 'Это не файл журнала «Маны».',
-    en: 'This is not a Mana journal file.',
+    en: 'This is not a Mana study log file.',
   },
   'backup.error.version': {
     tg: 'Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед.',
@@ -517,7 +520,7 @@ export const STRINGS = {
   'migrate.text': {
     tg: 'Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад.',
     ru: 'Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется.',
-    en: 'Review dates will be recalculated with the new rules. First the journal is saved to a file, just in case; the journal itself does not change.',
+    en: 'Review dates will be recalculated with the new rules. First the study log is saved to a file, just in case; the log itself does not change.',
   },
   'migrate.go': { tg: 'Захира ва идома', ru: 'Сохранить и продолжить', en: 'Save and continue' },
 
