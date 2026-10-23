@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
+import { setUnauthorizedHandler, whoAmI } from '../platform/api';
 import { getDb } from '../platform/db';
-import { ensureDevice, getSettings, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
+import { ensureDevice, getSettings, markSignedOut, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
 import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
+import { inviteToken } from './inviteToken';
+import { JoinFlow } from './JoinFlow';
 import { KeyboardModeProvider } from './keyboardMode';
+import { noticeText } from './noticeText';
+import { NoticeView } from './NoticeView';
 import type { Route } from './Root';
 import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
+import { SignInScreen } from './SignInScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
 
 type Boot =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
-  /** `rulesUpdate`: the cards must be rebuilt with the new rules before any study (Р29.7). */
+  /** `rulesUpdate`: the cards must be rebuilt with the new rules before any study (R29.7). */
   | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean };
 
 const db = getDb();
@@ -36,6 +42,26 @@ export function MainApp({ route }: { route: Route }) {
       .catch((e: unknown) => setBoot({ phase: 'error', message: e instanceof Error ? e.message : String(e) }));
   }, []);
   useEffect(reload, [reload]);
+
+  // The session ended elsewhere (401 on any request): only the account mark goes, the data stays,
+  // and the sign-in screen says why (STAGE6_RESEARCH 3.3).
+  const [signedOutBy, setSignedOutBy] = useState(false);
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      void markSignedOut(db).then((meta) => {
+        setBoot((b) => (b.phase === 'ready' ? { ...b, meta } : b));
+        setSignedOutBy(true);
+        location.hash = '#/signin';
+      });
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
+  // Signed in: one quiet check at start (it also keeps the session alive). Without sign-in — no request at all.
+  const signedIn = boot.phase === 'ready' && boot.meta.account !== undefined;
+  useEffect(() => {
+    if (signedIn) void whoAmI();
+  }, [signedIn]);
 
   const lang = boot.phase === 'ready' ? boot.settings?.uiLang : undefined;
   useEffect(() => {
@@ -75,6 +101,13 @@ export function MainApp({ route }: { route: Route }) {
     setBoot({ phase: 'ready', meta: freshMeta, settings, rulesUpdate });
   };
 
+  // Sign-in moves the settings to the account's id (repo.markSignedIn): read them again.
+  const accountChanged = async (freshMeta: MetaRow) => {
+    if (freshMeta.account) setSignedOutBy(false);
+    const s = (await getSettings(db, freshMeta.userId)) ?? settings;
+    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate });
+  };
+
   return (
     <I18nProvider lang={settings.uiLang} meaningLang={settings.meaningLang}>
       <KeyboardModeProvider systemKeyboard={meta.systemKeyboard === true}>
@@ -100,9 +133,17 @@ export function MainApp({ route }: { route: Route }) {
               biasing={settings.biasing === true}
               systemKeyboard={meta.systemKeyboard === true}
               onSystemKeyboard={(on) => void saveSystemKeyboard(on)}
-              onChange={(p) => void saveSettings(p)} onDataReplaced={reload} />
+              onChange={(p) => void saveSettings(p)} onDataReplaced={reload}
+              onAccountChange={(m) => void accountChanged(m)} />
           )}
           {!rulesUpdate && route.name === 'decks' && <DecksScreen db={db} />}
+          {!rulesUpdate && route.name === 'join' && (
+            <JoinFlow db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
+          )}
+          {!rulesUpdate && route.name === 'signin' && (
+            <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />
+          )}
+          {route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
         </Shell>
       </KeyboardModeProvider>
     </I18nProvider>

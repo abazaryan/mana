@@ -415,3 +415,73 @@ export async function restoreJournal(db: ManaDb, scheduler: FSRS, text: string):
     return { ok: true, added: plan.add.length, skipped: plan.skipped, userId };
   });
 }
+
+// ---------- Account (stage 6a.2, R37) ----------
+
+/**
+ * Any record in the journal of this installation, of any user. Until stage 6a.4 (transfer of
+ * answers) such a device is refused sign-in; its data is not touched.
+ */
+export async function hasLocalAnswers(db: ManaDb): Promise<boolean> {
+  return (await db.log.count()) > 0;
+}
+
+/**
+ * A new device id for this installation — only while the journal is empty (records carry the
+ * device id). Used when the server says the id belongs to another account (409 device_taken).
+ */
+export async function renewDeviceId(db: ManaDb, newId: NewId = randomId): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, db.log, async () => {
+    if ((await db.log.count()) > 0) throw new Error('renewDeviceId: the journal is not empty');
+    const row = await db.meta.get('device');
+    if (!row) throw new Error('renewDeviceId: no device row');
+    const next: MetaRow = { ...row, deviceId: newId() };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/**
+ * After sign-in: the account's id becomes the local user (STAGE6_RESEARCH 5.9 item 2, like a
+ * restore adopts a backup's user) and the settings move with it; the account mark is kept.
+ * Only on a device without answers — checked before signing in, and here again.
+ */
+export async function markSignedIn(db: ManaDb, userId: string, deviceName: string, now = new Date()): Promise<MetaRow> {
+  return db.transaction('rw', [db.meta, db.settings, db.log], async () => {
+    if ((await db.log.count()) > 0) throw new Error('markSignedIn: the journal is not empty');
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('markSignedIn: no device row');
+    if (meta.userId !== userId) {
+      const settings = await db.settings.get(meta.userId);
+      if (settings && !(await db.settings.get(userId))) {
+        await db.settings.delete(meta.userId);
+        await db.settings.put({ ...settings, userId });
+      }
+    }
+    const next: MetaRow = { ...meta, userId, account: { userId, deviceName, since: now } };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/** Signed out (or the session is gone): only the mark goes; journal, decks and settings stay. */
+export async function markSignedOut(db: ManaDb): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('markSignedOut: no device row');
+    const { account: _gone, ...rest } = meta;
+    await db.meta.put(rest);
+    return rest;
+  });
+}
+
+/** The device's name as the server knows it. */
+export async function setAccountDeviceName(db: ManaDb, deviceName: string): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta?.account) throw new Error('setAccountDeviceName: not signed in');
+    const next: MetaRow = { ...meta, account: { ...meta.account, deviceName } };
+    await db.meta.put(next);
+    return next;
+  });
+}

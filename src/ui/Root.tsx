@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { captureInviteToken } from './inviteToken';
 import { MainApp } from './MainApp';
 import { PrototypeApp } from './PrototypeApp';
 import { RecordLab } from './RecordLab';
@@ -6,21 +7,30 @@ import { RecordLab } from './RecordLab';
 export type Route =
   | { name: 'decks' }
   | { name: 'deck'; deckId: string }
-  /** `addAnyway`: one portion with new entries in spite of debts (Р29.5). */
+  /** `addAnyway`: one portion with new entries in spite of debts (R29.5). */
   | { name: 'study'; deckId: string; addAnyway?: boolean }
   | { name: 'settings' }
+  /** An opened invitation; its token is kept in memory, not in the address (inviteToken.ts). */
+  | { name: 'join' }
+  | { name: 'signin' }
+  /** The data notice ("Data and privacy"). */
+  | { name: 'privacy' }
   | { name: 'prototype' }
   | { name: 'lab' };
 
 /**
- * Hash routes: #/, #/deck/<id>, #/study/<id> (#/study/<id>/new: "add anyway"), #/settings, #/prototype, and the hidden
- * #/lab/record (recognizer experiment, in no menu). Hashes work under any GitHub Pages path.
+ * Hash routes: #/, #/deck/<id>, #/study/<id> (#/study/<id>/new: "add anyway"), #/settings, #/join (#/join/<token> is
+ * an invitation link: the token is taken out at once), #/signin, #/privacy, #/prototype, and the hidden #/lab/record
+ * (recognizer experiment, in no menu).
  */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   if (parts[0] === 'lab' && parts[1] === 'record') return { name: 'lab' };
   if (parts[0] === 'prototype') return { name: 'prototype' };
   if (parts[0] === 'settings') return { name: 'settings' };
+  if (parts[0] === 'join') return { name: 'join' };
+  if (parts[0] === 'signin') return { name: 'signin' };
+  if (parts[0] === 'privacy') return { name: 'privacy' };
   if (parts[0] === 'deck' && parts[1]) return { name: 'deck', deckId: decodeURIComponent(parts[1]) };
   if (parts[0] === 'study' && parts[1]) {
     const deckId = decodeURIComponent(parts[1]);
@@ -37,10 +47,15 @@ export function studyHref(deckId: string, addAnyway = false): string {
   return `#/study/${encodeURIComponent(deckId)}${addAnyway ? '/new' : ''}`;
 }
 
+function currentRoute(): Route {
+  captureInviteToken();
+  return parseRoute(location.hash);
+}
+
 function useRoute(): Route {
-  const [route, setRoute] = useState(() => parseRoute(location.hash));
+  const [route, setRoute] = useState(currentRoute);
   useEffect(() => {
-    const on = () => setRoute(parseRoute(location.hash));
+    const on = () => setRoute(currentRoute());
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);

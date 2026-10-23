@@ -546,6 +546,117 @@ export const STRINGS = {
     ru: 'Запросить постоянное хранилище',
     en: 'Request persistent storage',
   },
+
+  // Account: Settings section (stage 6a.2, R37). tg — DRAFT for the terminology chat, not approved.
+  'account.title': { tg: 'Ҳисоб', ru: 'Аккаунт', en: 'Account' },
+  'account.signedOut': {
+    tg: 'Шумо ба ҳисоб ворид нашудаед. Бе ҳисоб ҳама чиз танҳо дар ҳамин дастгоҳ аст.',
+    ru: 'Вы не вошли в аккаунт. Без аккаунта всё хранится только на этом устройстве.',
+    en: 'You are not signed in. Without an account everything stays on this device only.',
+  },
+  'account.haveCode': { tg: 'Код дорам', ru: 'У меня есть код', en: 'I have a code' },
+  'account.signedIn': { tg: 'Шумо ба ҳисоб ворид шудаед.', ru: 'Вы вошли в аккаунт.', en: 'You are signed in.' },
+  'account.deviceName': { tg: 'Номи ин дастгоҳ', ru: 'Имя этого устройства', en: 'Name of this device' },
+  'account.save': { tg: 'Захира', ru: 'Сохранить', en: 'Save' },
+  'account.devices': { tg: 'Дастгоҳҳо', ru: 'Устройства', en: 'Devices' },
+  'account.thisDevice': { tg: '(ин дастгоҳ)', ru: '(это устройство)', en: '(this device)' },
+  'account.lastSeen': { tg: 'Охирин вуруд: {date}', ru: 'Последний вход: {date}', en: 'Last sign-in: {date}' },
+  'account.remove': { tg: 'Хориҷ кардан', ru: 'Отключить', en: 'Remove' },
+  'account.removeConfirm': {
+    tg: 'Дастгоҳи «{name}» аз ҳисоб хориҷ шавад? Додаҳояш дар худи он мемонанд, вале барои ворид шудани дубора даъватнома ё код лозим мешавад.',
+    ru: 'Отключить «{name}» от аккаунта? Данные на нём останутся, но для нового входа понадобится приглашение или код.',
+    en: 'Remove “{name}” from the account? Its data stays on it, but signing in again will need an invitation or a code.',
+  },
+  'account.addDevice': { tg: 'Иловаи дастгоҳ', ru: 'Добавить устройство', en: 'Add a device' },
+  'account.codeHint': {
+    tg: 'Дар дастгоҳи нав: Танзимот → «Код дорам» → ин кодро ворид кунед. Як бор кор мекунад; боқӣ: {time}',
+    ru: 'На новом устройстве: Настройки → «У меня есть код» → введите этот код. Срабатывает один раз; осталось: {time}',
+    en: 'On the new device: Settings → “I have a code” → enter this code. Works once; time left: {time}',
+  },
+  'account.codeExpired': { tg: 'Мӯҳлати код гузашт.', ru: 'Срок кода истёк.', en: 'The code has expired.' },
+  'account.newCode': { tg: 'Коди нав', ru: 'Новый код', en: 'New code' },
+  'account.signOut': { tg: 'Хуруҷ', ru: 'Выйти', en: 'Sign out' },
+  'account.signOutConfirm': {
+    tg: 'Дар ин дастгоҳ аз ҳисоб хуруҷ мекунед? Додаҳо дар ин дастгоҳ мемонанд.',
+    ru: 'Выйти из аккаунта на этом устройстве? Данные на устройстве останутся.',
+    en: 'Sign out on this device? The data on this device stays.',
+  },
+  'account.signedOutBy': {
+    tg: 'Ин дастгоҳ дигар ба ҳисоб ворид нест: онро аз дастгоҳи дигар хориҷ карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд.',
+    ru: 'Это устройство больше не в аккаунте: его отключили с другого устройства или им долго не пользовались. Данные на устройстве на месте.',
+    en: 'This device is no longer signed in: it was removed from another device or not used for a long time. The data on this device is still here.',
+  },
+  'account.offline': {
+    tg: 'Сервер ҷавоб намедиҳад. Баъдтар бори дигар кӯшиш кунед.',
+    ru: 'Сервер не отвечает. Попробуйте позже.',
+    en: "The server isn't responding. Try again later.",
+  },
+  'account.privacy': { tg: 'Додаҳо ва ҳарими хусусӣ', ru: 'Данные и конфиденциальность', en: 'Data and privacy' },
+
+  // Sign-in screen and invitation steps (stage 6a.2). tg — DRAFT for the terminology chat.
+  'signin.title': { tg: 'Вуруд', ru: 'Вход', en: 'Sign in' },
+  'signin.label': { tg: 'Даъватнома ё код', ru: 'Ссылка-приглашение или код', en: 'Invitation link or code' },
+  'signin.hint': {
+    tg: 'Даъватномаро аз паём часпонед ё коди 8-аломата аз дастгоҳи дигаратонро ворид кунед.',
+    ru: 'Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства.',
+    en: 'Paste the invitation link from the message or enter the 8-character code from your other device.',
+  },
+  'signin.submit': { tg: 'Вуруд', ru: 'Войти', en: 'Sign in' },
+  'signin.invalid': {
+    tg: 'Даъватнома ё код кор намекунад: нодуруст аст, аллакай истифода шудааст ё мӯҳлаташ гузаштааст. Навашро дархост кунед.',
+    ru: 'Приглашение или код не подходят: неверные, уже использованы или срок истёк. Попросите новые.',
+    en: "The invitation or code doesn't work: it is wrong, already used or expired. Ask for a new one.",
+  },
+  'signin.tooMany': {
+    tg: 'Кӯшишҳо хеле зиёд шуданд. Баъдтар бори дигар кӯшиш кунед.',
+    ru: 'Слишком много попыток. Попробуйте позже.',
+    en: 'Too many attempts. Try again later.',
+  },
+  'signin.hasAnswers': {
+    tg: 'Дар ин дастгоҳ аллакай ҷавобҳои шумо ҳастанд. Ворид шудан дар чунин дастгоҳ дар нусхаи ояндаи барнома имконпазир мешавад — он гоҳ ҷавобҳоро ба ҳисоб илова кардан мумкин аст. Ҳоло ҳеҷ чиз тағйир наёфт; додаҳо дар ҷояшон.',
+    ru: 'На этом устройстве уже есть ваши ответы. Вход на таком устройстве появится в следующей версии приложения — тогда ответы можно будет добавить в аккаунт. Сейчас ничего не изменилось, данные на месте.',
+    en: 'This device already has your answers. Signing in on such a device comes in a later version of the app, and then the answers can be added to the account. Nothing has changed; your data is in place.',
+  },
+  'signin.already': {
+    tg: 'Шумо дар ин дастгоҳ аллакай ба ҳисоб ворид шудаед.',
+    ru: 'Вы уже вошли в аккаунт на этом устройстве.',
+    en: 'You are already signed in on this device.',
+  },
+  'signin.outdated': {
+    tg: 'Нусхаи барнома кӯҳна аст: онро пӯшед ва дубора кушоед.',
+    ru: 'Версия приложения устарела: закройте его и откройте снова.',
+    en: 'This version of the app is out of date: close it and open it again.',
+  },
+  'signin.done': { tg: 'Шумо ба ҳисоб ворид шудед.', ru: 'Вы вошли в аккаунт.', en: 'You are signed in.' },
+  'signin.error': {
+    tg: 'Хато рух дод. Баъдтар бори дигар кӯшиш кунед.',
+    ru: 'Что-то пошло не так. Попробуйте позже.',
+    en: 'Something went wrong. Try again later.',
+  },
+  'join.title': { tg: 'Даъватнома', ru: 'Приглашение', en: 'Invitation' },
+  'join.agree': { tg: 'Мувофиқам', ru: 'Согласен(на)', en: 'I agree' },
+  'join.age': { tg: 'Шумо 16-сола шудаед?', ru: 'Вам уже исполнилось 16 лет?', en: 'Are you 16 or older?' },
+  'join.ageHint': {
+    tg: 'Агар не, ризояти волидайн ё сарпараст лозим аст — дар ҳамин дастгоҳ.',
+    ru: 'Если нет — нужно согласие родителя или опекуна, на этом же устройстве.',
+    en: 'If not, a parent or guardian must agree, on this same device.',
+  },
+  'join.parentHint': {
+    tg: 'Ин саҳифаро яке аз волидайн ё сарпараст пур мекунад.',
+    ru: 'Этот экран заполняет родитель или опекун.',
+    en: 'A parent or guardian fills in this screen.',
+  },
+  'join.parentMissing': {
+    tg: 'Номи худро нависед ва аломат гузоред.',
+    ru: 'Напишите своё имя и поставьте отметку.',
+    en: 'Write your name and tick the box.',
+  },
+  'join.signIn': { tg: 'Вуруд', ru: 'Войти', en: 'Sign in' },
+  'join.deviceInvite': {
+    tg: 'Ин даъватнома барои ворид шудани ин дастгоҳ ба ҳисоби мавҷудаи шумост.',
+    ru: 'Это приглашение — для входа этого устройства в ваш аккаунт.',
+    en: 'This invitation signs this device in to your existing account.',
+  },
 } satisfies Record<string, Tr>;
 
 export type StringKey = keyof typeof STRINGS;

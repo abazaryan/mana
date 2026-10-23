@@ -9,6 +9,7 @@ import { downloadText } from '../platform/files';
 import { requestPersistence, storagePersistence, type Persistence } from '../platform/persist';
 import { exportJournal, listDecks, restoreJournal } from '../platform/repo';
 import { installSpeechPack, speechPackState } from '../platform/speechPack';
+import { AccountSection } from './AccountSection';
 import { phrasesApiPresent } from './studyHooks';
 import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
@@ -70,6 +71,8 @@ interface Props {
   onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>): void;
   /** The restore adopted another user: reload meta and settings. */
   onDataReplaced(): void;
+  /** Signed in or out on this screen (stage 6a.2). */
+  onAccountChange(meta: MetaRow): void;
 }
 
 const LANGS: Lang[] = ['tg', 'ru', 'en'];
@@ -84,7 +87,7 @@ const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
 
 type Msg = { text: string; err: boolean } | null;
 
-export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, onSystemKeyboard, onChange, onDataReplaced }: Props) {
+export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, onSystemKeyboard, onChange, onDataReplaced, onAccountChange }: Props) {
   const { t, lang, meaningLang } = useI18n();
   const [persist, setPersist] = useState<Persistence | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -208,6 +211,8 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
           {msg.text}
         </p>
       )}
+
+      <AccountSection db={db} meta={meta} onMetaChange={onAccountChange} />
 
       <h2 className="h2">{t('storage.title')}</h2>
       {persist && <p className="hint">{t(PERSISTENCE_TEXT[persist])}</p>}

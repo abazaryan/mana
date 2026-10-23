@@ -1,0 +1,69 @@
+/**
+ * The server's API (stage 6a.2): every request carries the build (X-Mana-Version, for 426) and the
+ * profile (X-Mana-Profile, R36 item 3); the session is an HttpOnly cookie the page never sees.
+ * A 401 from any request goes to one handler (the app shows the sign-in screen, data stays).
+ */
+import type { Consent } from '../core/auth';
+import { BUILD } from '../core/build';
+
+/** One account per device for now (R33 item 11): the first profile. */
+export const PROFILE = 1;
+
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
+
+let onUnauthorized: (() => void) | null = null;
+
+/** Who hears about a 401: the session is gone (removed from another device, expired). */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>> {
+  const headers: Record<string, string> = { 'X-Mana-Version': String(BUILD), 'X-Mana-Profile': String(PROFILE) };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  let response: Response;
+  try {
+    response = await fetch(`/api/${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+  } catch {
+    return { ok: false, status: 0, error: 'offline' };
+  }
+  const data = (await response.json().catch(() => null)) as unknown;
+  if (response.ok) return { ok: true, data: data as T };
+  if (response.status === 401) onUnauthorized?.();
+  const code = data !== null && typeof data === 'object' && 'error' in data ? String((data as { error: unknown }).error) : 'http';
+  return { ok: false, status: response.status, error: code };
+}
+
+export interface DeviceRef {
+  id: string;
+  name: string;
+}
+
+export interface SignedIn {
+  userId: string;
+  device: DeviceRef;
+}
+
+export interface DeviceInfo {
+  id: string;
+  name: string;
+  lastSeenAt: number;
+  current: boolean;
+}
+
+export const inviteInfo = (token: string) => request<{ kind: 'account' | 'device'; minor: boolean }>('POST', 'auth/invite', { token });
+export const redeemInvite = (token: string, device: DeviceRef, consent: Consent | null) =>
+  request<SignedIn>('POST', 'auth/redeem', consent ? { token, device, consent } : { token, device });
+export const pairDevice = (code: string, device: DeviceRef) => request<SignedIn>('POST', 'auth/pair', { code, device });
+export const issuePairingCode = () => request<{ code: string; expiresAt: number }>('POST', 'auth/pairing-code');
+export const whoAmI = () => request<SignedIn>('GET', 'auth/me');
+export const listDevices = () => request<{ devices: DeviceInfo[] }>('GET', 'auth/devices');
+export const renameDevice = (name: string) => request<{ ok: true; name: string }>('POST', 'auth/device', { name });
+export const revokeDevice = (deviceId: string) => request<{ ok: true }>('POST', 'auth/devices/revoke', { deviceId });
+export const signOut = () => request<{ ok: true }>('POST', 'auth/logout');

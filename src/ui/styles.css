@@ -291,3 +291,16 @@ html.osk-open body{padding-bottom:var(--osk-h,0px);}
   .osk-cap{font-size:1.2rem;}
   html.osk-open .top,html.osk-open .progress{display:none;}
 }
+
+/* Sign-in and the data notice (stage 6a.2): readable at 412 px, short paragraphs, plain lists. */
+.field input[type=text]{width:100%;box-sizing:border-box;min-height:48px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);}
+.field .typebox{margin-top:0;}
+.notice h1{font-size:1.35rem;line-height:1.25;margin:0 0 4px;}
+.notice p{line-height:1.5;margin:0 0 12px;max-width:62ch;}
+.notice ul{margin:-4px 0 12px;padding-left:1.1em;line-height:1.5;}
+.notice li{margin:0 0 6px;}
+.notice a{overflow-wrap:anywhere;}
+.devices{list-style:none;margin:6px 0 0;padding:0;}
+.devices li{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 8px;overflow-wrap:anywhere;}
+.pairing{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
+.code-big{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2rem;font-weight:700;letter-spacing:.12em;text-align:center;margin:4px 0 8px;}

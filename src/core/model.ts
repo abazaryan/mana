@@ -39,6 +39,18 @@ export interface MetaRow {
    * `no` — heard nothing. Device-only, never synced.
    */
   voiceChecks?: Record<string, VoiceCheck>;
+  /**
+   * Signed in to an account on this device (stage 6a.2, STAGE6_RESEARCH 5.10); absent — the local
+   * mode. The session itself is an HttpOnly cookie the app cannot read. Device-only, never synced.
+   */
+  account?: AccountMark;
+}
+
+export interface AccountMark {
+  /** The account's id; meta.userId equals it after sign-in. */
+  userId: string;
+  deviceName: string;
+  since: Date;
 }
 
 export type VoiceCheck = 'yes' | 'no';
