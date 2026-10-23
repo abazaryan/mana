@@ -174,8 +174,8 @@ Worker и `name` в `wrangler.jsonc`.
   логов `debug` и заменяет значение токена в выводе на `***`.
 - Claude Code: `.claude/settings.json` запрещает инструментам чтения открывать `tools/.env`.
 
-`tools/lab/check-cloudflare.ts` (лаборатория распознавания, Р23) читает
-`CLOUDFLARE_API_TOKEN` и после перехода на `MANA_ADMIN_API_TOKEN` больше не работает.
+`tools/lab/check-cloudflare.ts` (лаборатория распознавания, Р23) читал
+`CLOUDFLARE_API_TOKEN` и после перехода на `MANA_ADMIN_API_TOKEN` не работал; удалён вместе с лабораторией 23.10.2026.
 
 ### База D1
 
