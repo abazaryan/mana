@@ -12,8 +12,8 @@ import { parseAst } from 'vite';
 export const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const CYRILLIC = /[Ѐ-ӿ]/g;
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'reference', 'apkg', 'decks', 'coverage']);
-const EXTENSIONS = /\.(ts|tsx|js|mjs|cjs|json|jsonc)$/;
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'reference', 'apkg', 'decks', 'coverage', '__pycache__']);
+const EXTENSIONS = /\.(ts|tsx|js|mjs|cjs|json|jsonc|html|css|py|webmanifest)$/;
 
 /**
  * Files where any Cyrillic is data (CLAUDE.md, "Cyrillic in code"). Each entry says why; a new entry
@@ -31,6 +31,12 @@ export const DATA_FILES = [
   'scripts/data/test-decks.ts',
   // JSON Schema of deck.json: its descriptions are documentation, as in docs/DECK_FORMAT.md.
   'src/core/mana-deck.schema.json',
+  // Anki field names, tag names and the title of lesson 1 for scripts/convert_apkg.py.
+  'scripts/data/lesson1_apkg.py',
+  // The page of the old address: text for the learner in tg / ru / en (R32 item 7).
+  'pages-moved/index.html',
+  // The historical stage 1 prototype, kept as it was (a file of the repository, not part of the app).
+  'prototype/sluh.html',
 ];
 
 /** Test files: Cyrillic may stand in string and regex literals (test data), but not in comments or in test names. */

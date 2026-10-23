@@ -6,8 +6,9 @@ import { scanAll, violatingLines } from './support/cyrillic.ts';
  * CLAUDE.md, "Cyrillic in code": code, comments, test names, error messages, tool output and
  * UI labels in code are English. Cyrillic is allowed only as data: src/ui/strings.ts (and the
  * table generated from the glossary), documents, string literals in tests that check how
- * Cyrillic is handled, and the page pages-moved/index.html (it is not scanned: .html).
- * The files in LEGACY_LINES are old debt with a ceiling on the number of lines.
+ * Cyrillic is handled, and the files listed in DATA_FILES (tests/support/cyrillic.ts: .ts / .tsx / .js / .json / .jsonc /
+ * .html / .css / .py / .webmanifest are scanned). The files in LEGACY_LINES are old debt with a ceiling on the number
+ * of lines.
  */
 describe('no Cyrillic in code', () => {
   const found = scanAll();
@@ -35,5 +36,9 @@ describe('no Cyrillic in code', () => {
     expect(violatingLines('src/core/x.test.ts', `// ${cy}\nconst a = \`${cy}\`;`)).toEqual([1]);
     expect(violatingLines('src/ui/strings.ts', `const a = '${cy}'; // ${cy}`)).toEqual([]);
     expect(violatingLines('src/core/x.json', `{"a": "${cy}"}`)).toEqual([1]);
+    expect(violatingLines('index.html', `<title>${cy}</title>`)).toEqual([1]);
+    expect(violatingLines('src/ui/x.css', `/* ${cy} */`)).toEqual([1]);
+    expect(violatingLines('scripts/x.py', `x = "${cy}"`)).toEqual([1]);
+    expect(violatingLines('pages-moved/index.html', `<p>${cy}</p>`)).toEqual([]);
   });
 });
