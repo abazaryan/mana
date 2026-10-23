@@ -1,8 +1,7 @@
 /**
  * Cyrillic the logic needs as data (CLAUDE.md, "Cyrillic in code"; the scanner lists this file in
  * DATA_FILES). Nothing here is logic: identifiers that are already in the learner's journal,
- * a heading that must match docs/GLOSSARY_TG.md, trilingual labels, the sample deck of the
- * stage 1 prototype. Comments stay English.
+ * a heading that must match docs/GLOSSARY_TG.md, trilingual labels. Comments stay English.
  */
 import type { Determiner, Gender, GrammaticalNumber } from './deckFormat';
 
@@ -63,21 +62,6 @@ export const FRENCH_TEXTS = {
   /** The question after the browser voice said the sample phrase ("Voice check"). */
   voiceCheckQuestion: { tg: 'Садои фаронсавиро шунидед?', ru: 'Слышен французский голос?', en: 'Did you hear a French voice?' },
 };
-
-/** The sample deck of the stage 1 prototype page (#/prototype): "ru | fr", one card per line. */
-export const DEFAULT_DECK_TEXT = [
-  'Здравствуйте, как дела? | Bonjour, comment allez-vous ?',
-  "Я хотел бы кофе, пожалуйста. | Je voudrais un café, s'il vous plaît.",
-  'Где находится вокзал? | Où est la gare ?',
-  "Я живу в Люксембурге. | J'habite à Luxembourg.",
-  'Сколько это стоит? | Combien ça coûte ?',
-  'Я не понимаю. | Je ne comprends pas.',
-  "Можете повторить, пожалуйста? | Pouvez-vous répéter, s'il vous plaît ?",
-  'Я работаю разработчиком. | Je travaille comme développeur.',
-  'Который час? | Quelle heure est-il ?',
-  'Приятно познакомиться. | Enchanté.',
-  "Мне нужна помощь. | J'ai besoin d'aide.",
-].join('\n');
 
 /** Names of the meaning languages in the Russian rules for the AI (src/ui/deckPrompt/data.ru.md). */
 export const PROMPT_LANGUAGE_NAMES_RU: Record<'tg' | 'ru' | 'en', string> = {

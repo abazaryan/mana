@@ -157,7 +157,6 @@
 | `pack.unsupported` | Этот браузер не умеет распознавать на устройстве. | This browser has no on-device recognition. | Ин мурургар бозшиносӣ дар дастгоҳро надорад. |
 | `pack.download` | Скачать {lang} для распознавания на устройстве | Download {lang} for on-device recognition | Боргирии забони {lang} барои бозшиносӣ дар дастгоҳ |
 | `pack.failed` | Скачать не удалось. | The download failed. | Боргирӣ нашуд. |
-| `settings.prototype` | Экран прототипа (со старым журналом) | Prototype screen (with the old study log) | Саҳифаи пешнамуна (бо таърихчаи қаблӣ) |
 | `decks.paste` | Вставить текст колоды | Paste deck text | Часпондани матни маҷмӯа |
 | `decks.makeWithAi` | Сделать колоду с ИИ | Make a deck with AI | Сохтани маҷмӯа бо ҳуши маснӯӣ |
 | `privacy.voice` | Голосовой ответ распознаёт браузер: Chrome отправляет звук в Google, Edge — в Microsoft. | Your browser recognises voice answers: Chrome sends the audio to Google, Edge to Microsoft. | Гуфтори шуморо мурургар бозшиносӣ мекунад: Chrome садоро ба Google мефиристад, Edge — ба Microsoft. |
@@ -191,7 +190,6 @@
 | `voice.state.none` | Не проверено | Not checked | Санҷида нашудааст |
 | `settings.voice` | Голос браузера | Browser voice | Садои мурургар |
 | `settings.voiceHint` | Для карточек без звука колоды. | For cards without deck audio. | Барои омӯзбаргҳои бе файли садо. |
-| `log.title` | Журнал занятий | Study log | Таърихчаи тамрин |
 | `backup.title` | Резервная копия | Backup | Нусхаи пуштибон |
 | `backup.hint` | Журнал занятий (весь прогресс) хранится только в этом браузере. Время от времени сохраняйте его в файл. | The study log (all your progress) lives only in this browser. Save it to a file from time to time. | Таърихчаи тамрин (ҳамаи пешрафт) танҳо дар ҳамин мурургар захира мешавад. Гоҳ-гоҳ онро дар файл захира кунед. |
 | `backup.save` | Сохранить журнал в файл | Save the study log to a file | Захираи таърихча дар файл |

@@ -182,10 +182,6 @@ export function DecksScreen({ db }: { db: ManaDb }) {
       )}
 
       <p className="hint mt">{t('privacy.voice')}</p>
-      <p className="note">
-        <a href="#/prototype">{t('settings.prototype')}</a>
-      </p>
-
       {sheet === 'paste' && (
         <PasteSheet
           onClose={() => setSheet(null)}

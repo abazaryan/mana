@@ -362,11 +362,6 @@ export const STRINGS = {
     en: 'Download {lang} for on-device recognition',
   },
   'pack.failed': { tg: 'Боргирӣ нашуд.', ru: 'Скачать не удалось.', en: 'The download failed.' },
-  'settings.prototype': {
-    tg: 'Саҳифаи пешнамуна (бо таърихчаи қаблӣ)',
-    ru: 'Экран прототипа (со старым журналом)',
-    en: 'Prototype screen (with the old study log)',
-  },
 
   // Personal decks without a server, browser voice (Р33 пп. 14–16; tg — draft for the owner, 21.10.2026)
   'decks.paste': { tg: 'Часпондани матни маҷмӯа', ru: 'Вставить текст колоды', en: 'Paste deck text' },
@@ -475,8 +470,6 @@ export const STRINGS = {
     en: 'For cards without deck audio.',
   },
 
-  // Study log sheet (prototype screen)
-  'log.title': { tg: 'Таърихчаи тамрин', ru: 'Журнал занятий', en: 'Study log' },
 
   // Backup
   'backup.title': { tg: 'Нусхаи пуштибон', ru: 'Резервная копия', en: 'Backup' },

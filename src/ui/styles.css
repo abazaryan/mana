@@ -51,12 +51,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 h1{font-size:1.9rem;line-height:1.15;margin:8px 0 10px;}
 .lead{color:var(--muted);margin:0 0 18px;max-width:46ch;}
 .note{color:var(--muted);font-size:.9rem;margin:14px 0 0;}
-.diag{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:.92rem;}
-.diag div{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
-.diag .k{color:var(--muted);}
-.diag .v.ok{color:var(--ok);font-weight:600;}
-.diag .v.bad{color:var(--bad);font-weight:600;}
-.diag p{margin:8px 0 0;color:var(--muted);}
 
 .progress{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.9rem;margin-bottom:14px;}
 .bar{flex:1;height:6px;background:var(--wash);border-radius:99px;overflow:hidden;}
@@ -84,14 +78,8 @@ h1{font-size:1.9rem;line-height:1.15;margin:8px 0 10px;}
 .result{margin-top:4px;}
 .answer{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.65rem;line-height:1.3;margin:0 0 10px;overflow-wrap:anywhere;}
 .heard{font-size:1.05rem;margin:0 0 14px;overflow-wrap:anywhere;}
-.heard .lbl{color:var(--muted);margin-right:6px;}
 .heard .ok{color:var(--ok);}
 .heard .bad{color:var(--bad);text-decoration:underline wavy;text-underline-offset:3px;}
-.heard .miss{color:var(--muted);background:var(--wash);border-radius:6px;padding:0 5px;font-size:.92em;}
-.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 0 14px;}
-.metrics div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 10px;}
-.metrics dt{font-size:.78rem;color:var(--muted);}
-.metrics dd{margin:0;font-weight:700;font-size:1.1rem;}
 .reason{color:var(--muted);font-size:.92rem;margin:0 0 8px;}
 .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
 .grade{min-height:50px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:.95rem;padding:6px 2px;}
@@ -115,17 +103,12 @@ h1{font-size:1.9rem;line-height:1.15;margin:8px 0 10px;}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .hint{color:var(--muted);font-size:.88rem;margin:4px 0 0;}
 .hint.err{color:var(--bad);}
-.mictest{margin-bottom:10px;}
 
-.logitem{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:.92rem;}
-.logitem b{font-weight:600;}
-.logitem .m{color:var(--muted);}
 .sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0;}
 .sum div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;}
 .sum strong{display:block;font-size:1.4rem;}
 .mt{margin-top:10px;}
 .row.start{justify-content:flex-start;margin-bottom:8px;}
-.logbox{width:100%;min-height:120px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;}
 
 /* Stage 4.1: decks, settings, first run */
 a{color:var(--accent);}

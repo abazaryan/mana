@@ -221,10 +221,6 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
           {t('storage.request')}
         </button>
       )}
-
-      <p className="note">
-        <a href="#/prototype">{t('settings.prototype')}</a>
-      </p>
     </section>
   );
 }
