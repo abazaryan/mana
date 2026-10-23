@@ -247,6 +247,13 @@ describe('the Worker entry', () => {
     expect(response.headers.get('Cross-Origin-Resource-Policy')).toBeNull();
   });
 
+  it('the hourly Cron Trigger runs the cleanup: IP rows of the counters older than their window go', async () => {
+    const db = fakeD1();
+    db.sqlite.exec("INSERT INTO auth_attempts (bucket, window_start, count) VALUES ('pair:ip:old', 0, 3), ('pair:global', 0, 3)");
+    await worker.scheduled!({ scheduledTime: 11 * 60_000, cron: '17 * * * *', noRetry() {} } as ScheduledController, env(db), {} as ExecutionContext);
+    expect(db.sqlite.prepare('SELECT bucket FROM auth_attempts').all()).toEqual([{ bucket: 'pair:global' }]);
+  });
+
   it('/apix is not the API', async () => {
     const response = await worker.fetch(new Request(url('/apix')), env(), {} as ExecutionContext);
     expect(response.headers.get('X-Mana-Worker')).toBe('assets');

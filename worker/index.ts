@@ -6,6 +6,7 @@
  * took (Р36) — there are no logs.
  */
 import { handleApi } from './api.ts';
+import { cleanup } from './cleanup.ts';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -15,5 +16,9 @@ export default {
     const response = new Response(asset.body, asset);
     response.headers.set('X-Mana-Worker', 'assets');
     return response;
+  },
+  /** The hourly Cron Trigger (wrangler.jsonc): cleanup of sign-in rows (cleanup.ts). */
+  async scheduled(controller, env): Promise<void> {
+    await cleanup(env.DB, controller.scheduledTime);
   },
 } satisfies ExportedHandler<Env>;

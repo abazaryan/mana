@@ -1,4 +1,5 @@
-import { DEFAULT_BODY_LIMIT } from './config.ts';
+import { devices, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
+import { DEFAULT_BODY_LIMIT, SMALL_BODY_LIMIT } from './config.ts';
 import { isClientCurrent, isJson, isSafeMethod, isSameOrigin, readBody } from './guards.ts';
 import { health } from './health.ts';
 import { error } from './http.ts';
@@ -8,6 +9,8 @@ export interface Call {
   env: Env;
   /** Parsed JSON body; undefined for routes without one. */
   body: unknown;
+  /** Time of the request, ms UTC (passed in, so tests can move it). */
+  now: number;
 }
 
 export interface Route {
@@ -21,8 +24,21 @@ export interface Route {
 /** Path → method → route. HEAD is served by the GET route. */
 export type Routes = Readonly<Record<string, Readonly<Partial<Record<string, Route>>>>>;
 
+/**
+ * Sign-in routes (6a.2): every one that changes data refuses an old client with 426 — except
+ * logout, which must always work.
+ */
 export const ROUTES: Routes = {
   '/api/health': { GET: { handle: ({ env }) => health(env) } },
+  '/api/auth/invite': { POST: { body: SMALL_BODY_LIMIT, handle: inviteInfo } },
+  '/api/auth/redeem': { POST: { mutating: true, body: true, handle: redeem } },
+  '/api/auth/pair': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: pair } },
+  '/api/auth/pairing-code': { POST: { mutating: true, handle: issueCode } },
+  '/api/auth/me': { GET: { handle: me } },
+  '/api/auth/devices': { GET: { handle: devices } },
+  '/api/auth/device': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: renameDevice } },
+  '/api/auth/devices/revoke': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: revokeDevice } },
+  '/api/auth/logout': { POST: { handle: logout } },
 };
 
 function allowHeader(methods: Readonly<Partial<Record<string, Route>>>): string {
@@ -35,7 +51,7 @@ function allowHeader(methods: Readonly<Partial<Record<string, Route>>>): string 
  * route's own checks: client version (426), JSON only (415), body size (413), valid JSON (400).
  * Any exception — 500 with a short code, nothing else.
  */
-export async function handleApi(request: Request, env: Env, routes: Routes = ROUTES): Promise<Response> {
+export async function handleApi(request: Request, env: Env, routes: Routes = ROUTES, now = Date.now()): Promise<Response> {
   try {
     if (!isSafeMethod(request.method) && !isSameOrigin(request.headers)) return error('forbidden', 403);
     const methods = routes[new URL(request.url).pathname];
@@ -54,7 +70,7 @@ export async function handleApi(request: Request, env: Env, routes: Routes = ROU
         return error('bad_json', 400);
       }
     }
-    const response = await route.handle({ request, env, body });
+    const response = await route.handle({ request, env, body, now });
     return request.method === 'HEAD' ? new Response(null, response) : response;
   } catch {
     return error('internal', 500);

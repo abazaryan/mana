@@ -14,12 +14,20 @@ export const API_HEADERS: Readonly<Record<string, string>> = {
 
 /** Short error codes: the only thing an error response says (no stack, no details). */
 export type ErrorCode =
+  | 'already_signed_in'
   | 'bad_json'
+  | 'bad_request'
+  | 'consent_required'
+  | 'device_taken'
   | 'forbidden'
   | 'internal'
+  /** A wrong, expired or used invitation or code — one answer for all (STAGE6_RESEARCH 7.3). */
+  | 'invalid'
   | 'method_not_allowed'
   | 'not_found'
   | 'payload_too_large'
+  | 'too_many_requests'
+  | 'unauthorized'
   | 'unsupported_media_type'
   | 'upgrade_required';
 

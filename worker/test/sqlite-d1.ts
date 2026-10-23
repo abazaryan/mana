@@ -59,6 +59,8 @@ export interface FakeD1 {
 /** An in-memory database; with `migrate`, all of migrations/ applied in order. */
 export function fakeD1({ migrate = true } = {}): FakeD1 {
   const db = new DatabaseSync(':memory:');
+  // D1 enforces foreign keys (PRAGMA foreign_keys is 1 there; checked with --local, 6a.2).
+  db.exec('PRAGMA foreign_keys = ON');
   if (migrate) for (const [, sql] of migrationFiles()) db.exec(sql);
   return {
     prepare: (sql) => new Statement(db, sql),

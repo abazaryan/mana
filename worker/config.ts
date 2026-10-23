@@ -2,7 +2,7 @@
 export const ORIGIN = 'https://mana.amisipehr.workers.dev';
 
 /**
- * Oldest client build allowed to change data (STAGE6_RESEARCH 5.5, Р36): UTC time of the build
+ * Oldest client build allowed to change data (STAGE6_RESEARCH 5.5, R36): UTC time of the build
  * as YYYYMMDDHHmm, like BUILD in src/core/build.ts. Raise it before pushing a change of
  * RULES_VERSION or of the record format; never into the future (a test checks), or every
  * client is refused.
@@ -11,3 +11,29 @@ export const MIN_CLIENT = 202610220000;
 
 /** Request body limit when a route sets none, bytes (7.4: sign-in 4 KB). */
 export const DEFAULT_BODY_LIMIT = 4 * 1024;
+/** Limit for the small sign-in bodies (a token or a code, a device name). */
+export const SMALL_BODY_LIMIT = 1024;
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** Sign-in (R33 items 4–5, R37), milliseconds. */
+export const INVITE_TTL = 48 * HOUR;
+export const CODE_TTL = 10 * MINUTE;
+/** A session ends after this long without requests… */
+export const SESSION_IDLE = 180 * DAY;
+/** …and a request moves that end (and the cookie) at most once per this. */
+export const SESSION_TOUCH = DAY;
+/** The cookie: 400 days, Chrome's cap (STAGE6_RESEARCH 2.1), in seconds. */
+export const COOKIE_MAX_AGE = 400 * 24 * 3600;
+
+/**
+ * Failed code attempts (STAGE6_RESEARCH 7.3): per IP hash — 10 in 10 minutes; all together —
+ * 50 in an hour, then codes are closed to everyone for an hour (invitation links still work).
+ */
+export const IP_WINDOW = 10 * MINUTE;
+export const IP_MAX_FAILURES = 10;
+export const GLOBAL_WINDOW = HOUR;
+export const GLOBAL_MAX_FAILURES = 50;
+export const GLOBAL_LOCK = HOUR;

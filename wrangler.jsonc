@@ -1,5 +1,5 @@
 // Cloudflare Workers: the static site (dist/) and the API (/api/*, worker/) on one address —
-// decisions Р32, Р33 п. 2, Р36. Workers Builds on every push to main: build command
+// decisions R32, R33 item 2, R36. Workers Builds on every push to main: build command
 // `npm test && npm run build`, deploy command `npx wrangler deploy`. Headers of the static
 // files live in public/_headers; headers of API responses — in worker/http.ts.
 // Step-by-step setup in the Cloudflare dashboard, migrations, checks: docs/DEPLOY.md.
@@ -30,6 +30,9 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Hourly cleanup of sign-in rows (worker/cleanup.ts): counter rows with an IP hash must be
+  // gone within a day — promised in the data notice (docs/NOTICE.md); one of 5 Free cron slots.
+  "triggers": { "crons": ["17 * * * *"] },
   // No Cloudflare logs or analytics: answers and recordings stay on the device.
   "observability": { "enabled": false },
   // No Wrangler usage telemetry from the build machine.

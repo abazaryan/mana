@@ -38,10 +38,53 @@ describe('migrations/', () => {
     expect(code("-- DROP it\nSELECT 'DROP', 'it''s' /* DROP */ FROM t")).toBe("\nSELECT '', ''  FROM t");
   });
 
-  it('only add (STAGE6_RESEARCH 4.4): no DROP, RENAME, DELETE, UPDATE', () => {
+  it('only add (STAGE6_RESEARCH 4.4): no DROP, RENAME, DELETE, UPDATE (ON DELETE CASCADE of a key is fine)', () => {
     for (const [name, sql] of files) {
-      expect(code(sql), name).not.toMatch(/\b(DROP|RENAME|DELETE|UPDATE|REPLACE)\b/i);
+      expect(code(sql).replace(/\bON\s+DELETE\s+CASCADE\b/gi, ''), name).not.toMatch(/\b(DROP|RENAME|DELETE|UPDATE|REPLACE)\b/i);
     }
+  });
+
+  it('every table is STRICT', () => {
+    const db = fakeD1();
+    const tables = db.sqlite.prepare("SELECT name, sql FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as {
+      name: string;
+      sql: string;
+    }[];
+    expect(tables.length).toBeGreaterThan(1);
+    for (const { name, sql } of tables) expect(sql, name).toMatch(/\)\s*STRICT$/);
+  });
+
+  it('foreign keys are enforced, as in D1: a device of no account is refused', () => {
+    const db = fakeD1();
+    expect(() => db.sqlite.exec("INSERT INTO devices (id, user_id, name, created_at, last_seen_at) VALUES ('d', 'nobody', 'x', 1, 1)")).toThrow(
+      /FOREIGN KEY/,
+    );
+  });
+
+  it('deleting an account erases its devices, sessions, codes, consents and invitations (6a.5)', () => {
+    const db = fakeD1();
+    db.sqlite.exec(`
+      INSERT INTO users (id, label, minor, created_at) VALUES ('u', 'test', 0, 1);
+      INSERT INTO devices (id, user_id, name, created_at, last_seen_at) VALUES ('d', 'u', 'x', 1, 1);
+      INSERT INTO sessions VALUES ('s', 'u', 'd', 1, 1, 2);
+      INSERT INTO pairing_codes (code_hash, user_id, created_by_device, created_at, expires_at) VALUES ('c', 'u', 'd', 1, 2);
+      INSERT INTO consents VALUES ('k', 'u', 1, 'self', NULL, 'd', 1);
+      INSERT INTO invites (token_hash, kind, user_id, created_at, expires_at) VALUES ('i', 'device', 'u', 1, 2);
+      DELETE FROM users WHERE id = 'u';
+    `);
+    for (const table of ['devices', 'sessions', 'pairing_codes', 'consents', 'invites']) {
+      expect(db.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get(), table).toEqual({ n: 0 });
+    }
+  });
+
+  it('consents: a parent name exactly when a parent agreed', () => {
+    const db = fakeD1();
+    db.sqlite.exec("INSERT INTO users (id, label, minor, created_at) VALUES ('u', 'test', 1, 1)");
+    const add = (by: string, name: string | null) =>
+      db.sqlite.prepare('INSERT INTO consents VALUES (?, ?, 1, ?, ?, ?, 1)').run(`${by}${name}`, 'u', by, name, 'd');
+    expect(() => add('parent', null)).toThrow(/CHECK/);
+    expect(() => add('self', 'Name')).toThrow(/CHECK/);
+    expect(() => add('parent', 'Name')).not.toThrow();
   });
 
   it('no transactions of their own (wrangler runs each file as a whole)', () => {
