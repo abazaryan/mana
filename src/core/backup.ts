@@ -6,8 +6,8 @@
  * journal adopts that user (e.g. after clearing site data). Merging the journals of
  * two installations that both have answers is stage 6 (sync); restore refuses it.
  */
-import { SKILLS, type Skill } from './deckFormat';
-import type { FinalRating, LogRecord } from './model';
+import { isoTime, reviveRecord as reviveJson } from './journalRecord';
+import type { LogRecord } from './model';
 
 export const BACKUP_FORMAT = 'mana-journal';
 export const BACKUP_VERSION = 1;
@@ -46,36 +46,16 @@ function str(v: unknown): v is string {
 }
 
 function date(v: unknown): Date | null {
-  if (typeof v !== 'string') return null;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
+  const ms = isoTime(v);
+  return ms === null ? null : new Date(ms);
 }
 
-function rating(v: unknown): v is FinalRating {
-  return v === 1 || v === 2 || v === 3 || v === 4;
-}
-
-/** One record from JSON, dates revived; null if it is not a valid record of `userId`. */
+/**
+ * One record from JSON, dates revived; null if it is not a valid record of `userId`. The check
+ * is the server's (journalRecord.ts): a later record type is kept whole (stage 6a.3).
+ */
 function reviveRecord(v: unknown, userId: string): LogRecord | null {
-  if (!isObject(v)) return null;
-  const at = date(v.at);
-  if (!at || !str(v.id) || v.userId !== userId || !str(v.deviceId) || !str(v.deckId) || !str(v.entryId)) return null;
-  if (typeof v.deckRevision !== 'number' || !str(v.sessionId)) return null;
-  if (v.type === 'intro') {
-    if (v.skill !== null) return null;
-    return { ...(v as unknown as LogRecord), at };
-  }
-  if (v.type === 'drill') {
-    if (!(SKILLS as readonly unknown[]).includes(v.skill as Skill) || !str(v.reviewId)) return null;
-    return { ...(v as unknown as LogRecord), at };
-  }
-  if (v.type !== 'review') return null;
-  if (!(SKILLS as readonly unknown[]).includes(v.skill as Skill)) return null;
-  if (!rating(v.final) || !rating(v.suggested) || !isObject(v.fsrs)) return null;
-  const dueBefore = date(v.fsrs.dueBefore);
-  const nextDue = date(v.fsrs.nextDue);
-  if (!dueBefore || !nextDue) return null;
-  return { ...(v as unknown as LogRecord), at, fsrs: { ...(v.fsrs as object), dueBefore, nextDue } } as LogRecord;
+  return reviveJson(v, userId) as LogRecord | null;
 }
 
 export function parseBackup(text: string): ParsedBackup {

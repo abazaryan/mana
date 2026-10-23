@@ -9,6 +9,9 @@
 import { contentWarnings } from './deckContent.ts';
 import { FORM_LABELS } from './cyrillicData.ts';
 import { M } from './deckMessages.ts';
+import { SKILLS, UI_LANGS, type Skill, type UiLang } from './kinds.ts';
+
+export { SKILLS, UI_LANGS, type Skill, type UiLang };
 
 export const DECK_FORMAT = 'mana-deck';
 /** Former identifier (working name "Sluh", R20): still accepted, with a warning. */
@@ -16,13 +19,6 @@ export const LEGACY_DECK_FORMAT = 'sluh-deck';
 export const DECK_VERSION = 1;
 export const DECK_JSON = 'deck.json';
 export const AUDIO_DIR = 'audio/';
-
-export const SKILLS = ['listen', 'speak', 'write'] as const;
-export type Skill = (typeof SKILLS)[number];
-
-/** Interface languages; meanings, hints, notes and tag names are given in them. */
-export const UI_LANGS = ['tg', 'ru', 'en'] as const;
-export type UiLang = (typeof UI_LANGS)[number];
 
 export const GENDERS = ['m', 'f', 'n'] as const;
 export type Gender = (typeof GENDERS)[number];

@@ -441,6 +441,20 @@ describe('backup', () => {
     expect(await restoreJournal(db, s, bad)).toEqual({ ok: false, error: 'records' });
     expect(await db.log.count()).toBe(0);
   });
+
+  it('a record of a later, unknown type is kept whole; the rebuild skips it (stage 6a.3)', async () => {
+    const a = freshDb();
+    const actor = await ensureDevice(a);
+    await someProgress(a, actor);
+    const parsed = JSON.parse((await exportJournal(a, actor)).json) as { records: unknown[] };
+    const later = { id: 'later-1', type: 'practice', userId: actor.userId, deviceId: actor.deviceId, at: new Date(T0 + 3 * D).toISOString(), deckId: 'fr-test-01', entryId: 'a', deckRevision: 1, sessionId: 's9', extra: { k: [1, 2] } };
+    parsed.records.push(later);
+    const b = freshDb();
+    await ensureDevice(b);
+    expect(await restoreJournal(b, createScheduler(), JSON.stringify(parsed))).toMatchObject({ ok: true, added: 7 });
+    expect(await b.log.get('later-1')).toEqual({ ...later, at: new Date(T0 + 3 * D) });
+    expect(await b.cards.count()).toBe(await a.cards.count());
+  });
 });
 
 describe('drill records (R25)', () => {
