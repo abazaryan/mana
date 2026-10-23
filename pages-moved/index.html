@@ -1,7 +1,8 @@
 <!doctype html>
 <!--
-  The old address https://abazaryan.github.io/mana/ after the move (Р32 п. 7):
-  only a link to the new site, no app and no journal export. Published by
+  The old address https://abazaryan.github.io/mana/ after the move (R32 item 7):
+  only a link to the new site, no app and no journal export; one script deletes the IndexedDB
+  database "mana-lab" of the closed experiment (R23) once. Published by
   .github/workflows/deploy.yml (also as 404.html). Tajik text approved by the owner.
 -->
 <html lang="tg">
@@ -50,5 +51,22 @@
     <p>If you saved the answer journal to a file, on the new site: Settings → Restore from a file.</p>
   </section>
 </main>
+<script>
+// One-time cleanup (R23, closed): the recognizer experiment kept voice recordings in the IndexedDB
+// database "mana-lab" on this address. Only that database is deleted; "mana" is never touched.
+(function () {
+  var KEY = 'mana-moved.labDbRemoved';
+  try {
+    if (localStorage.getItem(KEY)) return;
+  } catch (e) {}
+  if (!window.indexedDB) return;
+  var req = indexedDB.deleteDatabase('mana-lab');
+  req.onsuccess = function () {
+    try {
+      localStorage.setItem(KEY, '1');
+    } catch (e) {}
+  };
+})();
+</script>
 </body>
 </html>
