@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { captureInviteToken } from './inviteToken';
 import { MainApp } from './MainApp';
 import { PrototypeApp } from './PrototypeApp';
-import { RecordLab } from './RecordLab';
 
 export type Route =
   | { name: 'decks' }
@@ -15,17 +14,14 @@ export type Route =
   | { name: 'signin' }
   /** The data notice ("Data and privacy"). */
   | { name: 'privacy' }
-  | { name: 'prototype' }
-  | { name: 'lab' };
+  | { name: 'prototype' };
 
 /**
  * Hash routes: #/, #/deck/<id>, #/study/<id> (#/study/<id>/new: "add anyway"), #/settings, #/join (#/join/<token> is
- * an invitation link: the token is taken out at once), #/signin, #/privacy, #/prototype, and the hidden #/lab/record
- * (recognizer experiment, in no menu).
+ * an invitation link: the token is taken out at once), #/signin, #/privacy, #/prototype.
  */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  if (parts[0] === 'lab' && parts[1] === 'record') return { name: 'lab' };
   if (parts[0] === 'prototype') return { name: 'prototype' };
   if (parts[0] === 'settings') return { name: 'settings' };
   if (parts[0] === 'join') return { name: 'join' };
@@ -67,6 +63,5 @@ export function Root() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [route]);
-  if (route.name === 'lab') return <RecordLab />;
   return route.name === 'prototype' ? <PrototypeApp /> : <MainApp route={route} />;
 }

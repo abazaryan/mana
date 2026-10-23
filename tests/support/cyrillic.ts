@@ -15,12 +15,27 @@ const CYRILLIC = /[Ѐ-ӿ]/g;
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'reference', 'apkg', 'decks', 'coverage']);
 const EXTENSIONS = /\.(ts|tsx|js|mjs|cjs|json|jsonc)$/;
 
-/** Files where any Cyrillic is data: the string table (tg / ru / en) and the table generated from the glossary. */
-export const DATA_FILES = ['src/ui/strings.ts', 'src/core/tgDeckTerms.ts'];
+/**
+ * Files where any Cyrillic is data (CLAUDE.md, "Cyrillic in code"). Each entry says why; a new entry
+ * needs a reason here and in CLAUDE.md.
+ */
+export const DATA_FILES = [
+  // The string table (tg / ru / en) and the table generated from the glossary.
+  'src/ui/strings.ts',
+  'src/core/tgDeckTerms.ts',
+  // Data the logic needs in Cyrillic (journal rule ids, glossary heading, form labels, language names).
+  'src/core/cyrillicData.ts',
+  // Only the table of validator and report messages (Russian by R33 item 15): no logic in it.
+  'src/core/deckMessages.ts',
+  // The text of the test decks the scripts generate (tg / ru meanings).
+  'scripts/data/test-decks.ts',
+  // JSON Schema of deck.json: its descriptions are documentation, as in docs/DECK_FORMAT.md.
+  'src/core/mana-deck.schema.json',
+];
 
 /** Test files: Cyrillic may stand in string and regex literals (test data), but not in comments or in test names. */
 export function isTestFile(path: string): boolean {
-  return /\.test\.ts$/.test(path) || path.startsWith('src/test/') || path.startsWith('worker/test/');
+  return /\.test\.ts$/.test(path) || path.startsWith('src/test/') || path.startsWith('worker/test/') || path.startsWith('tests/');
 }
 
 export function listSources(): string[] {

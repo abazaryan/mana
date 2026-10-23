@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_LINES } from './test/cyrillic-legacy.ts';
-import { scanAll, violatingLines } from './test/cyrillic.ts';
+import { LEGACY_LINES } from './support/cyrillic-legacy.ts';
+import { scanAll, violatingLines } from './support/cyrillic.ts';
 
 /**
  * CLAUDE.md, "Cyrillic in code": code, comments, test names, error messages, tool output and

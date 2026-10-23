@@ -11,6 +11,6 @@ export default defineConfig({
   plugins: [react()],
   define: { __MANA_BUILD__: JSON.stringify(BUILD) },
   test: {
-    include: ['src/**/*.test.ts', 'worker/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'worker/**/*.test.ts', 'tests/**/*.test.ts'],
   },
 });
