@@ -2,19 +2,20 @@
 
 Not part of the app. Python 3.10+, standard library only.
 
-    python scripts/convert_apkg.py apkg/fr_lesson_01.apkg "decks/Фаронсавӣ · Дарси 01.zip"
+    python scripts/convert_apkg.py apkg/fr_lesson_01.apkg "decks/<lesson 1 file name>.zip"
 
-Expects the note type of lesson 1: fields Français, IPA, Маъно, Навиштан, Аудио.
+Expects the note type of lesson 1: fields text (French), IPA, meaning (Tajik), "write" flag, audio.
+The field names, the tag names and the title are data: scripts/data/lesson1_apkg.py.
 Mapping (docs/DECK_FORMAT.md):
-  Français -> text; IPA -> ipa (without [ ]); Маъно -> meaning.tg;
-  Аудио [sound:x.wav] -> audio/<id>.wav; Навиштан = "y" -> skills include "write";
+  text -> text; IPA -> ipa (without [ ]); meaning -> meaning.tg;
+  audio [sound:x.wav] -> audio/<id>.wav; "write" flag = "y" -> skills include "write";
   article le/la/l'/les -> form.determiner definite, un/une/des -> indefinite;
   le/un -> gender m, la/une -> f; Anki tags -> tag codes (TAGS; lesson tag U01 dropped).
-Revision 2 (Р28, 18.10.2026): FORM_GENDER adds form.gender where the meaning alone
-allows two answers ("1" = un / une; "Ман тоҷик ҳастам." = tadjik / tadjike).
+Revision 2 (R28, 18.10.2026): FORM_GENDER adds form.gender where the meaning alone
+allows two answers (the bare number "un" = un / une; "je-suis-tadjike" = tadjik / tadjike).
 The deck name is the ZIP file name (docs/DECK_FORMAT.md).
 Entry ids are made from the French text once and must stay the same afterwards.
-Check the result with: npm run deck:check -- "decks/Фаронсавӣ · Дарси 01.zip"
+Check the result with: npm run deck:check -- "decks/<lesson 1 file name>.zip"
 """
 
 from __future__ import annotations
@@ -30,15 +31,10 @@ import unicodedata
 import zipfile
 from pathlib import Path
 
-FIELDS = ["Français", "IPA", "Маъно", "Навиштан", "Аудио"]
+from data.lesson1_apkg import FIELD_AUDIO, FIELD_IPA, FIELD_MEANING, FIELD_TEXT, FIELD_WRITE, FIELDS, TAGS, TITLE
+
 FIXED_TIME = (1980, 1, 1, 0, 0, 0)  # reproducible archive
 LESSON_TAG = re.compile(r"U\d+")  # the whole deck is one lesson
-# Anki tag -> (code, name). "кор" has no agreed meaning, so it keeps its Tajik name only.
-TAGS = {
-    "вожа": ("word", {"tg": "вожа", "ru": "слово", "en": "word"}),
-    "адад": ("number", {"tg": "адад", "ru": "число", "en": "number"}),
-    "кор": ("kor", {"tg": "кор"}),
-}
 
 
 def plain(text: str) -> str:
@@ -59,11 +55,9 @@ def slug(fr: str) -> str:
 ARTICLE = re.compile(r"(le|la|les|un|une|des)\s+(?=\S)|l'(?=\S)", flags=re.I)
 DEFINITE = {"le", "la", "les", "l'"}
 GENDER = {"le": "m", "un": "m", "la": "f", "une": "f"}
-# Р28: the gender of the answer where the meaning does not show it (revision 2).
+# R28: the gender of the answer where the meaning does not show it (revision 2).
 FORM_GENDER = {"un": "m", "je-suis-tadjike": "f"}
 REVISION = 3
-# Р30: the deck name comes from deck.json, not from the file name (revision 3: only the title is new).
-TITLE = {"tg": "Фаронсавӣ · Дарси 1", "ru": "Французский · Урок 1", "en": "French · Lesson 1"}
 
 
 def article(fr: str) -> str | None:
@@ -100,19 +94,19 @@ def main() -> int:
                 sys.exit(f"unexpected note type {model['name']!r}: fields {names_}")
             f = dict(zip(names_, flds.split("\x1f")))
 
-            fr = plain(f["Français"])
+            fr = plain(f[FIELD_TEXT])
             entry_id = slug(fr)
             if not entry_id or entry_id in seen:
                 sys.exit(f"cannot make a unique id for {fr!r}")
             seen.add(entry_id)
 
             entry: dict = {"id": entry_id, "text": fr}
-            ipa = plain(f["IPA"]).strip("[]/ ")
+            ipa = plain(f[FIELD_IPA]).strip("[]/ ")
             if ipa:
                 entry["ipa"] = ipa
-            entry["meaning"] = {"tg": plain(f["Маъно"])}
+            entry["meaning"] = {"tg": plain(f[FIELD_MEANING])}
 
-            sound = re.search(r"\[sound:([^\]]+)\]", f["Аудио"])
+            sound = re.search(r"\[sound:([^\]]+)\]", f[FIELD_AUDIO])
             if sound:
                 name = sound.group(1)
                 if name not in by_name:
@@ -138,7 +132,7 @@ def main() -> int:
                 tags.append(TAGS[t][0])
             if tags:
                 entry["tags"] = tags
-            entry["skills"] = ["listen", "speak"] + (["write"] if plain(f["Навиштан"]) else [])
+            entry["skills"] = ["listen", "speak"] + (["write"] if plain(f[FIELD_WRITE]) else [])
             entries.append(entry)
         db.close()
 
