@@ -157,7 +157,7 @@ details summary{cursor:pointer;color:var(--muted);}
 details .issues li{border-left-color:var(--hard);}
 .lang-mark{margin-left:6px;text-transform:uppercase;vertical-align:middle;}
 
-/* Stage 4.2: study (intro, speak), answer marks (Р22.9) */
+/* Stage 4.2: study (intro, speak), answer marks (R22.9) */
 a.primary,a.secondary{text-decoration:none;}
 .center{display:flex;align-items:center;justify-content:center;}
 .study-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:6px;}
@@ -190,7 +190,7 @@ a.primary,a.secondary{text-decoration:none;}
 .live-words .lw{color:var(--muted);}
 .live-words .lw.on{color:var(--ok);text-decoration:underline 2px;text-underline-offset:4px;}
 
-/* Marks (Р22.9, amendments of 15.10.2026): all correct → one line with ✓;
+/* Marks (R22.9, amendments of 15.10.2026): all correct → one line with ✓;
    otherwise word blocks, the answer on top (🎤 / ⌨), the reference below in the card's font. */
 .marks{margin:14px 0 8px;}
 .marks.one{display:block;line-height:1.5;font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:1.35rem;}
@@ -216,7 +216,7 @@ button.blk:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 .st-other .top,.st-wrong .top{color:var(--bad);text-decoration:underline wavy var(--bad);text-underline-offset:4px;}
 .st-extra .top{color:var(--bad);text-decoration:line-through 2px;}
 .st-diacritic .top{color:var(--hard);text-decoration:underline dotted 2px;text-underline-offset:4px;}
-/* Punctuation (Р26): neutral, not an error colour; the second sign is the dashed frame. */
+/* Punctuation (R26): neutral, not an error colour; the second sign is the dashed frame. */
 .st-punct .top,.st-punct .bot{color:var(--muted);}
 .st-punct .top:not(.gap),.st-punct .bot:not(.gap){outline:1px dashed var(--muted);outline-offset:-2px;border-radius:4px;}
 /* Corrected characters and words of the reference: bold and green. */
@@ -262,7 +262,7 @@ button.blk:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
   .mic2.act-sound .mic2-rings i:first-child,.mic2.act-speech .mic2-rings i:first-child{opacity:.9;transform:scale(1.35);}
 }
 
-/* Stage 5: the on-screen phone keyboard (Р31, src/ui/OnScreenKeyboard.tsx) */
+/* Stage 5: the on-screen phone keyboard (R31, src/ui/OnScreenKeyboard.tsx) */
 html.osk-open{scroll-padding-bottom:calc(var(--osk-h,0px) + 12px);}
 html.osk-open body{padding-bottom:var(--osk-h,0px);}
 .osk{--key-cur:var(--key-h,54px);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--osk-bg);border-top:1px solid var(--line);
