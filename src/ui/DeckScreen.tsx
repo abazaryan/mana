@@ -23,7 +23,8 @@ import { VoiceCheckSheet } from './VoiceCheck';
 type Day = { due: number; fresh: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
 type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day; voiceAsked: boolean } | 'missing' | null;
 
-export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deckId: string; userId: string; newPerDay: number }) {
+/** `synced` — grows when records came from the server (stage 6a.3): the counts are read again. */
+export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: ManaDb; deckId: string; userId: string; newPerDay: number; synced?: number }) {
   const { t, lang, meaningLang } = useI18n();
   const [data, setData] = useState<Loaded>(null);
   const [audioError, setAudioError] = useState(false);
@@ -62,7 +63,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay }: { db: ManaDb; deck
       stopAudio();
       stopEntryAudio();
     };
-  }, [db, deckId, userId, newPerDay, lang, reload]);
+  }, [db, deckId, userId, newPerDay, lang, reload, synced]);
 
   // Deck audio, or the browser voice for an entry without it (R33 item 14).
   const play = async (e: EntryRow, language: string) => {

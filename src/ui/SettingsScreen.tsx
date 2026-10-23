@@ -191,10 +191,12 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
         <button className="secondary" type="button" onClick={() => void save()}>
           {t('backup.save')}
         </button>
-        <button className="secondary" type="button" onClick={() => file.current?.click()}>
+        {/* Signed in: off until the transfer of answers (6a.4) — a file of another installation would change the local user. */}
+        <button className="secondary" type="button" disabled={meta.account !== undefined} onClick={() => file.current?.click()}>
           {t('backup.restore')}
         </button>
       </div>
+      {meta.account && <p className="hint">{t('backup.restoreSignedIn')}</p>}
       <input
         ref={file}
         type="file"

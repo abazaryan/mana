@@ -5,6 +5,8 @@ import { formatCode } from '../core/pairingCode';
 import { issuePairingCode, listDevices, renameDevice, revokeDevice, signOut, type DeviceInfo } from '../platform/api';
 import type { ManaDb } from '../platform/db';
 import { markSignedOut, setAccountDeviceName } from '../platform/repo';
+import { onQueued, onSyncChanged } from '../platform/syncEvents';
+import { queueCounts } from '../platform/syncStore';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 import { FAILURE_TEXT, failureOf } from './signIn';
@@ -16,10 +18,52 @@ interface Props {
   onMetaChange(meta: MetaRow): void;
 }
 
+const two = (n: number) => String(n).padStart(2, '0');
+
 /** dd.mm.yyyy in the device's time zone. */
 function day(ms: number): string {
   const d = new Date(ms);
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+  return `${two(d.getDate())}.${two(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+/** dd.mm.yyyy hh:mm in the device's time zone. */
+const dayTime = (ms: number) => `${day(ms)} ${two(new Date(ms).getHours())}:${two(new Date(ms).getMinutes())}`;
+
+/**
+ * Where sync stands (stage 6a.3): records waiting to be sent, records the server did not accept
+ * (they stay here and in the file), the last exchange that went through.
+ */
+function SyncStatus({ db }: { db: ManaDb }) {
+  const { t } = useI18n();
+  const [state, setState] = useState<{ pending: number; notAccepted: number; last: Date | null } | null>(null);
+  const refresh = useCallback(async () => {
+    const [counts, meta] = await Promise.all([queueCounts(db), db.meta.get('device')]);
+    setState({ ...counts, last: meta?.sync?.lastOkAt ?? null });
+  }, [db]);
+  useEffect(() => {
+    void refresh();
+    const timer = setInterval(() => void refresh(), 5000);
+    const offQueued = onQueued(() => void refresh());
+    const offChanged = onSyncChanged(() => void refresh());
+    return () => {
+      clearInterval(timer);
+      offQueued();
+      offChanged();
+    };
+  }, [refresh]);
+  if (!state) return null;
+  return (
+    <div className="mt" role="status">
+      <p className="hint">{state.last ? t('sync.last', { date: dayTime(state.last.getTime()) }) : t('sync.never')}</p>
+      {state.pending > 0 && <p className="hint">{t('sync.pending', { n: state.pending })}</p>}
+      {state.notAccepted > 0 && (
+        <>
+          <p className="hint err">{t('sync.rejected', { n: state.notAccepted })}</p>
+          <p className="hint">{t('sync.rejectedHint')}</p>
+        </>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -101,6 +145,7 @@ function SignedIn({ db, meta, onMetaChange }: Props) {
   return (
     <>
       <p className="hint">{t('account.signedIn')}</p>
+      <SyncStatus db={db} />
       <label className="field">
         <span>{t('account.deviceName')}</span>
         <div className="typebox">

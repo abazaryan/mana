@@ -200,6 +200,7 @@
 | `backup.error.version` | Файл из более новой версии приложения. Обновите приложение. | The file comes from a newer version of the app. Update the app. | Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед. |
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |
+| `backup.restoreSignedIn` | Пока вы в аккаунте, восстановление из файла отключено; оно появится позже. Сохранение журнала в файл работает. | While you are signed in, restoring from a file is turned off; it will come later. Saving the study log to a file works. | То вақте ки ба ҳисоб ворид ҳастед, бозёбӣ аз файл ғайрифаъол аст; он баъдтар илова мешавад. Захираи таърихча дар файл кор мекунад. |
 | `backup.error.failed` | Ошибка: {error} | Error: {error} | Хато: {error} |
 | `migrate.title` | Правила повторений обновлены | Review rules updated | Қоидаҳои такрор барӯз шуданд |
 | `migrate.text` | Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется. | Review dates will be recalculated with the new rules. First the study log is saved to a file, just in case; the log itself does not change. | Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад. |
@@ -217,7 +218,7 @@
 | `account.save` | Сохранить | Save | Захира |
 | `account.devices` | Устройства | Devices | Дастгоҳҳо |
 | `account.thisDevice` | (это устройство) | (this device) | (ин дастгоҳ) |
-| `account.lastSeen` | Последний вход: {date} | Last sign-in: {date} | Охирин вуруд: {date} |
+| `account.lastSeen` | Последняя связь с сервером: {date} | Last in touch with the server: {date} | Охирин ҳамгомсозӣ: {date} |
 | `account.remove` | Убрать | Remove | Ҳазф |
 | `account.removeConfirm` | Убрать «{name}» из аккаунта? Данные на нём останутся, но для нового входа понадобится приглашение или код. | Remove “{name}” from the account? Its data stays on it, but signing in again will need an invitation or a code. | Дастгоҳи «{name}» аз ҳисоб ҳазф шавад? Додаҳояш дар худи он мемонанд, вале барои вуруди дубора даъватнома ё код лозим мешавад. |
 | `account.addDevice` | Добавить устройство | Add a device | Иловаи дастгоҳ |
@@ -229,6 +230,16 @@
 | `account.signedOutBy` | Это устройство больше не в аккаунте: его убрали из аккаунта с другого устройства или им долго не пользовались. Данные на устройстве на месте. | This device is no longer signed in: it was removed from the account on another device or not used for a long time. The data on this device is still here. | Ин дастгоҳ дигар ба ҳисоб ворид нест: онро бо дастгоҳи дигар аз ҳисоб ҳазф карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд. |
 | `account.offline` | Сервер не отвечает. Попробуйте позже. | The server isn't responding. Try again later. | Сервер дар дастрас нест. Баъдтар дубора талош кунед. |
 | `account.privacy` | Данные и конфиденциальность | Data and privacy | Додаҳо ва ҳарими хусусӣ |
+| `sync.pending` | Ждут отправки: {n} | Waiting to be sent: {n} | Ҳанӯз фиристода нашуд: {n} |
+| `sync.rejected` | Не приняты сервером: {n} | Not accepted by the server: {n} | Сервер қабул накард: {n} |
+| `sync.rejectedHint` | Они остались на этом устройстве и попадут в файл журнала. | They stay on this device and go into the study log file. | Онҳо дар ҳамин дастгоҳ мемонанд ва ба файли таърихчаи тамрин дохил мешаванд. |
+| `sync.last` | Последняя синхронизация: {date} | Last synced: {date} | Охирин ҳамгомсозӣ: {date} |
+| `sync.never` | Ещё не синхронизировано | Not synced yet | Ҳанӯз ҳамгомсозӣ нашудааст |
+| `update.title` | Нужна новая версия приложения | A newer version of the app is needed | Нусхаи нави барнома лозим аст |
+| `update.text` | Ваши ответы сохранены. Эта версия приложения старше данных на сервере. Перезагрузите — загрузится новая версия. | Your answers are saved. This version of the app is older than the data on the server. Reload to get the new version. | Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома аз додаҳои сервер кӯҳнатар аст. Барномаро дубора кушоед — нусхаи нав бор мешавад. |
+| `update.otherTab` | Приложение обновилось в другом окне. Перезагрузите эту страницу. | The app was updated in another window. Reload this page. | Барнома дар равзанаи дигар барӯз шуд. Ин саҳифаро дубора кушоед. |
+| `update.reload` | Перезагрузить | Reload | Дубора кушодан |
+| `update.wait` | Новая версия ещё не пришла. Попробуйте через несколько минут. | The new version hasn't arrived yet. Try again in a few minutes. | Нусхаи нав ҳанӯз нарасидааст. Баъд аз чанд дақиқа дубора талош кунед. |
 | `signin.title` | Вход | Sign in | Вуруд |
 | `signin.label` | Ссылка-приглашение или код | Invitation link or code | Даъватнома ё код |
 | `signin.hint` | Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства. | Paste the invitation link from the message or enter the 8-character code from your other device. | Даъватномаро аз паём часпонед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед. |

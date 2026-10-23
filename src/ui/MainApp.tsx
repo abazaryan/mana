@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { BUILD } from '../core/build';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
-import { setUnauthorizedHandler, whoAmI } from '../platform/api';
+import { createScheduler, RULES_VERSION } from '../core/scheduler';
+import { setUnauthorizedHandler, syncTransport, whoAmI } from '../platform/api';
 import { getDb } from '../platform/db';
 import { ensureDevice, getSettings, markSignedOut, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
+import { SyncEngine } from '../platform/syncClient';
+import { onQueued, onSyncChanged } from '../platform/syncEvents';
+import { saveSettings as storeSettings, settleUpdate } from '../platform/syncStore';
 import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
@@ -18,19 +23,25 @@ import { SettingsScreen } from './SettingsScreen';
 import { SignInScreen } from './SignInScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
+import { UpdateScreen } from './UpdateScreen';
 
 type Boot =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
-  /** `rulesUpdate`: the cards must be rebuilt with the new rules before any study (R29.7). */
-  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean };
+  /**
+   * `rulesUpdate`: the cards must be rebuilt with the new rules before any study (R29.7).
+   * `needsUpdate`: this version is older than the account's data (sync, stage 6a.3).
+   */
+  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean; needsUpdate: boolean };
 
 const db = getDb();
 
 async function load(): Promise<Boot> {
   const meta = await ensureDevice(db);
   const rulesUpdate = await needsRulesUpdate(db, meta);
-  return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate };
+  // After an update the "older version" mark of sync goes; cards left for it are rebuilt.
+  const needsUpdate = await settleUpdate(db, createScheduler(), BUILD, RULES_VERSION);
+  return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate, needsUpdate };
 }
 
 export function MainApp({ route }: { route: Route }) {
@@ -63,6 +74,63 @@ export function MainApp({ route }: { route: Route }) {
     if (signedIn) void whoAmI();
   }, [signedIn]);
 
+  // "A newer version is needed" (stage 6a.3): from sync, or another window upgraded the database.
+  // While a portion is open, the screen waits until the current card is saved (the next record).
+  const [update, setUpdate] = useState<'data' | 'otherTab' | null>(null);
+  const [updateShown, setUpdateShown] = useState(false);
+  const studying = route.name === 'study';
+  useEffect(() => {
+    if (boot.phase === 'ready' && boot.needsUpdate) setUpdate('data');
+  }, [boot]);
+  useEffect(() => {
+    if (!update || updateShown) return;
+    if (!studying) {
+      setUpdateShown(true);
+      return;
+    }
+    return onQueued(() => setUpdateShown(true));
+  }, [update, updateShown, studying]);
+  useEffect(() => {
+    const otherWindow = () => {
+      db.close();
+      setUpdate('otherTab');
+      setUpdateShown(true);
+    };
+    db.on('versionchange', otherWindow);
+    return () => db.on('versionchange').unsubscribe(otherWindow);
+  }, []);
+
+  // Sync runs while signed in and this version is current.
+  useEffect(() => {
+    if (!signedIn || update) return;
+    const engine = new SyncEngine({ db, scheduler: createScheduler(), transport: syncTransport, build: BUILD, onNeedsUpdate: () => setUpdate('data') });
+    engine.start();
+    return () => engine.stop();
+  }, [signedIn, update]);
+
+  // Settings or records came from the server: screens count again; the settings apply at once,
+  // except in an open portion — there when it is left (its plan must not be rebuilt, R39).
+  const [synced, setSynced] = useState(0);
+  const heldSettings = useRef<SettingsRow | null>(null);
+  const userId = boot.phase === 'ready' ? boot.meta.userId : null;
+  useEffect(() => {
+    if (!userId) return;
+    return onSyncChanged(() => {
+      setSynced((v) => v + 1);
+      void getSettings(db, userId).then((s) => {
+        if (!s) return;
+        if (location.hash.startsWith('#/study')) heldSettings.current = s;
+        else setBoot((b) => (b.phase === 'ready' ? { ...b, settings: s } : b));
+      });
+    });
+  }, [userId]);
+  useEffect(() => {
+    if (studying || !heldSettings.current) return;
+    const s = heldSettings.current;
+    heldSettings.current = null;
+    setBoot((b) => (b.phase === 'ready' ? { ...b, settings: s } : b));
+  }, [studying]);
+
   const lang = boot.phase === 'ready' ? boot.settings?.uiLang : undefined;
   useEffect(() => {
     if (lang) document.documentElement.lang = lang;
@@ -77,44 +145,47 @@ export function MainApp({ route }: { route: Route }) {
     );
   }
 
-  const { meta, settings, rulesUpdate } = boot;
+  const { meta, settings, rulesUpdate, needsUpdate } = boot;
   if (!settings) {
     const choose = async (l: Lang) => {
       const s = defaultSettings(meta.userId, l, new Date());
       await putSettings(db, s);
-      setBoot({ phase: 'ready', meta, settings: s, rulesUpdate });
+      setBoot({ phase: 'ready', meta, settings: s, rulesUpdate, needsUpdate });
     };
     return <FirstRun onChoose={(l) => void choose(l)} />;
   }
+
+  const blocked = rulesUpdate || (update !== null && updateShown);
 
   const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>) => {
     // Switching the hints on again forgets that this browser once rejected them.
     // The flag lives in the database (a study round may have set it since boot): always clear it.
     const freshMeta = patch.biasing === true ? await setPhrasesUnsupported(db, false) : meta;
     const s = { ...settings, ...patch, updatedAt: new Date() };
-    await putSettings(db, s);
-    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate });
+    await storeSettings(db, s);
+    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate, needsUpdate });
   };
 
   const saveSystemKeyboard = async (on: boolean) => {
     const freshMeta = await setSystemKeyboard(db, on);
-    setBoot({ phase: 'ready', meta: freshMeta, settings, rulesUpdate });
+    setBoot({ phase: 'ready', meta: freshMeta, settings, rulesUpdate, needsUpdate });
   };
 
   // Sign-in moves the settings to the account's id (repo.markSignedIn): read them again.
   const accountChanged = async (freshMeta: MetaRow) => {
     if (freshMeta.account) setSignedOutBy(false);
     const s = (await getSettings(db, freshMeta.userId)) ?? settings;
-    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate });
+    setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate, needsUpdate });
   };
 
   return (
     <I18nProvider lang={settings.uiLang} meaningLang={settings.meaningLang}>
       <KeyboardModeProvider systemKeyboard={meta.systemKeyboard === true}>
         <Shell route={route}>
-          {rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
-          {!rulesUpdate && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} />}
-          {!rulesUpdate && route.name === 'study' && (
+          {update && updateShown && <UpdateScreen reason={update} />}
+          {!(update && updateShown) && rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
+          {!blocked && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} synced={synced} />}
+          {!blocked && route.name === 'study' && (
             <StudyScreen
               key={`${route.deckId}${route.addAnyway ? '/new' : ''}`}
               db={db}
@@ -125,7 +196,7 @@ export function MainApp({ route }: { route: Route }) {
               addAnyway={route.addAnyway === true}
             />
           )}
-          {!rulesUpdate && route.name === 'settings' && (
+          {!blocked && route.name === 'settings' && (
             <SettingsScreen
               db={db}
               meta={meta}
@@ -136,14 +207,14 @@ export function MainApp({ route }: { route: Route }) {
               onChange={(p) => void saveSettings(p)} onDataReplaced={reload}
               onAccountChange={(m) => void accountChanged(m)} />
           )}
-          {!rulesUpdate && route.name === 'decks' && <DecksScreen db={db} />}
-          {!rulesUpdate && route.name === 'join' && (
+          {!blocked && route.name === 'decks' && <DecksScreen db={db} />}
+          {!blocked && route.name === 'join' && (
             <JoinFlow db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
           )}
-          {!rulesUpdate && route.name === 'signin' && (
+          {!blocked && route.name === 'signin' && (
             <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />
           )}
-          {route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
+          {!(update && updateShown) && route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
         </Shell>
       </KeyboardModeProvider>
     </I18nProvider>

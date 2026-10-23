@@ -506,6 +506,11 @@ export const STRINGS = {
     ru: 'Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации.',
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
+  'backup.restoreSignedIn': {
+    tg: 'То вақте ки ба ҳисоб ворид ҳастед, бозёбӣ аз файл ғайрифаъол аст; он баъдтар илова мешавад. Захираи таърихча дар файл кор мекунад.',
+    ru: 'Пока вы в аккаунте, восстановление из файла отключено; оно появится позже. Сохранение журнала в файл работает.',
+    en: 'While you are signed in, restoring from a file is turned off; it will come later. Saving the study log to a file works.',
+  },
   'backup.error.failed': { tg: 'Хато: {error}', ru: 'Ошибка: {error}', en: 'Error: {error}' },
 
   // New scheduling rules: one-time rebuild (Р29.7; tg approved 18.10.2026)
@@ -553,7 +558,7 @@ export const STRINGS = {
   'account.save': { tg: 'Захира', ru: 'Сохранить', en: 'Save' },
   'account.devices': { tg: 'Дастгоҳҳо', ru: 'Устройства', en: 'Devices' },
   'account.thisDevice': { tg: '(ин дастгоҳ)', ru: '(это устройство)', en: '(this device)' },
-  'account.lastSeen': { tg: 'Охирин вуруд: {date}', ru: 'Последний вход: {date}', en: 'Last sign-in: {date}' },
+  'account.lastSeen': { tg: 'Охирин ҳамгомсозӣ: {date}', ru: 'Последняя связь с сервером: {date}', en: 'Last in touch with the server: {date}' },
   'account.remove': { tg: 'Ҳазф', ru: 'Убрать', en: 'Remove' },
   'account.removeConfirm': {
     tg: 'Дастгоҳи «{name}» аз ҳисоб ҳазф шавад? Додаҳояш дар худи он мемонанд, вале барои вуруди дубора даъватнома ё код лозим мешавад.',
@@ -585,6 +590,35 @@ export const STRINGS = {
     en: "The server isn't responding. Try again later.",
   },
   'account.privacy': { tg: 'Додаҳо ва ҳарими хусусӣ', ru: 'Данные и конфиденциальность', en: 'Data and privacy' },
+
+  // Sync (stage 6a.3, R39). tg — DRAFT candidates for the terminology chat, not approved yet;
+  // account.lastSeen above changed its meaning too (the last exchange, not the last sign-in).
+  'sync.pending': { tg: 'Ҳанӯз фиристода нашуд: {n}', ru: 'Ждут отправки: {n}', en: 'Waiting to be sent: {n}' },
+  'sync.rejected': { tg: 'Сервер қабул накард: {n}', ru: 'Не приняты сервером: {n}', en: 'Not accepted by the server: {n}' },
+  'sync.rejectedHint': {
+    tg: 'Онҳо дар ҳамин дастгоҳ мемонанд ва ба файли таърихчаи тамрин дохил мешаванд.',
+    ru: 'Они остались на этом устройстве и попадут в файл журнала.',
+    en: 'They stay on this device and go into the study log file.',
+  },
+  'sync.last': { tg: 'Охирин ҳамгомсозӣ: {date}', ru: 'Последняя синхронизация: {date}', en: 'Last synced: {date}' },
+  'sync.never': { tg: 'Ҳанӯз ҳамгомсозӣ нашудааст', ru: 'Ещё не синхронизировано', en: 'Not synced yet' },
+  'update.title': { tg: 'Нусхаи нави барнома лозим аст', ru: 'Нужна новая версия приложения', en: 'A newer version of the app is needed' },
+  'update.text': {
+    tg: 'Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома аз додаҳои сервер кӯҳнатар аст. Барномаро дубора кушоед — нусхаи нав бор мешавад.',
+    ru: 'Ваши ответы сохранены. Эта версия приложения старше данных на сервере. Перезагрузите — загрузится новая версия.',
+    en: 'Your answers are saved. This version of the app is older than the data on the server. Reload to get the new version.',
+  },
+  'update.otherTab': {
+    tg: 'Барнома дар равзанаи дигар барӯз шуд. Ин саҳифаро дубора кушоед.',
+    ru: 'Приложение обновилось в другом окне. Перезагрузите эту страницу.',
+    en: 'The app was updated in another window. Reload this page.',
+  },
+  'update.reload': { tg: 'Дубора кушодан', ru: 'Перезагрузить', en: 'Reload' },
+  'update.wait': {
+    tg: 'Нусхаи нав ҳанӯз нарасидааст. Баъд аз чанд дақиқа дубора талош кунед.',
+    ru: 'Новая версия ещё не пришла. Попробуйте через несколько минут.',
+    en: "The new version hasn't arrived yet. Try again in a few minutes.",
+  },
 
   // Sign-in screen and invitation steps (stage 6a.2; tg approved by the terminology chat 23.10.2026)
   'signin.title': { tg: 'Вуруд', ru: 'Вход', en: 'Sign in' },
