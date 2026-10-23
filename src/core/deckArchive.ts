@@ -1,11 +1,12 @@
 /**
- * Reads a deck — a ZIP, or deck.json alone (a .json file or pasted text, Р33 п. 15) —
+ * Reads a deck — a ZIP, or deck.json alone (a .json file or pasted text, R33 item 15) —
  * and checks it with the same validator as `npm run deck:check`. Returns the checked
  * deck and the audio files its entries use.
  */
 import JSZip from 'jszip';
 import { checkDeckArchive, checkDeckJson, DECK_JSON, deckNameFromFileName, type DeckCheck } from './deckFormat';
 import { LANGUAGE_PACKS } from './languages';
+import { M } from './deckMessages.ts';
 
 export interface DeckAudio {
   path: string;
@@ -14,7 +15,7 @@ export interface DeckAudio {
 }
 
 export interface DeckArchive {
-  /** Deck name: the file name without .zip / .json (Р15); the deck id for pasted text. */
+  /** Deck name: the file name without .zip / .json (R15); the deck id for pasted text. */
   name: string;
   check: DeckCheck;
   /** Audio used by the entries; empty when the deck has errors or came without an archive. */
@@ -36,7 +37,7 @@ export async function readDeckArchive(data: ArrayBuffer | Uint8Array, fileName: 
   try {
     zip = await JSZip.loadAsync(data);
   } catch {
-    const message = `Файл «${fileName}» не открывается как ZIP-архив.`;
+    const message = M.zipNotOpened(fileName);
     return { name, archiveBytes, audio: [], check: { deck: null, errors: [{ level: 'error', path: '', message }], warnings: [], notes: [] } };
   }
 
@@ -70,8 +71,8 @@ export function extractDeckJson(text: string): string {
 }
 
 /**
- * deck.json without an archive (Р33 п. 15): from a .json file (`fileName`) or pasted
- * text (`fileName` null — the deck id names it until its title does, Р30). Audio paths
+ * deck.json without an archive (R33 item 15): from a .json file (`fileName`) or pasted
+ * text (`fileName` null — the deck id names it until its title does, R30). Audio paths
  * are dropped from the entries: without files every entry plays the browser voice.
  */
 export function readDeckJson(text: string, fileName: string | null): DeckArchive {

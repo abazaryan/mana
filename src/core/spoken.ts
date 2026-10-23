@@ -1,5 +1,5 @@
 /**
- * Sound-based check of a spoken answer (skill `speak`, Р5, Р22), also used for an
+ * Sound-based check of a spoken answer (skill `speak`, R5, R22), also used for an
  * answer typed in `speak`. Language-neutral: every language rule comes from the
  * pack (src/core/languages.ts → SpokenRules).
  *
@@ -8,16 +8,14 @@
  *
  * Spelling is not checked here: that is the written-answer cascade (evaluate.ts).
  */
+import { DIGITS_RULE, SPEECH_RULE } from './cyrillicData.ts';
 import type { Verdict } from './evaluate';
 import type { EndingRule, SpokenRules } from './languages';
 
-/** Share of reference words that may be unsaid and still give "almost" (Р22.2). */
+/** Share of reference words that may be unsaid and still give "almost" (R22.2). */
 export const ALMOST_UNSAID_SHARE = 0.25;
 
-/** Rule id for a number said in words and written in digits (or the other way round). */
-export const DIGITS_RULE = 'Ч';
-/** Rule id for a spoken answer that matched the entry's `speech` rather than its text (Р34). */
-export const SPEECH_RULE = 'Г';
+export { DIGITS_RULE, SPEECH_RULE };
 
 export interface SpokenToken {
   /** Comparison key: lower case, œ → oe, apostrophe kept on elided words (`l'`). */
@@ -65,7 +63,7 @@ export interface SpokenCheck {
   /** Sound rules that matched, without repeats. */
   rules: string[];
   /**
-   * How many times the whole reference was said (Р22, amendment of 16.10.2026):
+   * How many times the whole reference was said (R22, amendment of 16.10.2026):
    * "sept sept" for "sept" is 2 and correct. 1 for an ordinary answer. When above 1,
    * `ops` cover the first repetition only.
    */
@@ -73,7 +71,7 @@ export interface SpokenCheck {
 }
 
 export interface SpokenOptions {
-  /** The entry shows a `determiner` hint (Р16): a wrong or extra article is incorrect. */
+  /** The entry shows a `determiner` hint (R16): a wrong or extra article is incorrect. */
   determiner?: boolean;
 }
 
@@ -327,7 +325,7 @@ function judge(
   }
   if (unsaid === 0 && extra === 0) return { ...base, verdict: 'correct', errorType: null };
   if (unsaid === 0) return { ...base, verdict: 'almost', errorType: 'extra' };
-  // A dropped article is "almost" (Р22.2, amended 16.10.2026): only when it is absent from
+  // A dropped article is "almost" (R22.2, amended 16.10.2026): only when it is absent from
   // the answer (not replaced by another word: un → on) and the rest of the reference was
   // said (silence for a lone article is not "almost").
   const restSaid = ops.some((o) => o.status === 'ok' || o.status === 'sound');
@@ -419,10 +417,10 @@ export function checkSpoken(
 }
 
 /**
- * A voice answer to an entry (Р34): the text is the answer, and what the browser
+ * A voice answer to an entry (R34): the text is the answer, and what the browser
  * voice reads instead (`speech`: "tchao" for "ciao") is accepted too — the recognizer
  * may write the word so. A match by `speech` is shown over the text when both have
- * as many tokens (the differing ones as `sound` by rule Г); `write` checks the text only.
+ * as many tokens (the differing ones as `sound` by the speech rule); `write` checks the text only.
  */
 export function checkSpokenEntry(
   entry: { text: string; speech?: string },
@@ -451,7 +449,7 @@ export function checkSpokenEntry(
  * (exactly or by sound). The not-yet-said end of the reference is no error, so the
  * alignment lets it go free; nothing is judged here — the final result is.
  */
-/** Two texts sound the same: each one, said, is accepted for the other (Р16). */
+/** Two texts sound the same: each one, said, is accepted for the other (R16). */
 export function soundsSame(a: string, b: string, rules: SpokenRules): boolean {
   return checkSpoken(a, [b], rules).verdict === 'correct' && checkSpoken(b, [a], rules).verdict === 'correct';
 }
@@ -482,7 +480,7 @@ export function liveHeard(expected: string, interim: string, rules: SpokenRules)
 
 /** One column of a block: what was heard (top) over the reference (bottom). */
 export interface SpokenCell {
-  /** As shown: a match of digits against words (rule Ч) is shown as plain `ok`. */
+  /** As shown: a match of digits against words (the digits rule) is shown as plain `ok`. */
   status: SpokenStatus;
   /** Heard text; null = empty cell (the word was not said); '' = the rest of a number already shown. */
   top: string | null;
@@ -501,7 +499,7 @@ export function allMatched(c: Pick<SpokenCheck, 'ops'>): boolean {
 }
 
 /**
- * Display blocks (Р22.9г): a block holds the cells of one written word on either
+ * Display blocks (R22.9g): a block holds the cells of one written word on either
  * side and wraps as a whole, so the heard text always stays over the reference.
  * A number spelled out from digits shows its digits once ("21" over "vingt et un").
  */

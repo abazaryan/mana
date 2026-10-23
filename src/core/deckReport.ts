@@ -1,10 +1,11 @@
 /**
- * Texts the user copies into a chat with an AI (Р33 п. 15): the check report of a deck,
+ * Texts the user copies into a chat with an AI (R33 item 15): the check report of a deck,
  * so the AI fixes every error and warning, and the entries of the installed decks, so a
- * new deck does not repeat them (К1/К2, Р28 п. 10). The report is in Russian, like the
- * validator messages; the installed list follows the language of the AI rules (Р34).
+ * new deck does not repeat them (K1/K2, R28 item 10). The report is in Russian, like the
+ * validator messages; the installed list follows the language of the AI rules (R34).
  */
 import type { DeckIssue, EntryForm, Localized } from './deckFormat';
+import { M } from './deckMessages.ts';
 
 export interface ReportInput {
   /** Deck id and revision, when deck.json was readable. */
@@ -22,19 +23,16 @@ function section(title: string, items: readonly DeckIssue[]): string[] {
 }
 
 export function reportForAi(r: ReportInput): string {
-  const what = r.deckId ? `колоды ${r.deckId}${r.revision !== null ? `, редакция ${r.revision}` : ''}` : 'колоды';
+  const what = !r.deckId ? M.whatDeck : r.revision === null ? M.whatDeckId(r.deckId) : M.whatDeckIdRevision(r.deckId, r.revision);
   const lines = [
-    `Проверка ${what} в приложении «Мана»: ошибок ${r.errors.length}, предупреждений ${r.warnings.length}, сведений ${r.notes.length}.`,
-    ...section('ОШИБКИ (колода не принимается):', r.errors),
-    ...section('ПРЕДУПРЕЖДЕНИЯ (колода принимается, но их нужно исправить):', r.warnings),
-    ...section('СВЕДЕНИЯ (исправлять не нужно):', r.notes),
+    M.reportHeader(what, r.errors.length, r.warnings.length, r.notes.length),
+    ...section(M.sectionErrors, r.errors),
+    ...section(M.sectionWarnings, r.warnings),
+    ...section(M.sectionNotes, r.notes),
     '',
     r.errors.length + r.warnings.length > 0
-      ? 'Исправь каждую ошибку и каждое предупреждение, не меняя id колоды и id существующих записей; увеличь revision на 1. ' +
-        'К1 (то же значение, что в установленной колоде, у другого ответа) — разведи значения или добавь hint / form. ' +
-        'К2 (запись уже есть в установленной колоде) — убери повтор; если он нужен намеренно, скажи об этом отдельной строкой. ' +
-        'Верни deck.json целиком одним блоком ```json.'
-      : 'Ошибок и предупреждений нет.',
+      ? M.fixInstructions
+      : M.noIssues,
   ];
   return lines.join('\n');
 }
@@ -60,10 +58,8 @@ function form(f: EntryForm | undefined): string {
 const INSTALLED = {
   ru: {
     head:
-      'УСТАНОВЛЕННЫЕ КОЛОДЫ УЧЕНИКА. Не повторяй эти записи (тот же text с той же form). ' +
-      'Значение новой записи не должно совпадать со значением записи отсюда с другим ответом, если их не различают form или hint. ' +
-      'id новой колоды должен отличаться от этих id.',
-    none: 'Установленных колод нет.',
+      M.installedHeading,
+    none: M.installedNone,
   },
   en: {
     head:

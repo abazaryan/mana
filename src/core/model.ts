@@ -3,7 +3,7 @@
  * the Dexie schema itself lives in src/platform/db.ts.
  *
  * Three kinds of data: deck content (decks, entries, media — from the ZIP), the
- * append-only journal (log — the source of truth for progress, Р10) and derived
+ * append-only journal (log — the source of truth for progress, R10) and derived
  * FSRS state (cards — a cache rebuilt from the journal).
  */
 import type { State } from 'ts-fsrs';
@@ -19,7 +19,7 @@ export interface MetaRow {
   deviceId: string;
   createdAt: Date;
   /**
-   * Scheduling rules the stored cards were rebuilt with (Р29.7). Below RULES_VERSION,
+   * Scheduling rules the stored cards were rebuilt with (R29.7). Below RULES_VERSION,
    * the app saves the journal to a file and rebuilds the cards before any study.
    */
   rulesVersion?: number;
@@ -29,13 +29,13 @@ export interface MetaRow {
    */
   phrasesUnsupported?: boolean;
   /**
-   * Answers are typed on the device's own keyboard instead of the on-screen one (Р31;
+   * Answers are typed on the device's own keyboard instead of the on-screen one (R31;
    * Settings, off by default). Device-only, never synced.
    */
   systemKeyboard?: boolean;
   /**
    * "Voice check" of the browser voice by primary language (`fr`), answered on this device
-   * (Р33 п. 14): `yes` — entries without deck audio of that language may get `listen`;
+   * (R33 item 14): `yes` — entries without deck audio of that language may get `listen`;
    * `no` — heard nothing. Device-only, never synced.
    */
   voiceChecks?: Record<string, VoiceCheck>;
@@ -58,9 +58,9 @@ export type VoiceCheck = 'yes' | 'no';
 export interface SettingsRow {
   userId: string;
   uiLang: UiLang;
-  /** Language of meanings, hints and notes in decks (Р8). */
+  /** Language of meanings, hints and notes in decks (R8). */
   meaningLang: UiLang;
-  /** New entries per day (Р7); used from stage 4.2. */
+  /** New entries per day (R7); used from stage 4.2. */
   newPerDay: number;
   /** Recognizer hints from the words of the decks (experiment, off by default); absent = off. */
   biasing?: boolean;
@@ -77,10 +77,10 @@ export interface DeckRow {
   id: string;
   /**
    * ZIP file name without extension at the first install; never changed by an update
-   * (Р30). Shown only when the deck has no title.
+   * (R30). Shown only when the deck has no title.
    */
   name: string;
-  /** Deck name in interface languages from deck.json (Р30); kept when an update has none. */
+  /** Deck name in interface languages from deck.json (R30); kept when an update has none. */
   title?: Localized;
   language: string;
   revision: number;
@@ -98,9 +98,9 @@ export interface DeckRow {
 export interface EntryRow extends Omit<DeckEntry, 'id' | 'audio'> {
   deckId: string;
   entryId: string;
-  /** Order in the deck = order of introduction (Р15). */
+  /** Order in the deck = order of introduction (R15). */
   position: number;
-  /** 1 = missing from the installed revision (Р15); not issued, progress kept. A number: IndexedDB cannot index booleans. */
+  /** 1 = missing from the installed revision (R15); not issued, progress kept. A number: IndexedDB cannot index booleans. */
   hidden: 0 | 1;
   /** Path inside the archive, the key in `media`. */
   audio: string | null;
@@ -117,7 +117,7 @@ export interface MediaRow {
 }
 
 interface LogBase {
-  /** UUID v4; journals merge by it (Р10). */
+  /** UUID v4; journals merge by it (R10). */
   id: string;
   userId: string;
   deviceId: string;
@@ -125,14 +125,14 @@ interface LogBase {
   deckId: string;
   entryId: string;
   deckRevision: number;
-  /** One session (a portion, Р17.1). */
+  /** One session (a portion, R17.1). */
   sessionId: string;
-  /** Zone of the device at the moment (IANA), from stage 4.4a (Р29.3); absent in older records = Europe/Luxembourg. */
+  /** Zone of the device at the moment (IANA), from stage 4.4a (R29.3); absent in older records = Europe/Luxembourg. */
   tz?: string;
   /** Minutes east of UTC at the moment in that zone; the app day of the record is counted with it. */
   tzOffsetMin?: number;
   /**
-   * How the entry sounded on this card (Р33 п. 14): the deck audio file, the browser
+   * How the entry sounded on this card (R33 item 14): the deck audio file, the browser
    * voice, or nothing (no play, or it failed). Absent in records before 21.10.2026.
    */
   audioSource?: AudioSource;
@@ -142,7 +142,7 @@ interface LogBase {
 
 export type AudioSource = 'file' | 'browser' | 'none';
 
-/** "Say it aloud" during an introduction (Р22.5): recognised, never rated. */
+/** "Say it aloud" during an introduction (R22.5): recognised, never rated. */
 export interface IntroEcho {
   /** Chosen recognizer alternative (or the typed text); '' if nothing was heard or the step was skipped. */
   answer: string;
@@ -152,32 +152,32 @@ export interface IntroEcho {
   /** From 16.10.2026: voice, or typed after three unrecognised attempts in a row. */
   mode?: 'voice' | 'typed';
   recognitionErrors?: RecognitionErrorEntry[];
-  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, Р23). */
+  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, R23). */
   repeatHintShown?: boolean;
   /** Presses of "Once more" / retries of the microphone. */
   retries?: number;
-  /** The whole text said k times (Р22, amendment of 16.10.2026). */
+  /** The whole text said k times (R22, amendment of 16.10.2026). */
   repeats?: number;
-  /** Typed after three unrecognised attempts: the keyboard of the first character (Р31). */
+  /** Typed after three unrecognised attempts: the keyboard of the first character (R31). */
   keyboard?: TypedKeyboard | null;
-  /** Typed: something was pasted (Р31). */
+  /** Typed: something was pasted (R31). */
   pasted?: boolean;
 }
 
-/** "Copy it out" during an introduction, entries with `write` only (Р22.5): checked, never rated. */
+/** "Copy it out" during an introduction, entries with `write` only (R22.5): checked, never rated. */
 export interface IntroCopy {
   typed: string;
   verdict: Verdict;
   errorType: string | null;
-  /** Punctuation differed — shown, not counted (Р26). */
+  /** Punctuation differed — shown, not counted (R26). */
   punctuationNote?: boolean;
-  /** The keyboard of the first character (Р31). */
+  /** The keyboard of the first character (R31). */
   keyboard?: TypedKeyboard | null;
-  /** Something was pasted (Р31). */
+  /** Something was pasted (R31). */
   pasted?: boolean;
 }
 
-/** Introduction of an entry (Р3): once per entry, no rating. */
+/** Introduction of an entry (R3): once per entry, no rating. */
 export interface IntroRecord extends LogBase {
   type: 'intro';
   skill: null;
@@ -195,7 +195,7 @@ export interface RecognitionErrorEntry {
 export type LatencySource = 'speechstart' | 'result' | 'key';
 
 /**
- * What typed an answer (Р31): the on-screen keyboard, the device's own (Settings →
+ * What typed an answer (R31): the on-screen keyboard, the device's own (Settings →
  * System keyboard) or a physical one. Taken from the first character; a paste is not one.
  */
 export type TypedKeyboard = 'onscreen' | 'system' | 'physical';
@@ -214,7 +214,7 @@ export type FinalRating = 1 | 2 | 3 | 4;
  * FSRS figures computed when the answer was recorded. For analysis only: the card
  * state is rebuilt from the journal, and a test checks the rebuild gives the same
  * dates for records of the current rules version. A return after Again shows the
- * state unchanged (Р29.2).
+ * state unchanged (R29.2).
  */
 export interface ReviewFsrs {
   stateBefore: State;
@@ -243,16 +243,16 @@ export interface ReviewRecord extends LogBase {
   micDelayMs: number | null;
   retries: number;
   recognitionLang: string | null;
-  /** Added at stage 4.2 (Р22.7); absent in older records. Recognizer confidence per alternative. */
+  /** Added at stage 4.2 (R22.7); absent in older records. Recognizer confidence per alternative. */
   confidences?: (number | null)[];
   /** Which alternative was checked (the best one). */
   altIndex?: number | null;
   /** What marked the start of the answer: speechstart, the first result, the first key. */
   latencySource?: LatencySource | null;
   recognitionErrors?: RecognitionErrorEntry[];
-  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, Р23). */
+  /** The "say the word 2–3 times" hint was shown (from 16.10.2026, R23). */
   repeatHintShown?: boolean;
-  /** N: words in the reference (Р22.2). */
+  /** N: words in the reference (R22.2). */
   wordCount?: number | null;
   /** E: reference words not heard. */
   unsaid?: number | null;
@@ -260,11 +260,11 @@ export interface ReviewRecord extends LogBase {
   repeats?: number | null;
   /** Extra words heard. */
   extraWords?: number | null;
-  /** `write`: the answer differs from the reference in punctuation, which is not counted (Р26). */
+  /** `write`: the answer differs from the reference in punctuation, which is not counted (R26). */
   punctuationNote?: boolean;
-  /** Typed answers (from stage 5, Р31): the keyboard of the first character; null — nothing typed (only pasted). */
+  /** Typed answers (from stage 5, R31): the keyboard of the first character; null — nothing typed (only pasted). */
   keyboard?: TypedKeyboard | null;
-  /** Typed answers (from stage 5, Р31): something was pasted. */
+  /** Typed answers (from stage 5, R31): something was pasted. */
   pasted?: boolean;
   /** `listen` (stage 4.3): times the audio played before the answer (1 = only the automatic play). */
   plays?: number | null;
@@ -273,8 +273,8 @@ export interface ReviewRecord extends LogBase {
   /** `listen`: visible ms from the card shown to the microphone ready after that play; latency counts from here. */
   micReadyMs?: number | null;
   /**
-   * 0 = the card as planned; 1 or 2 = it came back in the portion after Again (Р25).
-   * A return is journaled with its rating but does not change FSRS (Р29.2).
+   * 0 = the card as planned; 1 or 2 = it came back in the portion after Again (R25).
+   * A return is journaled with its rating but does not change FSRS (R29.2).
    */
   requeue?: number;
   /** Seconds since the previous answer on this pair (any day); null for the first one. */
@@ -283,7 +283,7 @@ export interface ReviewRecord extends LogBase {
   sinceEntryCards?: number | null;
   /** Seconds since the previous card of the same entry in the portion was finished; null if none. */
   sinceEntrySec?: number | null;
-  /** Sound rules that made a word match (З1…З9, Ч). */
+  /** Sound rules that made a word match (Z1…Z9 and the digits rule, see cyrillicData.ts). */
   soundRules?: string[];
   /** Recognizer adapter (`web-speech`); from the stage 4.2 amendments. */
   recognizer?: string | null;
@@ -295,16 +295,16 @@ export interface ReviewRecord extends LogBase {
   speechPack?: SpeechPackState | null;
   suggested: FinalRating;
   reason: RatingReason;
-  /** Goes to FSRS (Р4). */
+  /** Goes to FSRS (R4). */
   final: FinalRating;
   correction: Correction | null;
-  /** Version of the scheduling rules (Р29.4, `RULES_VERSION`); absent before stage 4.4a. */
+  /** Version of the scheduling rules (R29.4, `RULES_VERSION`); absent before stage 4.4a. */
   rules?: number;
   fsrs: ReviewFsrs;
 }
 
 /**
- * The short practice after Again (Р17.11, Р25): `speak` and `listen` — hear and say it
+ * The short practice after Again (R17.11, R25): `speak` and `listen` — hear and say it
  * aloud; `write` — copy it out once. Never rated; written after its answer, which it
  * points to. FSRS and the Easy rule skip it.
  */

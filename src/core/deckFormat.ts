@@ -7,9 +7,11 @@
  * Messages are in Russian — they are shown to the deck author.
  */
 import { contentWarnings } from './deckContent.ts';
+import { FORM_LABELS } from './cyrillicData.ts';
+import { M } from './deckMessages.ts';
 
 export const DECK_FORMAT = 'mana-deck';
-/** Former identifier (working name "Sluh", Р20): still accepted, with a warning. */
+/** Former identifier (working name "Sluh", R20): still accepted, with a warning. */
 export const LEGACY_DECK_FORMAT = 'sluh-deck';
 export const DECK_VERSION = 1;
 export const DECK_JSON = 'deck.json';
@@ -32,8 +34,8 @@ export const NUMBERS = ['singular', 'plural'] as const;
 export type GrammaticalNumber = (typeof NUMBERS)[number];
 
 /**
- * Which form of the item the answer must be in (decision Р16). Shown as hints
- * before the answer, in the interface language: one correct answer per entry (Р3),
+ * Which form of the item the answer must be in (decision R16). Shown as hints
+ * before the answer, in the interface language: one correct answer per entry (R3),
  * so `ravi` and `ravie` are two entries told apart by `form.gender`.
  */
 export interface EntryForm {
@@ -68,7 +70,7 @@ export interface DeckEntry {
   /**
    * What the browser voice reads instead of `text` when it reads `text` wrong
    * (ciao → "tchao"); only without audio. The answer and the display use `text`;
-   * a spoken answer may also match `speech` (Р34).
+   * a spoken answer may also match `speech` (R34).
    */
   speech?: string;
   /** Gender of the word itself; shown at the introduction only, not when recalling. */
@@ -89,7 +91,7 @@ export interface Deck {
   /** Tag code → tag name in interface languages. */
   tags?: Record<string, Localized>;
   /**
-   * Deck name in interface languages (Р30); shown in the interface language, else any.
+   * Deck name in interface languages (R30); shown in the interface language, else any.
    * Without it the name is the ZIP file name on install and stays on update.
    */
   title?: Localized;
@@ -101,13 +103,13 @@ export interface LanguageSupport {
   /** Primary BCP-47 subtag, e.g. "fr". */
   code: string;
   genders: readonly Gender[];
-  /** Two texts sound the same (ravi / ravie): each one, said, is accepted for the other (Р16). */
+  /** Two texts sound the same (ravi / ravie): each one, said, is accepted for the other (R16). */
   sameSound?(a: string, b: string): boolean;
-  /** Lists for the deck content checks (Р28); absent → only the language-neutral checks. */
+  /** Lists for the deck content checks (R28); absent → only the language-neutral checks. */
   deckRules?: DeckRules;
 }
 
-/** Language lists for the deck content checks (Р28, src/core/deckContent.ts). */
+/** Language lists for the deck content checks (R28, src/core/deckContent.ts). */
 export interface DeckRules {
   /** Articles that can open a noun entry; an elided one ends with an apostrophe (`l'`). */
   articles: readonly string[];
@@ -138,7 +140,7 @@ export interface DeckCheckOptions {
 }
 
 export interface DeckIssue {
-  /** error: the deck is refused; warning: accepted, better fixed; info: nothing to fix (Р33 п. 15). */
+  /** error: the deck is refused; warning: accepted, better fixed; info: nothing to fix (R33 item 15). */
   level: 'error' | 'warning' | 'info';
   /** Machine-readable location, e.g. "entries[3].meaning.tg"; "" for the whole deck or archive. */
   path: string;
@@ -151,7 +153,7 @@ export interface DeckCheck {
   deck: Deck | null;
   errors: DeckIssue[];
   warnings: DeckIssue[];
-  /** Information only, e.g. entries without audio play the browser voice (Р33 п. 14). */
+  /** Information only, e.g. entries without audio play the browser voice (R33 item 14). */
   notes: DeckIssue[];
 }
 
@@ -162,31 +164,12 @@ const ENTRY_KEYS = new Set([
 /** Former field names: an error with a rename hint, not an "unknown field" warning. */
 const OLD_ENTRY_KEYS = new Set(['fr', 'determiner']);
 
-const GENDER_NAMES: Record<Gender, string> = { m: 'мужской', f: 'женский', n: 'средний' };
+const GENDER_NAMES: Record<Gender, string> = { m: M.genderM, f: M.genderF, n: M.genderN };
 
 /** A bracket or a slash left in `text`: a printed way to pack two answers into one. */
 const PACKED_FORMS = /[(/]/;
 
-/** Form hint labels in interface languages (Р14, Р16). */
-export const FORM_LABELS: {
-  determiner: Record<Determiner, Record<UiLang, string>>;
-  gender: Record<Gender, Record<UiLang, string>>;
-  number: Record<GrammaticalNumber, Record<UiLang, string>>;
-} = {
-  determiner: {
-    definite: { tg: 'муай.', ru: 'опред.', en: 'def.' },
-    indefinite: { tg: 'номуай.', ru: 'неопред.', en: 'indef.' },
-  },
-  gender: {
-    m: { tg: 'музак.', ru: 'м. р.', en: 'm.' },
-    f: { tg: 'муан.', ru: 'ж. р.', en: 'f.' },
-    n: { tg: 'хунсо', ru: 'ср. р.', en: 'n.' },
-  },
-  number: {
-    singular: { tg: 'танҳ.', ru: 'ед. ч.', en: 'sg.' },
-    plural: { tg: 'ҷамъ', ru: 'мн. ч.', en: 'pl.' },
-  },
-};
+export { FORM_LABELS };
 
 /** Hints for an entry's form, in the order determiner, gender, number. */
 export function formHints(form: EntryForm | undefined, lang: UiLang): string[] {
@@ -199,9 +182,9 @@ export function formHints(form: EntryForm | undefined, lang: UiLang): string[] {
 }
 
 /**
- * Labels of an introduction (Р16, amendment of 18.10.2026): the gender of the word,
+ * Labels of an introduction (R16, amendment of 18.10.2026): the gender of the word,
  * then the form hints. The word's gender is left out when the form already shows the
- * same gender («un ami»: «номуай. · музак.», not «музак. · номуай. · музак.»).
+ * same gender ("un ami": "indef. · m.", not "m. · indef. · m.").
  */
 export function introHints(gender: Gender | undefined, form: EntryForm | undefined, lang: UiLang): string[] {
   const word = gender && form?.gender !== gender ? [FORM_LABELS.gender[gender][lang]] : [];
@@ -218,16 +201,16 @@ function isObject(v: unknown): v is Json {
 
 function typeName(v: unknown): string {
   if (v === null) return 'null';
-  if (Array.isArray(v)) return 'список';
+  if (Array.isArray(v)) return M.typeList;
   switch (typeof v) {
     case 'string':
-      return 'строка';
+      return M.typeString;
     case 'number':
-      return 'число';
+      return M.typeNumber;
     case 'boolean':
       return 'true/false';
     case 'object':
-      return 'объект';
+      return M.typeObject;
     default:
       return typeof v;
   }
@@ -251,15 +234,15 @@ export function primaryLanguage(tag: string): string {
 }
 
 /**
- * Deck name shown to the user: the imported ZIP file name without extension (decision Р15).
- * "C:\Downloads\Дарси 01.zip" → "Дарси 01".
+ * Deck name shown to the user: the imported ZIP file name without extension (decision R15).
+ * "C:\Downloads\Lesson 01.zip" → "Lesson 01".
  */
 export function deckNameFromFileName(fileName: string): string {
   const base = fileName.split(/[\\/]/).pop() ?? '';
   return base.replace(/\.(zip|json)$/i, '').trim();
 }
 
-/** Name of an installed deck in the interface language (Р30): its title, else the stored name (the file name). */
+/** Name of an installed deck in the interface language (R30): its title, else the stored name (the file name). */
 export function deckTitle(d: { name: string; title?: Localized }, lang: UiLang): string {
   return pickLocalized(d.title, lang) ?? d.name;
 }
@@ -312,14 +295,14 @@ export function parseDeckJson(text: string): { value: unknown; error: DeckIssue 
       const before = src.slice(0, Number(pos[1]));
       const line = before.split('\n').length;
       const col = before.length - before.lastIndexOf('\n');
-      where = ` (строка ${line}, символ ${col})`;
+      where = M.jsonPosition(line, col);
     }
     return {
       value: undefined,
       error: {
         level: 'error',
         path: '',
-        message: `${DECK_JSON}: это не правильный JSON${where}. Частые причины: лишняя запятая перед } или ], кавычки «ёлочки» вместо "", комментарии. Подробности: ${raw}`,
+        message: M.jsonInvalid(DECK_JSON, where, raw),
       },
     };
   }
@@ -327,38 +310,38 @@ export function parseDeckJson(text: string): { value: unknown; error: DeckIssue 
 
 function checkText(c: Collector, path: string, where: string, v: unknown, required: boolean): string | undefined {
   if (v === undefined) {
-    if (required) c.error(path, `${where}: нет обязательного поля.`);
+    if (required) c.error(path, M.missingField(where));
     return undefined;
   }
   if (typeof v !== 'string') {
-    c.error(path, `${where}: должна быть строка, а сейчас ${typeName(v)}.`);
+    c.error(path, M.mustBeString(where, typeName(v)));
     return undefined;
   }
   if (v.trim() === '') {
-    c.error(path, `${where}: пустая строка.`);
+    c.error(path, M.emptyString(where));
     return undefined;
   }
   if (HTML_LEFTOVER.test(v)) {
-    c.error(path, `${where}: похоже на HTML или разметку Anki (${q(v)}). Нужен простой текст.`);
+    c.error(path, M.looksLikeHtml(where, q(v)));
   } else if (v !== v.trim()) {
-    c.warn(path, `${where}: пробелы в начале или в конце (${q(v)}).`);
+    c.warn(path, M.surroundingSpaces(where, q(v)));
   }
   return v;
 }
 
 function checkId(c: Collector, path: string, where: string, v: unknown): string | undefined {
   if (v === undefined) {
-    c.error(path, `${where}: нет обязательного поля id.`);
+    c.error(path, M.idMissing(where));
     return undefined;
   }
   if (typeof v !== 'string') {
-    c.error(path, `${where}: id должен быть строкой, а сейчас ${typeName(v)}.`);
+    c.error(path, M.idNotString(where, typeName(v)));
     return undefined;
   }
   if (!ID_PATTERN.test(v)) {
     c.error(
       path,
-      `${where}: id ${q(v)} не подходит. Разрешены строчные латинские буквы, цифры и знаки - _ . (до 64 символов), первый символ — буква или цифра. Пример: «le-prenom».`,
+      M.idInvalid(where, q(v)),
     );
     return undefined;
   }
@@ -379,13 +362,13 @@ function checkLocalized(
   required: boolean,
 ): void {
   if (v === undefined) {
-    if (required) c.error(path, `${where}: нет обязательного поля ${field} (${label}).`);
+    if (required) c.error(path, M.missingNamedField(where, field, label));
     return;
   }
   if (!isObject(v)) {
     c.error(
       path,
-      `${where}: ${field} должно быть объектом с языками, например {"tg": "салом", "ru": "привет"}, а сейчас ${typeName(v)}.`,
+      M.localizedNotObject(where, field, typeName(v)),
     );
     return;
   }
@@ -394,39 +377,39 @@ function checkLocalized(
     if (!includes(UI_LANGS, lang)) {
       c.warn(
         `${path}.${lang}`,
-        `${where}: в ${field} язык ${q(lang)} не поддерживается — этот текст приложение не покажет. Язык интерфейса и значений — только ${list(UI_LANGS)} (ISO 639-1; не «tj», «tgk», «tg-TJ»).`,
+        M.localizedUnknownLang(where, field, q(lang), list(UI_LANGS)),
       );
       continue;
     }
     known++;
-    checkText(c, `${path}.${lang}`, `${where}, ${field} на ${lang}`, text, true);
+    checkText(c, `${path}.${lang}`, M.localizedFieldIn(where, field, lang), text, true);
   }
   if (known === 0) {
-    c.error(path, `${where}: ${field} пустое — нужен текст хотя бы на одном языке (${list(UI_LANGS)}).`);
+    c.error(path, M.localizedEmpty(where, field, list(UI_LANGS)));
   }
 }
 
 function checkAudio(c: Collector, path: string, where: string, v: unknown): string | undefined {
   if (v === undefined) return undefined;
   if (typeof v !== 'string' || v.trim() === '') {
-    c.error(path, `${where}: audio должно быть непустой строкой с путём к файлу, а сейчас ${typeName(v)}.`);
+    c.error(path, M.audioNotString(where, typeName(v)));
     return undefined;
   }
   if (v.includes('\\')) {
-    c.error(path, `${where}: в пути ${q(v)} обратная косая черта. Нужна обычная: «audio/bonjour.mp3».`);
+    c.error(path, M.audioBackslash(where, q(v)));
     return undefined;
   }
   if (!v.startsWith(AUDIO_DIR) || v.length === AUDIO_DIR.length) {
-    c.error(path, `${where}: аудио должно лежать в папке audio/, например «audio/bonjour.mp3», а указано ${q(v)}.`);
+    c.error(path, M.audioWrongFolder(where, q(v)));
     return undefined;
   }
   if (v.split('/').some((part) => part === '..' || part === '.' || part === '')) {
-    c.error(path, `${where}: недопустимый путь ${q(v)} (без «..», «.» и двойных косых).`);
+    c.error(path, M.audioBadPath(where, q(v)));
     return undefined;
   }
   const ext = /\.([^./]+)$/.exec(v)?.[1];
   if (!includes(AUDIO_EXTENSIONS, ext)) {
-    c.error(path, `${where}: неподдерживаемый тип аудио ${q(v)}. Допустимы (строчными буквами): ${list(AUDIO_EXTENSIONS)}.`);
+    c.error(path, M.audioBadExtension(where, q(v), list(AUDIO_EXTENSIONS)));
     return undefined;
   }
   return v;
@@ -434,47 +417,47 @@ function checkAudio(c: Collector, path: string, where: string, v: unknown): stri
 
 function checkSkills(c: Collector, path: string, where: string, v: unknown): void {
   if (v === undefined) {
-    c.error(path, `${where}: нет обязательного поля skills (навыки), например ["listen", "speak", "write"].`);
+    c.error(path, M.skillsMissing(where));
     return;
   }
   if (!Array.isArray(v)) {
-    c.error(path, `${where}: skills должно быть списком, например ["listen", "speak"], а сейчас ${typeName(v)}.`);
+    c.error(path, M.skillsNotList(where, typeName(v)));
     return;
   }
   if (v.length === 0) {
-    c.error(path, `${where}: skills пустой — нужен хотя бы один навык (${list(SKILLS)}).`);
+    c.error(path, M.skillsEmpty(where, list(SKILLS)));
     return;
   }
   const seen = new Set<string>();
   v.forEach((s, k) => {
     if (!includes(SKILLS, s)) {
-      c.error(`${path}[${k}]`, `${where}: неизвестный навык ${q(String(s))}. Допустимы: ${list(SKILLS)}.`);
+      c.error(`${path}[${k}]`, M.skillUnknown(where, q(String(s)), list(SKILLS)));
     } else if (seen.has(s)) {
-      c.error(`${path}[${k}]`, `${where}: навык ${q(s)} указан дважды.`);
+      c.error(`${path}[${k}]`, M.skillDuplicate(where, q(s)));
     } else {
       seen.add(s);
     }
   });
 }
 
-const TAG_CODE_RULE = 'строчные латинские буквы, цифры и знаки - _ . (до 64 символов), например «word»';
+const TAG_CODE_RULE = M.tagCodeRule;
 
 /** Entry tags: a list of tag codes. Returns the valid codes. */
 function checkTags(c: Collector, path: string, where: string, v: unknown): string[] {
   if (v === undefined) return [];
   if (!Array.isArray(v)) {
-    c.error(path, `${where}: tags должно быть списком кодов тегов, например ["word"], а сейчас ${typeName(v)}.`);
+    c.error(path, M.tagsNotList(where, typeName(v)));
     return [];
   }
   const seen = new Set<string>();
   v.forEach((t, k) => {
     const p = `${path}[${k}]`;
     if (typeof t !== 'string') {
-      c.error(p, `${where}: код тега должен быть строкой, а сейчас ${typeName(t)}.`);
+      c.error(p, M.tagCodeNotString(where, typeName(t)));
     } else if (!ID_PATTERN.test(t)) {
-      c.error(p, `${where}: код тега ${q(t)} не подходит: ${TAG_CODE_RULE}. Название тега пишется в словаре tags колоды.`);
+      c.error(p, M.tagCodeInvalid(where, q(t), TAG_CODE_RULE));
     } else if (seen.has(t)) {
-      c.warn(p, `${where}: тег ${q(t)} указан дважды.`);
+      c.warn(p, M.tagDuplicate(where, q(t)));
     } else {
       seen.add(t);
     }
@@ -482,29 +465,29 @@ function checkTags(c: Collector, path: string, where: string, v: unknown): strin
   return [...seen];
 }
 
-/** Deck tag dictionary: {"word": {"tg": "вожа", "ru": "слово"}}. Returns the valid codes. */
+/** Deck tag dictionary: {"word": {"en": "word"}}. Returns the valid codes. */
 function checkTagDictionary(c: Collector, v: unknown): Set<string> {
   const codes = new Set<string>();
   if (v === undefined) return codes;
   if (!isObject(v)) {
     c.error(
       'tags',
-      `Колода: tags должно быть словарём тегов, например {"word": {"tg": "вожа", "ru": "слово", "en": "word"}}, а сейчас ${typeName(v)}.`,
+      M.tagDictNotObject(typeName(v)),
     );
     return codes;
   }
   for (const [code, name] of Object.entries(v)) {
     if (!ID_PATTERN.test(code)) {
-      c.error(`tags.${code}`, `Колода, словарь tags: код тега ${q(code)} не подходит: ${TAG_CODE_RULE}.`);
+      c.error(`tags.${code}`, M.tagDictCodeInvalid(q(code), TAG_CODE_RULE));
       continue;
     }
     codes.add(code);
-    checkLocalized(c, `tags.${code}`, `Тег ${q(code)}`, name, `tags.${code}`, 'название тега', true);
+    checkLocalized(c, `tags.${code}`, M.tagWhere(q(code)), name, `tags.${code}`, M.labelTagName, true);
   }
   return codes;
 }
 
-/** `label` names the field in messages ("род", "form.gender"). */
+/** `label` names the field in messages ("gender", "form.gender"). */
 function checkGender(
   c: Collector,
   path: string,
@@ -517,12 +500,12 @@ function checkGender(
   if (!includes(GENDERS, v)) {
     c.error(
       path,
-      `${where}: ${label} ${q(String(v))} не подходит. Допустимо "m" (мужской), "f" (женский), "n" (средний); если рода нет, поле не пишите.`,
+      M.genderInvalid(where, label, q(String(v))),
     );
     return undefined;
   }
   if (lang && !lang.genders.includes(v)) {
-    c.error(path, `${where}: в языке ${q(lang.code)} нет рода ${q(v)} (${GENDER_NAMES[v]}). Допустимо: ${list(lang.genders)}.`);
+    c.error(path, M.genderNotInLanguage(where, q(lang.code), q(v), GENDER_NAMES[v], list(lang.genders)));
     return undefined;
   }
   return v;
@@ -538,11 +521,11 @@ function checkForm(
 ): EntryForm | undefined {
   if (v === undefined) return undefined;
   if (!isObject(v)) {
-    c.error(path, `${where}: form должно быть объектом, например {"determiner": "definite"}, а сейчас ${typeName(v)}.`);
+    c.error(path, M.formNotObject(where, typeName(v)));
     return undefined;
   }
   if (Object.keys(v).length === 0) {
-    c.error(path, `${where}: form пустое — укажите determiner, gender или number, или уберите поле.`);
+    c.error(path, M.formEmpty(where));
     return undefined;
   }
   const form: EntryForm = {};
@@ -551,7 +534,7 @@ function checkForm(
     else {
       c.error(
         `${path}.determiner`,
-        `${where}: form.determiner ${q(String(v.determiner))} не подходит. Допустимо "definite" (определённая форма) или "indefinite" (неопределённая).`,
+        M.formDeterminerInvalid(where, q(String(v.determiner))),
       );
     }
   }
@@ -562,13 +545,13 @@ function checkForm(
     else {
       c.error(
         `${path}.number`,
-        `${where}: form.number ${q(String(v.number))} не подходит. Допустимо "singular" (единственное число) или "plural" (множественное).`,
+        M.formNumberInvalid(where, q(String(v.number))),
       );
     }
   }
   for (const key of Object.keys(v)) {
     if (!includes(FORM_KEYS, key)) {
-      c.warn(`${path}.${key}`, `${where}: неизвестное поле form.${key} — будет пропущено. Допустимы: ${list(FORM_KEYS)}.`);
+      c.warn(`${path}.${key}`, M.formUnknownKey(where, key, list(FORM_KEYS)));
     }
   }
   return form;
@@ -584,9 +567,9 @@ interface EntrySummary {
 
 function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport | undefined): EntrySummary {
   const path = `entries[${i}]`;
-  let where = `Запись ${i + 1}`;
+  let where = M.entryWhere(i + 1);
   if (!isObject(v)) {
-    c.error(path, `${where}: должна быть объектом { ... }, а сейчас ${typeName(v)}.`);
+    c.error(path, M.entryNotObject(where, typeName(v)));
     return { tags: [], langs: [] };
   }
   if (typeof v.id === 'string' && v.id !== '') where += ` (id ${q(v.id)})`;
@@ -595,46 +578,46 @@ function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport |
   const id = checkId(c, `${path}.id`, where, v.id);
   let text: string | undefined;
   if (v.text === undefined && v.fr !== undefined) {
-    c.error(`${path}.text`, `${where}: поле fr переименовано в text — переименуйте его.`);
+    c.error(`${path}.text`, M.entryRenamedFr(where));
   } else {
-    text = checkText(c, `${path}.text`, `${where}, поле text (текст на изучаемом языке)`, v.text, true);
+    text = checkText(c, `${path}.text`, M.entryTextWhere(where), v.text, true);
   }
-  const ipa = checkText(c, `${path}.ipa`, `${where}, поле ipa`, v.ipa, false);
+  const ipa = checkText(c, `${path}.ipa`, M.entryIpaWhere(where), v.ipa, false);
   if (ipa !== undefined && /^\s*[[/]|[\]/]\s*$/.test(ipa)) {
-    c.error(`${path}.ipa`, `${where}: IPA пишется без скобок [ ] и косых / / — приложение добавит их само. Сейчас: ${q(ipa)}.`);
+    c.error(`${path}.ipa`, M.ipaBrackets(where, q(ipa)));
   }
-  if (v.ipa === undefined) c.warn(`${path}.ipa`, `${where}: нет IPA (произношения).`);
-  checkLocalized(c, `${path}.meaning`, where, v.meaning, 'meaning', 'значение', true);
-  checkLocalized(c, `${path}.hint`, where, v.hint, 'hint', 'подсказка до ответа', false);
-  checkLocalized(c, `${path}.note`, where, v.note, 'note', 'заметка после ответа', false);
+  if (v.ipa === undefined) c.warn(`${path}.ipa`, M.ipaMissing(where));
+  checkLocalized(c, `${path}.meaning`, where, v.meaning, 'meaning', M.labelMeaning, true);
+  checkLocalized(c, `${path}.hint`, where, v.hint, 'hint', M.labelHint, false);
+  checkLocalized(c, `${path}.note`, where, v.note, 'note', M.labelNote, false);
   const audio = checkAudio(c, `${path}.audio`, where, v.audio);
-  const speech = checkText(c, `${path}.speech`, `${where}, поле speech (текст для голоса браузера)`, v.speech, false);
+  const speech = checkText(c, `${path}.speech`, M.entrySpeechWhere(where), v.speech, false);
   if (speech !== undefined && text !== undefined && speech.trim().toLowerCase() === text.trim().toLowerCase()) {
-    c.info(`${path}.speech`, `${where}: speech совпадает с text — поле не нужно, голос браузера и так читает text.`);
+    c.info(`${path}.speech`, M.speechSameAsText(where));
   }
 
-  checkGender(c, `${path}.gender`, where, 'род', v.gender, lang);
+  checkGender(c, `${path}.gender`, where, M.labelGender, v.gender, lang);
   if (v.determiner !== undefined) {
     c.error(
       `${path}.determiner`,
-      `${where}: поле determiner перенесено в form — напишите "form": {"determiner": ${JSON.stringify(v.determiner)}}.`,
+      M.determinerMoved(where, JSON.stringify(v.determiner)),
     );
   }
   const form = checkForm(c, `${path}.form`, where, v.form, lang);
   if (form?.determiner !== undefined && v.gender === undefined) {
-    c.warn(`${path}.form.determiner`, `${where}: указан form.determiner, но нет gender — у существительного обычно есть род.`);
+    c.warn(`${path}.form.determiner`, M.determinerNoGender(where));
   }
   if (text !== undefined && PACKED_FORMS.test(text)) {
     c.warn(
       `${path}.text`,
-      `${where}: в text есть «(» или «/» (${q(text)}). У записи один правильный ответ: каждую форму дайте отдельной записью, а форму укажите в form. Пример: «ravi(e)» → «ravi» с "form": {"gender": "m"} и «ravie» с "form": {"gender": "f"}.`,
+      M.packedForms(where, q(text)),
     );
   }
   const tags = checkTags(c, `${path}.tags`, where, v.tags);
   checkSkills(c, `${path}.skills`, where, v.skills);
   for (const key of Object.keys(v)) {
     if (!ENTRY_KEYS.has(key) && !OLD_ENTRY_KEYS.has(key)) {
-      c.warn(`${path}.${key}`, `${where}: неизвестное поле ${q(key)} — будет пропущено.`);
+      c.warn(`${path}.${key}`, M.entryUnknownKey(where, q(key)));
     }
   }
   const langs = isObject(v.meaning) ? Object.keys(v.meaning).filter((l) => includes(UI_LANGS, l)) : [];
@@ -643,13 +626,13 @@ function checkEntry(c: Collector, i: number, v: unknown, lang: LanguageSupport |
 
 function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): LanguageSupport | undefined {
   if (v === undefined) {
-    c.error('language', 'Нет поля language (изучаемый язык), например "language": "fr-FR".');
+    c.error('language', M.languageMissing);
     return undefined;
   }
   if (typeof v !== 'string' || !LANGUAGE_TAG_PATTERN.test(v)) {
     c.error(
       'language',
-      `Поле language: ${q(String(v))} — не код языка BCP-47. Примеры: "fr-FR", "en-GB", "de-DE", "lb-LU".`,
+      M.languageBadTag(q(String(v))),
     );
     return undefined;
   }
@@ -658,7 +641,7 @@ function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): Lan
   if (!pack) {
     c.error(
       'language',
-      `Язык ${q(v)} пока не поддерживается приложением. Поддерживаются: ${list(options.languages.map((l) => l.code))}.`,
+      M.languageUnsupported(q(v), list(options.languages.map((l) => l.code))),
     );
   }
   return pack;
@@ -667,7 +650,7 @@ function checkLanguage(c: Collector, v: unknown, options: DeckCheckOptions): Lan
 const VOICE_SKILLS: readonly string[] = ['speak', 'listen'];
 
 /**
- * Р16: forms that sound the same (ravi / ravie) — `speak` and `listen` at one entry only,
+ * R16: forms that sound the same (ravi / ravie) — `speak` and `listen` at one entry only,
  * `write` at both. A pair with a voice skill on both entries is a warning: the
  * recognizer cannot tell them apart.
  */
@@ -684,14 +667,13 @@ function sameSoundWarnings(c: Collector, entries: readonly unknown[], sameSound:
       if (x.text.toLowerCase() === y.text.toLowerCase() || !sameSound(x.text, y.text)) continue;
       c.warn(
         `entries[${y.i}].skills`,
-        `Записи ${x.i + 1} и ${y.i + 1} звучат одинаково (${q(x.text)} и ${q(y.text)}), и у обеих есть ${list(VOICE_SKILLS)}: ` +
-          'по звучанию их не различить. Оставьте speak и listen только у одной записи, write — у обеих.',
+        M.sameSound(x.i + 1, y.i + 1, q(x.text), q(y.text), list(VOICE_SKILLS)),
       );
     }
   }
 }
 
-/** What the browser voice reads for an entry without audio: `speech` when the deck gives it (Р34). */
+/** What the browser voice reads for an entry without audio: `speech` when the deck gives it (R34). */
 export function voiceText(entry: Pick<DeckEntry, 'text' | 'speech'>): string {
   return entry.speech ?? entry.text;
 }
@@ -700,65 +682,64 @@ export function voiceText(entry: Pick<DeckEntry, 'text' | 'speech'>): string {
 export function validateDeck(value: unknown, options: DeckCheckOptions = {}): DeckCheck {
   const c = new Collector();
   if (!isObject(value)) {
-    c.error('', `${DECK_JSON}: в начале файла должен быть объект { ... }, а сейчас ${typeName(value)}.`);
+    c.error('', M.deckNotObject(DECK_JSON, typeName(value)));
     return { deck: null, errors: c.errors, warnings: c.warnings, notes: [] };
   }
 
   if (value.format === LEGACY_DECK_FORMAT) {
-    c.warn('format', `Поле format: ${q(LEGACY_DECK_FORMAT)} — прежний идентификатор. Замените на ${q(DECK_FORMAT)}; пока колода принимается.`);
+    c.warn('format', M.formatLegacy(q(LEGACY_DECK_FORMAT), q(DECK_FORMAT)));
   } else if (value.format !== DECK_FORMAT) {
     c.error(
       'format',
       value.format === undefined
-        ? `Нет поля format. Нужно "format": "${DECK_FORMAT}".`
-        : `Поле format: ожидается ${q(DECK_FORMAT)}, а указано ${q(String(value.format))}. Это не колода «Маны».`,
+        ? M.formatMissing(DECK_FORMAT)
+        : M.formatWrong(q(DECK_FORMAT), q(String(value.format))),
     );
   }
   if (value.version === undefined) {
-    c.error('version', `Нет поля version. Нужно "version": ${DECK_VERSION}.`);
+    c.error('version', M.versionMissing(DECK_VERSION));
   } else if (typeof value.version !== 'number' || !Number.isInteger(value.version)) {
-    c.error('version', `Поле version должно быть целым числом (${DECK_VERSION}), а сейчас ${typeName(value.version)}.`);
+    c.error('version', M.versionNotInteger(DECK_VERSION, typeName(value.version)));
   } else if (value.version !== DECK_VERSION) {
     c.error(
       'version',
       value.version > DECK_VERSION
-        ? `Версия формата ${value.version} новее, чем понимает приложение (${DECK_VERSION}). Обновите приложение.`
-        : `Версия формата ${value.version} не поддерживается. Поддерживается версия ${DECK_VERSION}.`,
+        ? M.versionNewer(value.version, DECK_VERSION)
+        : M.versionUnsupported(value.version, DECK_VERSION),
     );
   }
-  checkId(c, 'id', 'Колода', value.id);
+  checkId(c, 'id', M.deckWhere, value.id);
   if (value.revision === undefined) {
-    c.error('revision', 'Нет поля revision (номер редакции колоды). У первой редакции "revision": 1.');
+    c.error('revision', M.revisionMissing);
   } else if (typeof value.revision !== 'number' || !Number.isInteger(value.revision) || value.revision < 1) {
-    c.error('revision', `Поле revision должно быть целым числом от 1, а сейчас ${q(String(value.revision))}.`);
+    c.error('revision', M.revisionInvalid(q(String(value.revision))));
   }
   const lang = checkLanguage(c, value.language, options);
   const tagCodes = checkTagDictionary(c, value.tags);
-  // Р30: the name comes from the deck; without it, from the file name, which Chrome may suffix ("-1").
+  // R30: the name comes from the deck; without it, from the file name, which Chrome may suffix ("-1").
   if (value.title === undefined) {
     c.warn(
       'title',
-      'Колода: нет поля title (название на языках интерфейса, например {"tg": "Фаронсавӣ · Дарси 1", "ru": "Французский · Урок 1"}) — ' +
-        'название возьмётся из имени ZIP-файла, а Chrome при повторном скачивании дописывает к нему «-1» (Р30).',
+      M.titleMissing,
     );
   } else {
-    checkLocalized(c, 'title', 'Колода', value.title, 'title', 'название колоды', true);
+    checkLocalized(c, 'title', M.deckWhere, value.title, 'title', M.labelDeckTitle, true);
   }
   for (const key of Object.keys(value)) {
     if (key === 'description') {
-      c.warn(key, `Колода: поле ${q(key)} не используется. Поле будет пропущено.`);
+      c.warn(key, M.deckKeyUnused(q(key)));
     } else if (!DECK_KEYS.has(key)) {
-      c.warn(key, `Колода: неизвестное поле ${q(key)} — будет пропущено.`);
+      c.warn(key, M.deckKeyUnknown(q(key)));
     }
   }
 
   const entries = value.entries;
   if (entries === undefined) {
-    c.error('entries', 'Нет поля entries (список записей).');
+    c.error('entries', M.entriesMissing);
   } else if (!Array.isArray(entries)) {
-    c.error('entries', `Поле entries должно быть списком [ ... ], а сейчас ${typeName(entries)}.`);
+    c.error('entries', M.entriesNotList(typeName(entries)));
   } else if (entries.length === 0) {
-    c.error('entries', 'Список entries пуст — в колоде нет ни одной записи.');
+    c.error('entries', M.entriesEmpty);
   } else {
     const ids = new Map<string, number>();
     const texts = new Map<string, number>();
@@ -770,45 +751,45 @@ export function validateDeck(value: unknown, options: DeckCheckOptions = {}): De
       if (e.id !== undefined) {
         const first = ids.get(e.id);
         if (first !== undefined) {
-          c.error(`entries[${i}].id`, `Запись ${i + 1}: id ${q(e.id)} уже есть у записи ${first + 1}. id должны быть разными.`);
+          c.error(`entries[${i}].id`, M.entryIdDuplicate(i + 1, q(e.id), first + 1));
         } else ids.set(e.id, i);
       }
       if (e.text !== undefined) {
         const key = e.text.trim().toLowerCase();
         const first = texts.get(key);
         if (first !== undefined) {
-          c.warn(`entries[${i}].text`, `Запись ${i + 1}: тот же текст ${q(e.text.trim())}, что у записи ${first + 1}.`);
+          c.warn(`entries[${i}].text`, M.entryTextDuplicate(i + 1, q(e.text.trim()), first + 1));
         } else texts.set(key, i);
       }
       if (e.audio !== undefined) {
         const first = audios.get(e.audio);
         if (first !== undefined) {
-          c.warn(`entries[${i}].audio`, `Запись ${i + 1}: файл ${q(e.audio)} уже используется в записи ${first + 1}.`);
+          c.warn(`entries[${i}].audio`, M.entryAudioDuplicate(i + 1, q(e.audio), first + 1));
         } else audios.set(e.audio, i);
       }
       for (const l of e.langs) langCount.set(l, (langCount.get(l) ?? 0) + 1);
       for (const t of e.tags) tagUse.set(t, [...(tagUse.get(t) ?? []), i + 1]);
     });
     if (lang?.sameSound) sameSoundWarnings(c, entries, lang.sameSound);
-    // Р28: one answer per card, and what the app needs to check it.
+    // R28: one answer per card, and what the app needs to check it.
     c.warnings.push(...contentWarnings(entries, lang?.deckRules));
     for (const [t, nums] of tagUse) {
       if (tagCodes.has(t)) continue;
       const shown = nums.slice(0, 5).join(', ') + (nums.length > 5 ? '…' : '');
       c.warn(
         'tags',
-        `Тег ${q(t)} не описан в словаре tags колоды (записи ${shown}) — приложение покажет код вместо названия.`,
+        M.tagUndescribed(q(t), shown),
       );
     }
     for (const t of tagCodes) {
-      if (!tagUse.has(t)) c.warn(`tags.${t}`, `Тег ${q(t)} описан в словаре tags, но не используется ни одной записью.`);
+      if (!tagUse.has(t)) c.warn(`tags.${t}`, M.tagUnused(q(t)));
     }
     for (const [l, n] of langCount) {
       const missing = entries.length - n;
       if (missing > 0) {
         c.warn(
           'entries',
-          `Значение на ${l} есть не у всех записей: не хватает у ${missing} из ${entries.length}. Для них приложение покажет другой язык.`,
+          M.meaningMissingSome(l, missing, entries.length),
         );
       }
     }
@@ -828,11 +809,11 @@ function isJunk(path: string): boolean {
 }
 
 function megabytes(bytes: number): string {
-  return (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
+  return (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + M.unitMb;
 }
 
 /**
- * Entries without deck audio play the browser voice (Р33 п. 14). A deck with no audio
+ * Entries without deck audio play the browser voice (R33 item 14). A deck with no audio
  * at all is a choice (a note); some entries without it is likely a forgotten file (a
  * warning). `listen` of such an entry needs the voice checked on the device.
  */
@@ -841,21 +822,21 @@ function audioSummary(result: DeckCheck, entries: readonly unknown[], hasAudio: 
   const without = items.flatMap((e, i) => (hasAudio(e) ? [] : [i + 1]));
   if (without.length === 0) return;
   const listen = items.some((e, i) => without.includes(i + 1) && Array.isArray(e.skills) && e.skills.includes('listen'));
-  const tail = listen ? ' Карточки listen для них — голосом браузера, если голос проверен на устройстве (Р33 п. 14).' : '';
+  const tail = listen ? M.listenTail : '';
   if (without.length === items.length) {
-    result.notes.push({ level: 'info', path: '', message: `В колоде нет звука: записи прозвучат голосом браузера.${tail}` });
+    result.notes.push({ level: 'info', path: '', message: M.noAudioAtAll(tail) });
     return;
   }
   const shown = without.slice(0, 5).join(', ') + (without.length > 5 ? '…' : '');
   result.warnings.push({
     level: 'warning',
     path: '',
-    message: `Нет audio у ${without.length} из ${items.length} записей (записи ${shown}) — они прозвучат голосом браузера. Если звук для них есть, добавьте файлы.${tail}`,
+    message: M.noAudioSome(without.length, items.length, shown, tail),
   });
 }
 
 /**
- * Validates deck.json alone, without an archive (Р33 п. 15): pasted text or a .json
+ * Validates deck.json alone, without an archive (R33 item 15): pasted text or a .json
  * file. Audio paths are not looked up; every entry plays the browser voice.
  */
 export function checkDeckJson(deckJsonText: string, options: DeckCheckOptions = {}): DeckCheck {
@@ -868,7 +849,7 @@ export function checkDeckJson(deckJsonText: string, options: DeckCheckOptions = 
     result.notes.push({
       level: 'info',
       path: '',
-      message: `Загружен только ${DECK_JSON}, без архива: файлы audio (${declared}) не приложены. Чтобы добавить звук, соберите ZIP с папкой audio/.`,
+      message: M.jsonOnlyNoArchive(DECK_JSON, declared),
     });
   }
   audioSummary(result, entries, () => false);
@@ -889,8 +870,8 @@ export function checkDeckArchive(
   if (deckJsonText === undefined) {
     const nested = files.find((p) => p.endsWith('/' + DECK_JSON));
     const message = nested
-      ? `${DECK_JSON} лежит в папке (${q(nested)}), а должен — в корне архива. Заархивируйте содержимое папки, а не саму папку.`
-      : `В архиве нет файла ${DECK_JSON}.`;
+      ? M.jsonInFolder(DECK_JSON, q(nested))
+      : M.jsonMissing(DECK_JSON);
     return { deck: null, errors: [{ level: 'error', path: '', message }], warnings: [], notes: [] };
   }
 
@@ -913,8 +894,8 @@ export function checkDeckArchive(
       level: 'error',
       path: `entries[${i}].audio`,
       message: near
-        ? `Запись ${i + 1}: файла ${q(audio)} нет, но есть ${q(near)} — регистр букв должен совпадать.`
-        : `Запись ${i + 1}: файла ${q(audio)} нет в архиве.`,
+        ? M.audioCaseMismatch(i + 1, q(audio), q(near))
+        : M.audioMissingInArchive(i + 1, q(audio)),
     });
   });
   for (const p of files) {
@@ -923,8 +904,8 @@ export function checkDeckArchive(
       level: 'warning',
       path: '',
       message: p.startsWith(AUDIO_DIR)
-        ? `Файл ${q(p)} не используется ни одной записью.`
-        : `Лишний файл ${q(p)} — будет пропущен (нужны только ${DECK_JSON} и папка audio/).`,
+        ? M.fileUnused(q(p))
+        : M.fileExtra(q(p), DECK_JSON),
     });
   }
   audioSummary(result, entries, (e) => typeof e.audio === 'string');
@@ -934,9 +915,8 @@ export function checkDeckArchive(
       level: 'warning',
       path: '',
       message:
-        `Архив большой: ${megabytes(options.archiveBytes)} (порог ${megabytes(LARGE_ARCHIVE_BYTES)}). ` +
-        `Он долго скачивается на телефон и занимает место.` +
-        (wav > 0 ? ` WAV-файлов: ${wav} — в MP3 они станут в 5–10 раз меньше.` : ''),
+        M.archiveLarge(megabytes(options.archiveBytes), megabytes(LARGE_ARCHIVE_BYTES)) +
+        (wav > 0 ? M.archiveLargeWav(wav) : ''),
     });
   }
   if (result.errors.length > 0) result.deck = null;

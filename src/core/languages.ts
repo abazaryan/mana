@@ -1,16 +1,17 @@
 /**
- * Language packs: everything that depends on the learning language (decision Р13).
+ * Language packs: everything that depends on the learning language (decision R13).
  * A deck names its language with a BCP-47 tag ("fr-FR"); the pack is found by the primary subtag.
  *
  * Only French is implemented. The written-answer rules (stage 3) live in `writing`,
- * the sound-based check of a spoken answer and numbers (stage 4.2, Р22) in `spoken`,
- * the layout of the on-screen phone keyboard (stage 5, Р31) in `keyboard`.
+ * the sound-based check of a spoken answer and numbers (stage 4.2, R22) in `spoken`,
+ * the layout of the on-screen phone keyboard (stage 5, R31) in `keyboard`.
  * Before the first deck in a new language, check speech recognition and TTS for it
  * on the user's devices (especially lb-LU).
  *
  * Type-only imports, or `.ts` imports: this file is also run directly by Node in
  * scripts/validate-deck.ts.
  */
+import { FRENCH_TEXTS } from './cyrillicData.ts';
 import type { LanguageSupport, UiLang } from './deckFormat';
 import { FRENCH_SPOKEN } from './frenchSpoken.ts';
 import { soundsSame } from './spoken.ts';
@@ -27,7 +28,7 @@ export interface WritingRules {
    */
   typographicSpace: RegExp | null;
   /**
-   * Punctuation that does not count in a written answer (Р26): missing or extra, it is
+   * Punctuation that does not count in a written answer (R26): missing or extra, it is
    * shown in a neutral colour and the verdict ignores it. Apostrophe and hyphen are
    * spelling and are not here. Must have the `g` flag.
    */
@@ -73,7 +74,7 @@ export interface WordClass {
 
 /**
  * Rules of the sound-based check of a spoken (or typed in `speak`) answer
- * (src/core/spoken.ts, Р5, Р22). Keys are lower case, œ → oe, æ → ae, one kind of
+ * (src/core/spoken.ts, R5, R22). Keys are lower case, œ → oe, æ → ae, one kind of
  * apostrophe; an elided word keeps its apostrophe (`l'`).
  */
 export interface SpokenRules {
@@ -101,7 +102,7 @@ export interface SpokenRules {
 }
 
 /**
- * The on-screen phone keyboard (Р6, Р31): letter rows, the keys around the space bar
+ * The on-screen phone keyboard (R6, R31): letter rows, the keys around the space bar
  * and the long-press variants. No digits: numbers are learnt spelt out.
  */
 export interface KeyboardLayout {
@@ -126,35 +127,35 @@ export interface LanguagePack extends LanguageSupport {
   /** Language name in each interface language. */
   name: Record<UiLang, string>;
   /**
-   * "In this language", ready-made for each interface language (Р27): put into the
-   * `speak` instruction and field ("Ба фаронсавӣ бигӯед"). Never built from `name`:
+   * "In this language", ready-made for each interface language (R27): put into the
+   * `speak` instruction and field ("Say it in French"). Never built from `name`:
    * the grammar differs. Absent → the plain "Say it" / "Type…".
    */
   inLanguage?: Record<UiLang, string>;
-  /** "Voice check" (Р33 п. 14): a phrase the browser voice says, and the ready question after it. */
+  /** "Voice check" (R33 item 14): a phrase the browser voice says, and the ready question after it. */
   voiceCheck?: { sample: string; question: Record<UiLang, string> };
-  /** The on-screen phone keyboard (Р31). */
+  /** The on-screen phone keyboard (R31). */
   keyboard: KeyboardLayout;
-  /** Rules for the written answer (skill `write`, Р5). */
+  /** Rules for the written answer (skill `write`, R5). */
   writing: WritingRules;
-  /** Rules for the spoken answer (skill `speak`, Р5, Р22). */
+  /** Rules for the spoken answer (skill `speak`, R5, R22). */
   spoken: SpokenRules;
 }
 
 /**
- * Punctuation of a French answer: never counted in a written answer (Р26) and offered
- * by a long press on "." of the on-screen keyboard (Р31). One list for both.
+ * Punctuation of a French answer: never counted in a written answer (R26) and offered
+ * by a long press on "." of the on-screen keyboard (R31). One list for both.
  */
 const FRENCH_PUNCTUATION = ['.', ',', '?', '!', ':', ';', '…', '«', '»', '"', '“', '”', '„'] as const;
 
 export const FRENCH: LanguagePack = {
   code: 'fr',
   defaultLocale: 'fr-FR',
-  name: { tg: 'фаронсавӣ', ru: 'французский', en: 'French' },
-  inLanguage: { tg: 'ба фаронсавӣ', ru: 'по-французски', en: 'in French' },
+  name: FRENCH_TEXTS.name,
+  inLanguage: FRENCH_TEXTS.inLanguage,
   voiceCheck: {
     sample: "Bonjour ! Je m'appelle Marie. Un, deux, trois.",
-    question: { tg: 'Садои фаронсавиро шунидед?', ru: 'Слышен французский голос?', en: 'Did you hear a French voice?' },
+    question: FRENCH_TEXTS.voiceCheckQuestion,
   },
   genders: ['m', 'f'],
   sameSound: (a, b) => soundsSame(a, b, FRENCH_SPOKEN),
@@ -201,7 +202,7 @@ export const FRENCH: LanguagePack = {
     rows: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
     beforeSpace: ["'", '-'],
     afterSpace: ['.'],
-    // The letters of Р6, each on its base letter.
+    // The letters of R6, each on its base letter.
     variants: {
       e: ['é', 'è', 'ê', 'ë'],
       a: ['à', 'â', 'æ'],

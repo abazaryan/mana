@@ -1,5 +1,5 @@
 /**
- * Content checks of a deck (Р28): the meaning and the hints seen before the answer
+ * Content checks of a deck (R28): the meaning and the hints seen before the answer
  * must lead to exactly one answer, and the entry must carry what the app needs to
  * check it. Warnings only (the deck is accepted); the deck author fixes them before
  * publishing. Language rules — articles, pronouns, gender endings — come from the
@@ -7,9 +7,11 @@
  *
  * Type-only imports, or `.ts` imports: run directly by Node through deckFormat.ts.
  */
+import { GRAMMAR_MARK } from './cyrillicData.ts';
 import type { DeckIssue, DeckRules } from './deckFormat';
 import type { DeckTerm } from './glossaryTerms';
 import { TG_DECK_TERMS } from './tgDeckTerms.ts';
+import { M } from './deckMessages.ts';
 
 const UI_LANGS = ['tg', 'ru', 'en'] as const;
 const NOTE_FIELDS = ['meaning', 'hint', 'note'] as const;
@@ -69,22 +71,20 @@ function meaningKey(s: string): string {
 const stable = (v: unknown): string =>
   isObj(v) ? `{${Object.keys(v).sort().map((k) => `${k}:${stable(v[k])}`).join(',')}}` : JSON.stringify(v ?? null);
 
-/** Grammar written into a meaning or hint instead of `form` (Р28): «(м.)», «(f.)», «(мард)», «(зан)»… */
-const GRAMMAR_MARK = /\((?:м|ж|ср|m|f|n|masc|fem|муз|муан|мард|зан)\.?(?:\s*р\.)?\)/iu;
 
 function startsWithWord(text: string, word: string): boolean {
   const esc = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(^|[^\\p{L}])${esc}`, 'iu').test(text);
 }
 
-/** Every content warning of the deck (Р28). `rules` absent: only the interface-language checks. */
+/** Every content warning of the deck (R28). `rules` absent: only the interface-language checks. */
 export function contentWarnings(entries: readonly unknown[], rules: DeckRules | undefined, terms: readonly DeckTerm[] = TG_DECK_TERMS): DeckIssue[] {
   const out: DeckIssue[] = [];
   const warn = (path: string, message: string) => out.push({ level: 'warning', path, message });
   const list = readEntries(entries);
-  const n = (e: Raw) => `Запись ${e.i + 1} ${q(e.text)}`;
+  const n = (e: Raw) => M.entryLabel(e.i + 1, q(e.text));
 
-  // В1. The same meaning (in any interface language) and nothing before the answer to tell them apart.
+  // V1. The same meaning (in any interface language) and nothing before the answer to tell them apart.
   for (let b = 0; b < list.length; b++) {
     for (let a = 0; a < b; a++) {
       const x = list[a]!;
@@ -98,21 +98,20 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
       if (!lang) continue;
       warn(
         `entries[${y.i}].meaning.${lang}`,
-        `Записи ${x.i + 1} и ${y.i + 1} (${q(x.text)}, ${q(y.text)}): одинаковое значение (${lang}) ${q(String(x.meaning[lang]))}, ` +
-          'а form и hint их не различают — у карточки два правильных ответа. Разведите значения или добавьте hint / form (Р28).',
+        M.sameMeaningInDeck(x.i + 1, y.i + 1, q(x.text), q(y.text), lang, q(String(x.meaning[lang]))),
       );
     }
   }
 
   for (const e of list) {
-    // В8. Grammar marks in a meaning or hint.
+    // V8. Grammar marks in a meaning or hint.
     for (const field of ['meaning', 'hint'] as const) {
       const v = field === 'meaning' ? e.meaning : e.hint;
       if (!v) continue;
       for (const l of UI_LANGS) {
         const s = v[l];
         if (typeof s === 'string' && GRAMMAR_MARK.test(s)) {
-          warn(`entries[${e.i}].${field}.${l}`, `${n(e)}: в ${field}.${l} ${q(s)} грамматика текстом — род и форму указывайте в form (Р28).`);
+          warn(`entries[${e.i}].${field}.${l}`, M.grammarMark(n(e), field, l, q(s)));
         }
       }
     }
@@ -126,14 +125,14 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
         if (startsWithWord(tg, t.word)) {
           warn(
             `entries[${e.i}].${field}.tg`,
-            `Запись ${e.i + 1}: в ${field}.tg слово ${q(t.word)} (${q(tg)}) — по глоссарию: ${t.use}. Грамматику указывайте в form, не текстом.`,
+            M.tgGlossaryTerm(e.i + 1, field, q(t.word), q(tg), t.use),
           );
         }
       }
     }
-    // В9 (`listen` without deck audio) is gone: such a card plays the browser voice once
-    // it is checked on the device (Р33 п. 14); the audio summary of the deck check says so.
-    // В10. tu / vous: the English meaning must say which (Р22, 16.10.2026).
+    // V9 (`listen` without deck audio) is gone: such a card plays the browser voice once
+    // it is checked on the device (R33 item 14); the audio summary of the deck check says so.
+    // V10. tu / vous: the English meaning must say which (R22, 16.10.2026).
     const en = e.meaning.en;
     if (rules && typeof en === 'string') {
       // Hyphenated words are read part by part (parlez-vous), except the listed nouns (rendez-vous).
@@ -141,10 +140,10 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
       const informal = words.some((w) => rules.informal.includes(w));
       const formal = words.some((w) => rules.formal.includes(w));
       if (informal && !/\(informal\)/i.test(en)) {
-        warn(`entries[${e.i}].meaning.en`, `${n(e)}: обращение на «ты» — в конце en-значения нужна пометка «(informal)».`);
+        warn(`entries[${e.i}].meaning.en`, M.addressInformal(n(e)));
       }
       if (formal && !/\(formal\)/i.test(en)) {
-        warn(`entries[${e.i}].meaning.en`, `${n(e)}: обращение на «вы» — в конце en-значения нужна пометка «(formal)».`);
+        warn(`entries[${e.i}].meaning.en`, M.addressFormal(n(e)));
       }
     }
   }
@@ -154,16 +153,16 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
   for (const e of list) {
     const art = splitLeadingArticle(e.low, rules.articles);
     const determiner = e.form?.determiner;
-    // В2. A word with an article and no form.determiner: «le livre» or «un livre»?
+    // V2. A word with an article and no form.determiner: «le livre» or «un livre»?
     if (e.tags.includes('word') && art && determiner === undefined) {
-      warn(`entries[${e.i}].form`, `${n(e)}: слово с артиклем без form.determiner — неясно, какой артикль нужен в ответе (Р14, Р28).`);
+      warn(`entries[${e.i}].form`, M.articleNoDeterminer(n(e)));
     }
     if (determiner !== undefined) {
-      // В4. Only `write` checks the gender (Р23 п. 4).
+      // V4. Only `write` checks the gender (R23 item 4).
       if (!e.skills.includes('write')) {
-        warn(`entries[${e.i}].skills`, `${n(e)}: существительное с артиклем без write — род нигде не проверяется (Р23 п. 4, Р28).`);
+        warn(`entries[${e.i}].skills`, M.nounNoWrite(n(e)));
       }
-      // В3. l' hides the gender: the indefinite pair is required.
+      // V3. l' hides the gender: the indefinite pair is required.
       if (art && rules.genderlessArticles.includes(art.article)) {
         const pair = list.some((o) => {
           if (o === e || o.form?.determiner !== 'indefinite') return false;
@@ -173,26 +172,25 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
         if (!pair) {
           warn(
             `entries[${e.i}].text`,
-            `${n(e)}: род по артиклю ${q(art.article)} не виден — нужна вторая запись с неопределённым артиклем ` +
-              `(${rules.indefiniteArticles.join(' или ')} + ${q(art.rest)}) и с write (Р23 п. 4, Р28).`,
+            M.elisionNeedsPair(n(e), q(art.article), rules.indefiniteArticles.join(M.or), q(art.rest)),
           );
         }
       }
     }
     const hasGender = e.form?.gender !== undefined;
-    // В6. il / elle / ils / elles: the meaning languages often hide it (tg «ӯ», «онҳо»).
+    // V6. il / elle / ils / elles: the meaning languages often hide it (in tg the words for "he / she" and "they" show no gender).
     const first = e.low.split(/[\s']/)[0] ?? '';
     if (rules.subjectPronouns.includes(first) && !rules.impersonal.some((p) => e.low.startsWith(p)) && !hasGender) {
-      warn(`entries[${e.i}].form`, `${n(e)}: подлежащее ${q(first)} — нужен form.gender: в значении (например, tg «ӯ», «онҳо») род не виден (Р28).`);
+      warn(`entries[${e.i}].form`, M.pronounNoGender(n(e), q(first)));
     }
-    // В7. A number with gender (un / une).
+    // V7. A number with gender (un / une).
     const bare = e.low.replace(/[\s.!?…]+$/u, '');
     if (rules.genderedNumbers.includes(bare) && !hasGender) {
-      warn(`entries[${e.i}].form`, `${n(e)}: число с родом — нужен form.gender (Р28).`);
+      warn(`entries[${e.i}].form`, M.numberNoGender(n(e)));
     }
   }
 
-  // В5. Two forms that differ only in the gender ending (ami / amie, ravi / ravie): both need form.gender.
+  // V5. Two forms that differ only in the gender ending (ami / amie, ravi / ravie): both need form.gender.
   const base = (e: Raw) => splitLeadingArticle(e.low, rules.articles)?.rest ?? e.low;
   for (const x of list) {
     for (const y of list) {
@@ -204,7 +202,7 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
       for (const e of [x, y]) {
         if (e.form?.gender === undefined) {
           const other = e === x ? y : x;
-          warn(`entries[${e.i}].form`, `${n(e)}: есть форма другого рода (${q(other.text)}) — у обеих записей нужен form.gender (Р16, Р28).`);
+          warn(`entries[${e.i}].form`, M.otherGenderForm(n(e), q(other.text)));
         }
       }
     }
@@ -213,7 +211,7 @@ export function contentWarnings(entries: readonly unknown[], rules: DeckRules | 
   return out.filter((w, k) => out.findIndex((o) => o.path === w.path && o.message === w.message) === k);
 }
 
-/** An installed deck to compare an incoming one with (Р28 п. 8): same learning language, visible entries only. */
+/** An installed deck to compare an incoming one with (R28 item 8): same learning language, visible entries only. */
 export interface OtherDeck {
   name: string;
   entries: readonly unknown[];
@@ -225,12 +223,12 @@ function textKey(low: string): string {
 }
 
 /**
- * Checks between decks (Р28 п. 8), warnings only, run on import and by
+ * Checks between decks (R28 item 8), warnings only, run on import and by
  * `deck:check --with`. The caller passes the other decks of the same learning
  * language without the hidden entries and without the incoming deck itself.
- * К1 — the same meaning (in a language both have), the same form and hint, another
+ * K1 — the same meaning (in a language both have), the same form and hint, another
  * answer: two right answers. A hint or form on at least one of the two lifts it,
- * as in В1. К2 — the same answer (and form) already in another deck: it would be
+ * as in V1. K2 — the same answer (and form) already in another deck: it would be
  * learned twice.
  */
 export function crossDeckWarnings(incoming: readonly unknown[], others: readonly OtherDeck[]): DeckIssue[] {
@@ -246,16 +244,16 @@ export function crossDeckWarnings(incoming: readonly unknown[], others: readonly
           const my = y.meaning[l];
           return typeof mx === 'string' && typeof my === 'string' && meaningKey(mx) !== '' && meaningKey(mx) === meaningKey(my);
         });
-        const where = `в колоде ${q(other.name)} (запись ${y.i + 1})`;
+        const where = M.otherDeckWhere(q(other.name), y.i + 1);
         if (textKey(x.low) === textKey(y.low)) {
           if (!sameForm) continue;
           out.push({
             level: 'warning',
             path: `entries[${x.i}].text`,
             message:
-              `К2. Запись ${x.i + 1} ${q(x.text)} уже есть ${where}` +
-              (lang ? `, и значение то же (${lang}) ${q(String(x.meaning[lang]))}` : '') +
-              ' — она будет учиться дважды. Уберите повтор или, если он нужен намеренно, скажите об этом автору (Р28).',
+              M.duplicateInOtherDeck(x.i + 1, q(x.text), where) +
+              (lang ? M.duplicateSameMeaning(lang, q(String(x.meaning[lang]))) : '') +
+              M.duplicateTail,
           });
           continue;
         }
@@ -264,8 +262,7 @@ export function crossDeckWarnings(incoming: readonly unknown[], others: readonly
           level: 'warning',
           path: `entries[${x.i}].meaning.${lang}`,
           message:
-            `К1. Запись ${x.i + 1} ${q(x.text)}: то же значение (${lang}) ${q(String(x.meaning[lang]))}, что у ${q(y.text)} ${where}, ` +
-            'а form и hint их не различают — у карточки два правильных ответа. Разведите значения или добавьте hint / form хотя бы одной из записей (Р28).',
+            M.sameMeaningOtherDeck(x.i + 1, q(x.text), lang, q(String(x.meaning[lang])), q(y.text), where),
         });
       }
     }

@@ -1,15 +1,16 @@
 /**
- * French data for the sound-based check of a spoken answer (Р5, Р22): numbers in
+ * French data for the sound-based check of a spoken answer (R5, R22): numbers in
  * words and the closed lists of homophone rules. The algorithm is language-neutral
  * and lives in src/core/spoken.ts; everything French is here.
  *
- * Principle (Р22.1): a false "correct" is worse than a false "Again" (the learner
+ * Principle (R22.1): a false "correct" is worse than a false "Again" (the learner
  * can press "I was misrecognised"). There is no general phonetics: two different
  * spellings match only through one of the rules below, and every exception is a
  * closed list in this file, not code.
  *
  * Type-only imports: run directly by Node through languages.ts.
  */
+import { SOUND_RULE } from './cyrillicData.ts';
 import type { SpokenRules } from './languages.ts';
 
 const UNITS = [
@@ -70,7 +71,7 @@ export function frenchOrdinal(n: number, feminine: boolean): string | null {
 }
 
 /**
- * Words ending in -er that are read [ɛʁ], not [e]. Rule З1 never applies to them
+ * Words ending in -er that are read [ɛʁ], not [e]. Rule Z1 never applies to them
  * (cher ≠ chez). Closed list; every word has a test.
  */
 export const ER_READ_AS_AIR: readonly string[] = [
@@ -83,18 +84,18 @@ export const ER_READ_AS_AIR: readonly string[] = [
 ];
 
 /**
- * Rule З9: a final consonant that is pronounced stays the same when -e is added
+ * Rule Z9: a final consonant that is pronounced stays the same when -e is added
  * (seul = seule, noir = noire, tadjik = tadjike). Only these stem endings: l, k, and
- * r not after e (léger ≠ légère; -er belongs to З1). t, d, n, f… are silent or change
+ * r not after e (léger ≠ légère; -er belongs to Z1). t, d, n, f… are silent or change
  * (petit ≠ petite, grand ≠ grande, brun ≠ brune, actif → active).
  */
 export const PRONOUNCED_FINAL = /(?:l|k|[^e]r)$/;
 
-/** Words where З9 does not apply although the ending fits: the sound changes with -e. Closed list. */
+/** Words where Z9 does not apply although the ending fits: the sound changes with -e. Closed list. */
 export const PRONOUNCED_FINAL_EXCEPTIONS: readonly string[] = ['gentil'];
 
 /**
- * Words whose final s or x is pronounced. Rules З5 and З6 (silent final -s/-x)
+ * Words whose final s or x is pronounced. Rules Z5 and Z6 (silent final -s/-x)
  * never apply to them (bus ≠ bu). Closed list.
  */
 export const FINAL_S_PRONOUNCED: readonly string[] = [
@@ -107,7 +108,7 @@ export const FINAL_S_PRONOUNCED: readonly string[] = [
 ];
 
 // A stem ending in a vowel letter other than a plain e: after a plain e the
-// ending pairs belong to З3 (le ≠ les, ce ≠ ces).
+// ending pairs belong to Z3 (le ≠ les, ce ≠ ces).
 const VOWEL_END = /[aiouyàâäéèêëîïôöùûü]$/;
 const NOT_E_END = /[^e]$/;
 
@@ -122,29 +123,29 @@ export const FRENCH_SPOKEN: SpokenRules = {
   feminineOrdinalSuffixes: ['re', 'ère'],
   endingRules: [
     {
-      id: 'З1',
+      id: SOUND_RULE.Z1,
       // [e]: parler = parlé = parlez; aimé = aimée
       endings: ['é', 'ée', 'és', 'ées', 'er', 'ez'],
       minStem: 2,
       exceptions: ER_READ_AS_AIR,
     },
     // [ɛ]: parlais = parlait = parlaient (not = parlé: [ɛ] ≠ [e])
-    { id: 'З2', endings: ['ais', 'ait', 'aient'], minStem: 2 },
+    { id: SOUND_RULE.Z2, endings: ['ais', 'ait', 'aient'], minStem: 2 },
     // silent -e/-es: parle = parles; petite = petites (le ≠ les: the stem is too short)
-    { id: 'З3', endings: ['e', 'es'], minStem: 2 },
+    { id: SOUND_RULE.Z3, endings: ['e', 'es'], minStem: 2 },
     // verb -ent after ils/elles: il parle = ils parlent (content ≠ conte)
-    { id: 'З4', endings: ['e', 'es', 'ent'], minStem: 2, pluralSubject: 'ent' },
+    { id: SOUND_RULE.Z4, endings: ['e', 'es', 'ent'], minStem: 2, pluralSubject: 'ent' },
     // silent final -s: ami = amis, il = ils (not before a vowel: liaison)
-    { id: 'З5', endings: ['', 's'], minStem: 2, stemPattern: NOT_E_END, exceptions: FINAL_S_PRONOUNCED },
+    { id: SOUND_RULE.Z5, endings: ['', 's'], minStem: 2, stemPattern: NOT_E_END, exceptions: FINAL_S_PRONOUNCED },
     // silent final -x after a vowel: beau = beaux, jeu = jeux
-    { id: 'З5', endings: ['', 'x'], minStem: 2, stemPattern: VOWEL_END, exceptions: FINAL_S_PRONOUNCED },
+    { id: SOUND_RULE.Z5, endings: ['', 'x'], minStem: 2, stemPattern: VOWEL_END, exceptions: FINAL_S_PRONOUNCED },
     // silent -e after a vowel: ami = amie = amies (petit ≠ petite)
-    { id: 'З6', endings: ['', 'e', 's', 'es'], minStem: 2, stemPattern: VOWEL_END, exceptions: FINAL_S_PRONOUNCED },
+    { id: SOUND_RULE.Z6, endings: ['', 'e', 's', 'es'], minStem: 2, stemPattern: VOWEL_END, exceptions: FINAL_S_PRONOUNCED },
     // cruel = cruelle; quel = quelle = quels = quelles
-    { id: 'З7', endings: ['el', 'elle', 'els', 'elles'], minStem: 2 },
+    { id: SOUND_RULE.Z7, endings: ['el', 'elle', 'els', 'elles'], minStem: 2 },
     // -e after a pronounced final consonant: seul = seule, noir = noire, tadjik = tadjike
     {
-      id: 'З9',
+      id: SOUND_RULE.Z9,
       endings: ['', 'e', 's', 'es'],
       minStem: 2,
       stemPattern: PRONOUNCED_FINAL,
@@ -152,21 +153,21 @@ export const FRENCH_SPOKEN: SpokenRules = {
     },
   ],
   wordClasses: [
-    { id: 'З8', words: ['a', 'à'] },
-    { id: 'З8', words: ['ou', 'où'] },
-    { id: 'З8', words: ['la', 'là'] },
-    { id: 'З8', words: ['du', 'dû'] },
-    { id: 'З8', words: ['sur', 'sûr'] },
-    { id: 'З8', words: ['ces', 'ses'] },
-    { id: 'З8', words: ['ce', 'se'] },
-    { id: 'З8', words: ["c'", "s'"] },
-    { id: 'З8', words: ['on', 'ont'] },
-    { id: 'З8', words: ['son', 'sont'] },
-    { id: 'З8', words: ['es', 'est'] },
-    { id: 'З8', words: ['peu', 'peux', 'peut'] },
-    { id: 'З8', words: ['veux', 'veut'] },
-    { id: 'З8', words: ['vingt', 'vin', 'vain'] },
-    { id: 'З8', words: ['cent', 'sans', 'sang'] },
+    { id: SOUND_RULE.Z8, words: ['a', 'à'] },
+    { id: SOUND_RULE.Z8, words: ['ou', 'où'] },
+    { id: SOUND_RULE.Z8, words: ['la', 'là'] },
+    { id: SOUND_RULE.Z8, words: ['du', 'dû'] },
+    { id: SOUND_RULE.Z8, words: ['sur', 'sûr'] },
+    { id: SOUND_RULE.Z8, words: ['ces', 'ses'] },
+    { id: SOUND_RULE.Z8, words: ['ce', 'se'] },
+    { id: SOUND_RULE.Z8, words: ["c'", "s'"] },
+    { id: SOUND_RULE.Z8, words: ['on', 'ont'] },
+    { id: SOUND_RULE.Z8, words: ['son', 'sont'] },
+    { id: SOUND_RULE.Z8, words: ['es', 'est'] },
+    { id: SOUND_RULE.Z8, words: ['peu', 'peux', 'peut'] },
+    { id: SOUND_RULE.Z8, words: ['veux', 'veut'] },
+    { id: SOUND_RULE.Z8, words: ['vingt', 'vin', 'vain'] },
+    { id: SOUND_RULE.Z8, words: ['cent', 'sans', 'sang'] },
   ],
   // A final s/x/z before a word starting with a vowel or h may be heard (liaison):
   // there a silent-ending rule does not apply (ils aiment ≠ il aime).

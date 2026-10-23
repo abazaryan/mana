@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import adminPrompt from '../../docs/DECK_PROMPT.md?raw';
 import { installedForAi } from '../core/deckReport';
 import { deckPromptText, promptLanguage } from './deckPrompt';
+import rulesEn from './deckPrompt/rules.en.md?raw';
+import rulesRu from './deckPrompt/rules.ru.md?raw';
 
 const installed = (lang: 'ru' | 'en') =>
   installedForAi([{ id: 'fr-lesson-01', title: 'Урок 1', language: 'fr-FR', entries: [{ text: 'salut', meaning: { ru: 'привет' } }] }], lang);
 
-describe('the instructions for the AI (Р34)', () => {
+describe('the instructions for the AI (R34)', () => {
   it('Russian rules and conversation for the tg and ru interface, English for en', () => {
     expect(promptLanguage('tg')).toBe('ru');
     expect(promptLanguage('ru')).toBe('ru');
@@ -52,5 +55,28 @@ describe('the instructions for the AI (Р34)', () => {
     expect(en).toContain('CLOSE EXPRESSIONS');
     expect(en).toContain('no more than 2–3 entries of one group');
     expect(en).toContain('("in full")');
+  });
+});
+
+/** The meaning columns (tg, ru, en) of the synonym table, row by row: [fr word, tg, ru, en]. */
+function synonymRows(markdown: string): string[][] {
+  return markdown
+    .split(/\r?\n/)
+    .filter((l) => l.startsWith('| ') && !l.startsWith('| fr ') && !l.startsWith('| ---'))
+    .map((l) => l.split('|').slice(1, -1).map((c) => c.trim()))
+    .map(([fr, tg, ru, en]) => [fr!.replace(/ \(.*\)$/, ''), tg!, ru!, en!]);
+}
+
+describe('one rule, two documents: the synonym table of the admin instruction and of the app', () => {
+  const admin = synonymRows(adminPrompt);
+
+  it('docs/DECK_PROMPT.md and rules.ru.md give the same meanings for the same words', () => {
+    const app = synonymRows(rulesRu);
+    expect(app.length).toBeGreaterThan(5);
+    expect(admin).toEqual(app.map(([fr, ...meanings]) => [fr, ...meanings]));
+  });
+
+  it('rules.en.md has the same table as rules.ru.md', () => {
+    expect(synonymRows(rulesEn)).toEqual(synonymRows(rulesRu));
   });
 });
