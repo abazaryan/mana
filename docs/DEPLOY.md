@@ -331,6 +331,45 @@ Cloudflare); `400 {"error":"invalid"}` (перец на месте). Затем:
 мешают. Если в старой версии нет обработчика Cron, его вызовы будут падать без вреда; оставшиеся
 строки IP — удалить одной командой `d1 execute` (с согласия владельца).
 
+## Синхронизация (этап 6а, шаг 6а.3, Р39)
+
+Маршруты `POST /api/sync/push` и `GET /api/sync/pull` (код — `worker/sync.ts`), таблицы `journal` и
+`user_settings` — миграция `migrations/0003_sync.sql`. Новых секретов и привязок нет.
+
+### Миграция 0003 — порядок
+
+1. Локально, движок D1: `node tools/admin/wrangler.ts d1 migrations apply mana --local` → `0003_sync.sql ✅`
+   (сделано 23.10.2026: 4 команды; обе таблицы STRICT — вставка BLOB в TEXT отклонена).
+2. Что применится (только чтение): `node tools/admin/wrangler.ts d1 migrations list mana --remote` —
+   должна быть только `0003_sync.sql`.
+3. **Применение — только после «Подтверждаю: <команда>» владельца:**
+   `node tools/admin/wrangler.ts d1 migrations apply mana --remote`.
+4. Проверка: `migrations list` (нечего применять), `d1 info` (`"jurisdiction": "eu"`, таблиц на 2 больше).
+5. Push кода — только после утверждения таджикских строк 6а.3 и выгрузки журнала телефона в файл
+   (порядок владельца 23.10.2026, Р39).
+
+### Проверки после публикации (6а.3)
+
+```
+curl.exe -si -H "X-Mana-Version: <номер сборки>" https://mana.amisipehr.workers.dev/api/sync/pull
+curl.exe -si -H "X-Mana-Version: 202610210000" https://mana.amisipehr.workers.dev/api/sync/pull
+curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.workers.dev/api/sync/push
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: 202610210000" -H "Content-Type: application/json" -d "{}" https://mana.amisipehr.workers.dev/api/sync/push
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: <номер сборки>" -H "Content-Type: text/plain" -d "{}" https://mana.amisipehr.workers.dev/api/sync/push
+```
+
+Ожидается: `401 {"error":"unauthorized"}`; `426 {"error":"upgrade_required"}` (и на GET, Р39 п. 5);
+`403 {"error":"forbidden"}`; `426`; `415`. 413 — тело больше 1 МиБ (файлом, `-d @file`). Везде семь
+заголовков API. Отправка записей на настоящий сервер — **только после уведомления v2** (Р39 п. 17):
+два временных профиля Edge с новым тестовым аккаунтом, затем Opera на телефоне. Нагрузка: график CPU
+Worker в панели; `rows_read` получения — запрос только на чтение по тестовому аккаунту.
+
+### Откат 6а.3
+
+Rollback к версии 6а.2 или `git revert`. Таблицы 0003 остаются и старой версии не мешают. На устройствах
+уже есть таблица `outbox` (схема Dexie 2): старая сборка с ней открывается (проверено на fake-indexeddb,
+`src/platform/db.test.ts`), очередь просто не отправляется.
+
 ## 5. Установить на телефон (Android, Chrome)
 
 1. Открыть `https://mana.amisipehr.workers.dev` в **Chrome**, коснуться страницы и побыть на
