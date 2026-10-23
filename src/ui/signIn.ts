@@ -41,6 +41,8 @@ export function failureOf(result: { status: number; error: string }): SignInFail
 }
 
 export async function signInWith(db: ManaDb, send: (device: DeviceRef) => Promise<ApiResult<SignedIn>>): Promise<SignInOutcome> {
+  // TEMPORARY until stage 6a.4: then a device with progress is asked whether to add it to the
+  // account (STAGE6_RESEARCH 5.9) instead of being refused (string signin.hasAnswers).
   if (await hasLocalAnswers(db)) return { ok: false, reason: 'hasAnswers' };
   let meta = await db.meta.get('device');
   if (!meta) return { ok: false, reason: 'error' };

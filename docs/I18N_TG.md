@@ -211,8 +211,8 @@
 | `storage.notPersisted` | При нехватке места браузер может удалить данные. Сохраняйте резервную копию. | The browser may clear the data when space runs low. Keep a backup. | Ҳангоми камбуди ҷой мурургар метавонад додаҳоро пок кунад. Нусхаи пуштибон гиред. |
 | `storage.unsupported` | Браузер не сообщает, как хранит данные. | The browser does not report how it keeps the data. | Мурургар дар бораи захирагоҳ маълумот намедиҳад. |
 | `storage.request` | Запросить постоянное хранилище | Request persistent storage | Дархости захирагоҳи доимӣ |
-| `account.title` | Аккаунт | Account | Ҳисоб |
-| `account.signedOut` | Вы не вошли в аккаунт. Без аккаунта всё хранится только на этом устройстве. | You are not signed in. Without an account everything stays on this device only. | Шумо ба ҳисоб ворид нашудаед. Бе ҳисоб ҳама чиз танҳо дар ҳамин дастгоҳ аст. |
+| `account.title` | Аккаунт | Account | Ҳисоби корбарӣ |
+| `account.signedOut` | Вы не вошли в аккаунт. Войдите, чтобы прогресс был на всех ваших устройствах. | You are not signed in. Sign in to have your progress on all your devices. | Шумо ба ҳисоб ворид нашудаед. Бо ҳисоб ворид шавед, то пешрафтатон дар ҳамаи дастгоҳҳоятон дар дастрас бошад. |
 | `account.haveCode` | У меня есть код | I have a code | Код дорам |
 | `account.signedIn` | Вы вошли в аккаунт. | You are signed in. | Шумо ба ҳисоб ворид шудаед. |
 | `account.deviceName` | Имя этого устройства | Name of this device | Номи ин дастгоҳ |
@@ -220,34 +220,34 @@
 | `account.devices` | Устройства | Devices | Дастгоҳҳо |
 | `account.thisDevice` | (это устройство) | (this device) | (ин дастгоҳ) |
 | `account.lastSeen` | Последний вход: {date} | Last sign-in: {date} | Охирин вуруд: {date} |
-| `account.remove` | Отключить | Remove | Хориҷ кардан |
-| `account.removeConfirm` | Отключить «{name}» от аккаунта? Данные на нём останутся, но для нового входа понадобится приглашение или код. | Remove “{name}” from the account? Its data stays on it, but signing in again will need an invitation or a code. | Дастгоҳи «{name}» аз ҳисоб хориҷ шавад? Додаҳояш дар худи он мемонанд, вале барои ворид шудани дубора даъватнома ё код лозим мешавад. |
+| `account.remove` | Убрать | Remove | Ҳазф |
+| `account.removeConfirm` | Убрать «{name}» из аккаунта? Данные на нём останутся, но для нового входа понадобится приглашение или код. | Remove “{name}” from the account? Its data stays on it, but signing in again will need an invitation or a code. | Дастгоҳи «{name}» аз ҳисоб ҳазф шавад? Додаҳояш дар худи он мемонанд, вале барои вуруди дубора даъватнома ё код лозим мешавад. |
 | `account.addDevice` | Добавить устройство | Add a device | Иловаи дастгоҳ |
-| `account.codeHint` | На новом устройстве: Настройки → «У меня есть код» → введите этот код. Срабатывает один раз; осталось: {time} | On the new device: Settings → “I have a code” → enter this code. Works once; time left: {time} | Дар дастгоҳи нав: Танзимот → «Код дорам» → ин кодро ворид кунед. Як бор кор мекунад; боқӣ: {time} |
-| `account.codeExpired` | Срок кода истёк. | The code has expired. | Мӯҳлати код гузашт. |
+| `account.codeHint` | На новом устройстве: Настройки → «У меня есть код» → введите этот код. Срабатывает один раз; осталось: {time} | On the new device: Settings → “I have a code” → enter this code. Works once; time left: {time} | Дар дастгоҳи нав: Танзимот → «Код дорам» → ин кодро ворид кунед. Код якбормасраф аст; {time} боқӣ мондааст. |
+| `account.codeExpired` | Срок кода истёк. | The code has expired. | Код мунқазӣ шуд. |
 | `account.newCode` | Новый код | New code | Коди нав |
 | `account.signOut` | Выйти | Sign out | Хуруҷ |
-| `account.signOutConfirm` | Выйти из аккаунта на этом устройстве? Данные на устройстве останутся. | Sign out on this device? The data on this device stays. | Дар ин дастгоҳ аз ҳисоб хуруҷ мекунед? Додаҳо дар ин дастгоҳ мемонанд. |
-| `account.signedOutBy` | Это устройство больше не в аккаунте: его отключили с другого устройства или им долго не пользовались. Данные на устройстве на месте. | This device is no longer signed in: it was removed from another device or not used for a long time. The data on this device is still here. | Ин дастгоҳ дигар ба ҳисоб ворид нест: онро аз дастгоҳи дигар хориҷ карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд. |
-| `account.offline` | Сервер не отвечает. Попробуйте позже. | The server isn't responding. Try again later. | Сервер ҷавоб намедиҳад. Баъдтар бори дигар кӯшиш кунед. |
+| `account.signOutConfirm` | Выйти из аккаунта на этом устройстве? Данные на устройстве останутся. | Sign out on this device? The data on this device stays. | Дар ин дастгоҳ аз ҳисоб хориҷ мешавед? Додаҳо дар ин дастгоҳ мемонанд. |
+| `account.signedOutBy` | Это устройство больше не в аккаунте: его убрали из аккаунта с другого устройства или им долго не пользовались. Данные на устройстве на месте. | This device is no longer signed in: it was removed from the account on another device or not used for a long time. The data on this device is still here. | Ин дастгоҳ дигар ба ҳисоб ворид нест: онро бо дастгоҳи дигар аз ҳисоб ҳазф карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд. |
+| `account.offline` | Сервер не отвечает. Попробуйте позже. | The server isn't responding. Try again later. | Сервер дар дастрас нест. Баъдтар дубора талош кунед. |
 | `account.privacy` | Данные и конфиденциальность | Data and privacy | Додаҳо ва ҳарими хусусӣ |
 | `signin.title` | Вход | Sign in | Вуруд |
 | `signin.label` | Ссылка-приглашение или код | Invitation link or code | Даъватнома ё код |
-| `signin.hint` | Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства. | Paste the invitation link from the message or enter the 8-character code from your other device. | Даъватномаро аз паём часпонед ё коди 8-аломата аз дастгоҳи дигаратонро ворид кунед. |
+| `signin.hint` | Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства. | Paste the invitation link from the message or enter the 8-character code from your other device. | Даъватномаро аз паём часпонед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед. |
 | `signin.submit` | Войти | Sign in | Вуруд |
-| `signin.invalid` | Приглашение или код не подходят: неверные, уже использованы или срок истёк. Попросите новые. | The invitation or code doesn't work: it is wrong, already used or expired. Ask for a new one. | Даъватнома ё код кор намекунад: нодуруст аст, аллакай истифода шудааст ё мӯҳлаташ гузаштааст. Навашро дархост кунед. |
-| `signin.tooMany` | Слишком много попыток. Попробуйте позже. | Too many attempts. Try again later. | Кӯшишҳо хеле зиёд шуданд. Баъдтар бори дигар кӯшиш кунед. |
-| `signin.hasAnswers` | На этом устройстве уже есть ваши ответы. Вход на таком устройстве появится в следующей версии приложения — тогда ответы можно будет добавить в аккаунт. Сейчас ничего не изменилось, данные на месте. | This device already has your answers. Signing in on such a device comes in a later version of the app, and then the answers can be added to the account. Nothing has changed; your data is in place. | Дар ин дастгоҳ аллакай ҷавобҳои шумо ҳастанд. Ворид шудан дар чунин дастгоҳ дар нусхаи ояндаи барнома имконпазир мешавад — он гоҳ ҷавобҳоро ба ҳисоб илова кардан мумкин аст. Ҳоло ҳеҷ чиз тағйир наёфт; додаҳо дар ҷояшон. |
-| `signin.already` | Вы уже вошли в аккаунт на этом устройстве. | You are already signed in on this device. | Шумо дар ин дастгоҳ аллакай ба ҳисоб ворид шудаед. |
-| `signin.outdated` | Версия приложения устарела: закройте его и откройте снова. | This version of the app is out of date: close it and open it again. | Нусхаи барнома кӯҳна аст: онро пӯшед ва дубора кушоед. |
+| `signin.invalid` | Приглашение или код не подходят: неверные, уже использованы или срок истёк. Попросите новые. | The invitation or code doesn't work: it is wrong, already used or expired. Ask for a new one. | Даъватнома ё код кор намекунад: нодуруст аст, аз қабл истифода шудааст ё мунқазӣ шудааст. Навашро дархост кунед. |
+| `signin.tooMany` | Слишком много попыток. Попробуйте позже. | Too many attempts. Try again later. | Теъдоди талошҳо аз ҳад зиёд шуд. Баъдтар дубора талош кунед. |
+| `signin.hasAnswers` | На этом устройстве уже сохранён ваш прогресс. Приложение пока не умеет добавить его в аккаунт, поэтому вход на этом устройстве отключён. Ваши данные не изменились и на месте. | Your progress is already saved on this device. The app can't add it to an account yet, so signing in is turned off on this device. Your data hasn't changed and is still here. | Дар ин дастгоҳ аз қабл пешрафти шумо захира шудааст. Барнома ҳоло онро ба ҳисобатон илова карда наметавонад, бинобар ин вуруд ба ҳисоб дар ин дастгоҳ ғайрифаъол аст. Додаҳоятон тағйире накардаанд ва дар ҷояшон ҳастанд. |
+| `signin.already` | Вы уже вошли в аккаунт на этом устройстве. | You are already signed in on this device. | Шумо дар ин дастгоҳ аз қабл ба ҳисоб ворид шудаед. |
+| `signin.outdated` | Версия приложения устарела: закройте его и откройте снова. | This version of the app is out of date: close it and open it again. | Нусхаи барнома кӯҳна аст: онро бандед ва дубора кушоед. |
 | `signin.done` | Вы вошли в аккаунт. | You are signed in. | Шумо ба ҳисоб ворид шудед. |
-| `signin.error` | Что-то пошло не так. Попробуйте позже. | Something went wrong. Try again later. | Хато рух дод. Баъдтар бори дигар кӯшиш кунед. |
+| `signin.error` | Что-то пошло не так. Попробуйте позже. | Something went wrong. Try again later. | Хатое рух дод. Баъдтар дубора талош кунед. |
 | `join.title` | Приглашение | Invitation | Даъватнома |
 | `join.agree` | Согласен(на) | I agree | Мувофиқам |
 | `join.age` | Вам уже исполнилось 16 лет? | Are you 16 or older? | Шумо 16-сола шудаед? |
-| `join.ageHint` | Если нет — нужно согласие родителя или опекуна, на этом же устройстве. | If not, a parent or guardian must agree, on this same device. | Агар не, ризояти волидайн ё сарпараст лозим аст — дар ҳамин дастгоҳ. |
+| `join.ageHint` | Если нет — нужно согласие родителя или опекуна, на этом же устройстве. | If not, a parent or guardian must agree, on this same device. | Агар не, ризояти яке аз волидайн ё сарпараст лозим аст — дар ҳамин дастгоҳ. |
 | `join.parentHint` | Этот экран заполняет родитель или опекун. | A parent or guardian fills in this screen. | Ин саҳифаро яке аз волидайн ё сарпараст пур мекунад. |
-| `join.parentMissing` | Напишите своё имя и поставьте отметку. | Write your name and tick the box. | Номи худро нависед ва аломат гузоред. |
+| `join.parentMissing` | Напишите своё имя и подтвердите согласие. | Write your name and confirm your consent. | Номатонро нависед ва ризояти худро таъйид кунед. |
 | `join.signIn` | Войти | Sign in | Вуруд |
 | `join.deviceInvite` | Это приглашение — для входа этого устройства в ваш аккаунт. | This invitation signs this device in to your existing account. | Ин даъватнома барои ворид шудани ин дастгоҳ ба ҳисоби мавҷудаи шумост. |
 
