@@ -1,5 +1,5 @@
 /**
- * Renders the PNG icons of the web app manifest from their SVG sources (Р32):
+ * Renders the PNG icons of the web app manifest from their SVG sources (R32):
  * public/icon.svg (rounded, purpose "any") → icons/icon-192.png, icons/icon-512.png;
  * public/icons/maskable.svg (full square) → icons/maskable-512.png, icons/apple-touch-icon.png.
  * Run after changing an SVG: npm run icons. Uses headless Microsoft Edge (or Chrome via the

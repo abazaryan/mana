@@ -16,7 +16,7 @@ export function readAdminEnv(): AdminEnv {
   try {
     text = readFileSync(new URL('../.env', import.meta.url), 'utf8');
   } catch {
-    console.error('Файла tools/.env нет.');
+    console.error('tools/.env does not exist.');
     process.exit(1);
   }
   const vars = parseEnv(text);
@@ -24,7 +24,7 @@ export function readAdminEnv(): AdminEnv {
   const account = vars.CLOUDFLARE_ACCOUNT_ID?.trim();
   if (!token || !account) {
     const missing = [!token && 'MANA_ADMIN_API_TOKEN', !account && 'CLOUDFLARE_ACCOUNT_ID'].filter(Boolean);
-    console.error(`В tools/.env не задано: ${missing.join(', ')}.`);
+    console.error(`Not set in tools/.env: ${missing.join(', ')}.`);
     process.exit(1);
   }
   return { token, account };

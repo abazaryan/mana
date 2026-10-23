@@ -9,4 +9,4 @@ import { tableExtras, tajikTable } from '../src/ui/strings.ts';
 
 const out = new URL('../docs/I18N_TG.md', import.meta.url);
 await writeFile(out, tajikTable(tableExtras(FORM_LABELS, LANGUAGE_PACKS)), 'utf8');
-console.log('docs/I18N_TG.md обновлён.');
+console.log('docs/I18N_TG.md updated.');

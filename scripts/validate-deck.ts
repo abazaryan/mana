@@ -1,7 +1,7 @@
 /**
  * Checks a Mana deck ZIP before upload: npm run deck:check -- path/to/deck.zip
- * With `--with other.zip …`: also the checks against decks already installed (Р28 п. 8,
- * К1/К2) — the same as on import; decks of another learning language and the deck
+ * With `--with other.zip …`: also the checks against decks already installed (R28 item 8,
+ * K1/K2) — the same as on import; decks of another learning language and the deck
  * itself (same id) are left out.
  * Uses the same validator as the app (src/core/deckFormat.ts). Node 24+ (runs .ts directly).
  */
@@ -16,7 +16,7 @@ const at = args.indexOf('--with');
 const file = (at === -1 ? args : args.slice(0, at))[0];
 const withFiles = at === -1 ? [] : args.slice(at + 1);
 if (!file || (at !== -1 && withFiles.length === 0)) {
-  console.error('Использование: npm run deck:check -- путь/к/колоде.zip [--with установленная1.zip установленная2.zip …]');
+  console.error('Usage: npm run deck:check -- path/to/deck.zip [--with installed1.zip installed2.zip …]');
   process.exit(2);
 }
 
@@ -25,10 +25,10 @@ async function readOther(path: string): Promise<{ id: string; language: string; 
   try {
     const z = await JSZip.loadAsync(await readFile(path));
     const d = JSON.parse((await z.file(DECK_JSON)?.async('string')) ?? 'null');
-    if (!d || typeof d.id !== 'string' || typeof d.language !== 'string' || !Array.isArray(d.entries)) throw new Error('нет deck.json колоды');
+    if (!d || typeof d.id !== 'string' || typeof d.language !== 'string' || !Array.isArray(d.entries)) throw new Error('no deck.json of a deck');
     return d;
   } catch (e) {
-    console.error(`${path}: не удалось прочитать колоду для сверки (${e instanceof Error ? e.message : String(e)}).`);
+    console.error(`${path}: could not read the deck to compare with (${e instanceof Error ? e.message : String(e)}).`);
     process.exit(1);
   }
 }
@@ -39,7 +39,7 @@ try {
   bytes = await readFile(file);
   zip = await JSZip.loadAsync(bytes);
 } catch (e) {
-  console.error(`${file}: не удалось открыть как ZIP-архив (${e instanceof Error ? e.message : String(e)}).`);
+  console.error(`${file}: could not open as a ZIP archive (${e instanceof Error ? e.message : String(e)}).`);
   process.exit(1);
 }
 
@@ -58,19 +58,19 @@ if (r.deck && withFiles.length > 0) {
   cross.push(...crossDeckWarnings(r.deck.entries, others).map((w) => w.message));
 }
 
-for (const e of r.errors) console.log(`ОШИБКА: ${e.message}`);
-for (const w of r.warnings) console.log(`Предупреждение: ${w.message}`);
-for (const w of cross) console.log(`Предупреждение: ${w}`);
-for (const n of r.notes) console.log(`Сведение: ${n.message}`);
+for (const e of r.errors) console.log(`ERROR: ${e.message}`);
+for (const w of r.warnings) console.log(`WARNING: ${w.message}`);
+for (const w of cross) console.log(`WARNING: ${w}`);
+for (const n of r.notes) console.log(`NOTE: ${n.message}`);
 if (r.deck) {
   const audio = r.deck.entries.filter((e) => e.audio).length;
-  // Р30: the name from deck.json (in Russian, else any); the file name only without it.
+  // R30: the name from deck.json (in Russian, else any); the file name only without it.
   const title = deckTitle({ name: deckNameFromFileName(file), title: r.deck.title }, 'ru');
   console.log(
-    `OK: «${title}» (id ${r.deck.id}, редакция ${r.deck.revision}, язык ${r.deck.language}), ` +
-      `записей: ${r.deck.entries.length}, с аудио: ${audio}, размер: ${(bytes.length / 1024 / 1024).toFixed(1)} МБ.`,
+    `OK: "${title}" (id ${r.deck.id}, revision ${r.deck.revision}, language ${r.deck.language}), ` +
+      `entries: ${r.deck.entries.length}, with audio: ${audio}, size: ${(bytes.length / 1024 / 1024).toFixed(1)} MB.`,
   );
 } else {
-  console.log(`Колода не прошла проверку: ошибок ${r.errors.length}.`);
+  console.log(`The deck failed the check: ${r.errors.length} error(s).`);
 }
 process.exit(r.deck ? 0 : 1);
