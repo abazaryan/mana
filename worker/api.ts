@@ -1,8 +1,10 @@
+import { PUSH_BODY_LIMIT } from '../src/core/syncProtocol.ts';
 import { devices, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
 import { DEFAULT_BODY_LIMIT, SMALL_BODY_LIMIT } from './config.ts';
 import { isClientCurrent, isJson, isSafeMethod, isSameOrigin, readBody } from './guards.ts';
 import { health } from './health.ts';
 import { error } from './http.ts';
+import { pull, push } from './sync.ts';
 
 export interface Call {
   request: Request;
@@ -16,6 +18,8 @@ export interface Call {
 export interface Route {
   /** Changes data: refused with 426 for a client older than MIN_CLIENT (from 6a.3 on). */
   mutating?: boolean;
+  /** Changes nothing, yet refused with 426 for an old client too (the sync pull, R39). */
+  current?: boolean;
   /** Takes a JSON body: true — up to DEFAULT_BODY_LIMIT bytes, a number — up to that. */
   body?: true | number;
   handle(call: Call): Response | Promise<Response>;
@@ -26,7 +30,8 @@ export type Routes = Readonly<Record<string, Readonly<Partial<Record<string, Rou
 
 /**
  * Sign-in routes (6a.2): every one that changes data refuses an old client with 426 — except
- * logout, which must always work.
+ * logout, which must always work. Sync (6a.3): push and pull both refuse it — a device with an
+ * empty queue only pulls, and must learn about a newer format too (R39).
  */
 export const ROUTES: Routes = {
   '/api/health': { GET: { handle: ({ env }) => health(env) } },
@@ -39,6 +44,8 @@ export const ROUTES: Routes = {
   '/api/auth/device': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: renameDevice } },
   '/api/auth/devices/revoke': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: revokeDevice } },
   '/api/auth/logout': { POST: { handle: logout } },
+  '/api/sync/push': { POST: { mutating: true, body: PUSH_BODY_LIMIT, handle: push } },
+  '/api/sync/pull': { GET: { current: true, handle: pull } },
 };
 
 function allowHeader(methods: Readonly<Partial<Record<string, Route>>>): string {
@@ -58,7 +65,7 @@ export async function handleApi(request: Request, env: Env, routes: Routes = ROU
     if (!methods) return error('not_found', 404);
     const route = methods[request.method === 'HEAD' ? 'GET' : request.method];
     if (!route) return error('method_not_allowed', 405, { Allow: allowHeader(methods) });
-    if (route.mutating && !isClientCurrent(request.headers)) return error('upgrade_required', 426);
+    if ((route.mutating || route.current) && !isClientCurrent(request.headers)) return error('upgrade_required', 426);
     let body: unknown;
     if (route.body !== undefined) {
       if (!isJson(request.headers)) return error('unsupported_media_type', 415);

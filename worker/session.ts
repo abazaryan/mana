@@ -4,7 +4,7 @@
  * a request moves that end — and renews the cookie — at most once per SESSION_TOUCH.
  */
 import { clientBuild } from './guards.ts';
-import { COOKIE_MAX_AGE, SESSION_IDLE, SESSION_TOUCH } from './config.ts';
+import { COOKIE_MAX_AGE, DEVICE_TOUCH, SESSION_IDLE, SESSION_TOUCH } from './config.ts';
 import { profileFrom, sessionCookieName } from './profile.ts';
 import { newToken, sameHash, sha256Hex } from './tokens.ts';
 
@@ -37,8 +37,9 @@ export interface Session {
 
 /**
  * The live session of the request's profile, or null (no cookie, unknown, expired; also a
- * malformed X-Mana-Profile). Once a day: last_used_at, expires_at, the device's last_seen_at
- * and app version are written, and the cookie is renewed.
+ * malformed X-Mana-Profile). Once a day: last_used_at and expires_at are written and the cookie
+ * is renewed. The device's last_seen_at and app version — at most once an hour (6a.3: devices
+ * sync often, the list of devices shows the last exchange).
  */
 export async function getSession(db: D1Database, headers: Headers, now: number): Promise<Session | null> {
   const profile = profileFrom(headers);
@@ -48,20 +49,20 @@ export async function getSession(db: D1Database, headers: Headers, now: number):
   const tokenHash = await sha256Hex(token);
   const row = await db
     .prepare(
-      `SELECT s.token_hash, s.user_id, s.device_id, s.last_used_at, d.name
+      `SELECT s.token_hash, s.user_id, s.device_id, s.last_used_at, d.name, d.last_seen_at
        FROM sessions s JOIN devices d ON d.id = s.device_id
        WHERE s.token_hash = ? AND s.expires_at > ?`,
     )
     .bind(tokenHash, now)
-    .first<{ token_hash: string; user_id: string; device_id: string; last_used_at: number; name: string }>();
+    .first<{ token_hash: string; user_id: string; device_id: string; last_used_at: number; name: string; last_seen_at: number }>();
   if (!row || !sameHash(row.token_hash, tokenHash)) return null;
   const session: Session = { tokenHash, userId: row.user_id, deviceId: row.device_id, deviceName: row.name, profile };
+  const seen = db.prepare('UPDATE devices SET last_seen_at = ?, app_version = ? WHERE id = ?').bind(now, clientBuild(headers), row.device_id);
   if (now - row.last_used_at >= SESSION_TOUCH) {
-    await db.batch([
-      db.prepare('UPDATE sessions SET last_used_at = ?, expires_at = ? WHERE token_hash = ?').bind(now, now + SESSION_IDLE, tokenHash),
-      db.prepare('UPDATE devices SET last_seen_at = ?, app_version = ? WHERE id = ?').bind(now, clientBuild(headers), row.device_id),
-    ]);
+    await db.batch([db.prepare('UPDATE sessions SET last_used_at = ?, expires_at = ? WHERE token_hash = ?').bind(now, now + SESSION_IDLE, tokenHash), seen]);
     session.cookie = setCookie(profile, token);
+  } else if (now - row.last_seen_at >= DEVICE_TOUCH) {
+    await seen.run();
   }
   return session;
 }

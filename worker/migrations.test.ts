@@ -77,6 +77,21 @@ describe('migrations/', () => {
     }
   });
 
+  it('deleting an account erases its journal and settings too (6a.3); a record of no account is refused', () => {
+    const db = fakeD1();
+    db.sqlite.exec(`
+      INSERT INTO users (id, label, minor, created_at) VALUES ('u', 'test', 0, 1);
+      INSERT INTO journal (user_id, id, type, at, device_id, deck_id, entry_id, body, body_hash, received_at)
+        VALUES ('u', 'r', 'review', 1, 'd', 'k', 'e', '{}', 'h', 1);
+      INSERT INTO user_settings VALUES ('u', 'uiLang', '"tg"', 1, 1, 'd');
+    `);
+    expect(() =>
+      db.sqlite.exec("INSERT INTO journal (user_id, id, type, at, device_id, deck_id, entry_id, body, body_hash, received_at) VALUES ('x', 'r', 'review', 1, 'd', 'k', 'e', '{}', 'h', 1)"),
+    ).toThrow(/FOREIGN KEY/);
+    db.sqlite.exec("DELETE FROM users WHERE id = 'u'");
+    for (const table of ['journal', 'user_settings']) expect(db.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get(), table).toEqual({ n: 0 });
+  });
+
   it('consents: a parent name exactly when a parent agreed', () => {
     const db = fakeD1();
     db.sqlite.exec("INSERT INTO users (id, label, minor, created_at) VALUES ('u', 'test', 1, 1)");

@@ -25,6 +25,8 @@ export const CODE_TTL = 10 * MINUTE;
 export const SESSION_IDLE = 180 * DAY;
 /** …and a request moves that end (and the cookie) at most once per this. */
 export const SESSION_TOUCH = DAY;
+/** The device's last_seen_at and app version are written at most once per this (6a.3). */
+export const DEVICE_TOUCH = HOUR;
 /** The cookie: 400 days, Chrome's cap (STAGE6_RESEARCH 2.1), in seconds. */
 export const COOKIE_MAX_AGE = 400 * 24 * 3600;
 
@@ -37,3 +39,9 @@ export const IP_MAX_FAILURES = 10;
 export const GLOBAL_WINDOW = HOUR;
 export const GLOBAL_MAX_FAILURES = 50;
 export const GLOBAL_LOCK = HOUR;
+
+/**
+ * Push (6a.3, R39): true — the insert tells which records it stored (RETURNING); false — the
+ * same batch first reads which ids exist. Switch to false if D1 refuses RETURNING here.
+ */
+export const PUSH_USES_RETURNING = true;
