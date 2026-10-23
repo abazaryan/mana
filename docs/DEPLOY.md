@@ -259,6 +259,78 @@ curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.wo
 - Таблицы, добавленные миграциями, при откате кода остаются — они только добавлены и старой
   версии не мешают.
 
+## Вход (этап 6а, шаг 6а.2, Р37)
+
+- **Код** — `worker/auth.ts` (маршруты `/api/auth/*`), `session.ts` (cookie и сессии), `tokens.ts`
+  (токены, хэши, HMAC с перцем), `attempts.ts` (счётчики неудачных кодов), `cleanup.ts` (чистка
+  по Cron); клиент — `src/platform/api.ts`, `src/core/auth.ts`, экраны `JoinFlow`, `SignInScreen`,
+  `AccountSection`, `NoticeView`. Уведомление — `docs/NOTICE.md` (читается при сборке).
+- **Миграция `0002_auth.sql`** — таблицы входа; применяется по порядку выше (раздел «Миграции D1»).
+- **Cron Trigger** `17 * * * *` (`wrangler.jsonc`, `triggers.crons`) — раз в час удаляет строки
+  счётчиков с хэшем IP, окно которых кончилось (обещание уведомления: не дольше суток), истёкшие
+  сессии, коды и приглашения. На Free — 5 Cron Triggers на аккаунт
+  ([limits](https://developers.cloudflare.com/workers/platform/limits/)). Есть ли он — Worker `mana` →
+  **Settings** → **Trigger events** **(?)**. Если сборка упадёт на расписании (права токена) — текст
+  ошибки владельцу; Cron молча не убирать.
+
+### Секрет AUTH_PEPPER (добавляет владелец)
+
+Ключ HMAC для кодов привязки и IP-адресов. Токену администратора доступна только D1, поэтому
+секрет добавляется в панели. Значение нигде не выводится и не хранится; потеря не страшна —
+создать новое (пропадут только действующие коды, 10 минут, и счётчики, ≤ 1 часа).
+
+1. Я: `node tools/admin/pepper.ts` — значение в буфере обмена, на экран не выводится.
+2. Владелец: **Workers & Pages** → `mana` → **Settings** → **Variables and Secrets** → **Add** →
+   Type **Secret**, Variable name `AUTH_PEPPER`, Value — вставить (Ctrl+V) → **Deploy**
+   ([secrets](https://developers.cloudflare.com/workers/configuration/secrets/)). После сохранения
+   значение не видно ни в панели, ни в wrangler.
+3. Я: `node tools/admin/pepper.ts --clear` — буфер пуст. Если включён журнал буфера обмена Windows
+   (Win+V; Параметры → Система → Буфер обмена) — там «Очистить всё».
+4. Проверка после push: неверный код → `400 {"error":"invalid"}`. `500 {"error":"internal"}` на
+   `/api/auth/pair` значит, что секрета нет (вход по приглашению при этом работает).
+
+Для `wrangler dev` — своё значение: `node tools/admin/pepper.ts --dev` (файл `.dev.vars`, вне git).
+
+### Скрипты администратора (`tools/admin/`)
+
+Через обёртку токена (`wrangler.ts`); запись — временным `.sql` (удаляется), в SQL только хэши.
+Каждое действие пишет `admin_actions`. До 6а.5 — только тестовые аккаунты: метка начинается с
+`test-`, иначе скрипты отказывают. `--local` — та же работа с базой `wrangler dev` (ссылка на
+`http://127.0.0.1:8787`, только в файл, буфер не трогается).
+
+- `node tools/admin/invite.ts --label "test-…" [--minor]` — приглашение на 48 ч, одно использование.
+  Ссылка — в буфер обмена и в `tools/.out/` (вне git; файлы старше 48 ч удаляются), в терминал не
+  выводится. `--minor` — «до 16»: приложение попросит согласие родителя.
+- `node tools/admin/recover.ts --user <id> [--revoke-all]` — ссылка для существующего аккаунта (новое
+  устройство без кода, потерянные устройства); `--revoke-all` сначала выводит все его устройства.
+- `node tools/admin/revoke.ts --device <id>` / `--user <id>` — выход устройства (или всех устройств
+  аккаунта): сессии удаляются, следующий запрос — 401.
+- `node tools/admin/users.ts` — аккаунты: id, метка, «до 16», согласие (кто, версия), устройства с
+  последним входом. Без содержания занятий и без имени родителя.
+
+Любая другая запись в настоящую базу (`d1 execute` с DELETE / UPDATE) — сначала владельцу.
+
+### Проверки после публикации (6а.2)
+
+```
+curl.exe -si https://mana.amisipehr.workers.dev/api/auth/me
+curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.workers.dev/api/auth/pair
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: 202610210000" -H "Content-Type: application/json" -d "{}" https://mana.amisipehr.workers.dev/api/auth/pair
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: <номер сборки>" -H "Content-Type: application/json" -d "{\"code\":\"0000-0000\",\"device\":{\"id\":\"00000000-0000-4000-8000-000000000000\",\"name\":\"curl\"}}" https://mana.amisipehr.workers.dev/api/auth/pair
+```
+
+Ожидается: `401 {"error":"unauthorized"}` и стирающий `Set-Cookie`; `403 {"error":"forbidden"}`;
+**`426 {"error":"upgrade_required"}` — тело и статус без изменений** (проверка, что 426 проходит через
+Cloudflare); `400 {"error":"invalid"}` (перец на месте). Затем: два временных профиля Edge
+(приглашение, код привязки, отзыв), путь «до 16», `users.ts`, через час — строки IP в
+`auth_attempts` удалены (`d1 execute … --command "SELECT count(*) …"`, только чтение).
+
+### Откат 6а.2
+
+Как выше (Rollback к версии 6а.1 или `git revert`). Таблицы 0002 и секрет остаются и старой версии не
+мешают. Если в старой версии нет обработчика Cron, его вызовы будут падать без вреда; оставшиеся
+строки IP — удалить одной командой `d1 execute` (с согласия владельца).
+
 ## 5. Установить на телефон (Android, Chrome)
 
 1. Открыть `https://mana.amisipehr.workers.dev` в **Chrome**, коснуться страницы и побыть на

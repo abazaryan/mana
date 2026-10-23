@@ -69,7 +69,7 @@
 
 ## 3. Комментарии
 
-Строк: **346**, файлов: 74.
+Строк: **342**, файлов: 70.
 
 | Файл | Строк | Номера строк |
 | --- | --- | --- |
@@ -133,20 +133,16 @@
 | `src/platform/speech.ts` | 1 | 150 |
 | `src/ui/CopyButton.tsx` | 1 | 2 |
 | `src/ui/FirstRun.tsx` | 1 | 5 |
-| `src/ui/MainApp.tsx` | 1 | 19 |
 | `src/ui/NextButton.tsx` | 1 | 2 |
 | `src/ui/RatingPanel.tsx` | 1 | 2 |
-| `src/ui/Root.tsx` | 1 | 9 |
 | `src/ui/RulesUpdate.tsx` | 1 | 2 |
 | `src/ui/VoiceCheck.tsx` | 1 | 2 |
 | `src/ui/i18n.tsx` | 1 | 6 |
 | `src/ui/keyboardMode.tsx` | 1 | 2 |
 | `vite.config.ts` | 1 | 5 |
-| `worker/config.ts` | 1 | 5 |
 | `worker/profile.ts` | 1 | 2 |
 | `worker/test/sqlite-d1.ts` | 1 | 3 |
 | `worker/wrangler-config.test.ts` | 1 | 6 |
-| `wrangler.jsonc` | 1 | 2 |
 
 ## 4. Тексты-данные (шаблон для ИИ в `deckPrompt.ts`, описания и сообщения проверки в `deckFormat.ts`, схема)
 
@@ -168,4 +164,4 @@
 | `tools/lab/check-cloudflare.ts` | 10 | 11, 29, 44–46, 51–52, 78–79, 81 |
 | `tools/lab/make-set.ts` | 10 | 29, 50–51, 78–80, 86, 88, 90, 95 |
 
-Всего: 1037 строк.
+Всего: 1033 строки (было 1037; 23.10.2026 при 6а.2 исправлены `worker/config.ts`, `wrangler.jsonc`, `src/ui/MainApp.tsx`, `src/ui/Root.tsx`).
