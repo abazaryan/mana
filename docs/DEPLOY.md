@@ -358,9 +358,9 @@ curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: 202610
 curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: <номер сборки>" -H "Content-Type: text/plain" -d "{}" https://mana.amisipehr.workers.dev/api/sync/push
 ```
 
-Ожидается: `401 {"error":"unauthorized"}`; `426 {"error":"upgrade_required"}` (и на GET, Р39 п. 5);
+Ожидается: `401 {"error":"unauthorized"}`; `426 {"error":"upgrade_required"}` (и на GET, Р39 п. 5; `MIN_CLIENT` с 6а.3 — `202610241450`, сборка 6а.2 тоже получает 426);
 `403 {"error":"forbidden"}`; `426`; `415`. 413 — тело больше 1 МиБ (файлом, `-d @file`). Везде семь
-заголовков API. Отправка записей на настоящий сервер — **только после уведомления v2** (Р39 п. 17):
+заголовков API. Аккаунт без согласия текущей версии уведомления (v2) получает на push и pull `403 {"error":"consent_required"}` (Р39 п. 18). Отправка записей на настоящий сервер — с новым тестовым аккаунтом, согласие v2 (Р39 п. 17):
 два временных профиля Edge с новым тестовым аккаунтом, затем Opera на телефоне. Нагрузка: график CPU
 Worker в панели; `rows_read` получения — запрос только на чтение по тестовому аккаунту.
 
