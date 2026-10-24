@@ -156,11 +156,24 @@ export async function markNeedsUpdate(db: ManaDb, reason: 'client' | 'rules', bu
   });
 }
 
-/** The last exchange went through to the end. */
+/** The last exchange went through to the end (so the account has the consent it needs). */
 export async function markSynced(db: ManaDb, now = new Date()): Promise<void> {
   await db.transaction('rw', db.meta, async () => {
     const meta = await deviceRow(db);
-    await db.meta.put({ ...meta, sync: { ...syncOf(meta), lastOkAt: now } });
+    const { needsConsent: _given, ...sync } = syncOf(meta);
+    await db.meta.put({ ...meta, sync: { ...sync, lastOkAt: now } });
+  });
+}
+
+/**
+ * The server wants the account's consent to notice `version` first (403 consent_required, R39):
+ * no exchange in this run; the queue stays and goes after the consent. The screen for a new
+ * consent comes with stage 6a.5; until then the device does not sync, without retries.
+ */
+export async function markNeedsConsent(db: ManaDb, version: number, now = new Date()): Promise<void> {
+  await db.transaction('rw', db.meta, async () => {
+    const meta = await deviceRow(db);
+    await db.meta.put({ ...meta, sync: { ...syncOf(meta), needsConsent: { version, at: now } } });
   });
 }
 

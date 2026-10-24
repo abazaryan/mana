@@ -114,20 +114,20 @@ describe('POST /api/auth/invite: what the invitation is, without using it', () =
 });
 
 describe('POST /api/auth/redeem', () => {
-  it('16 or older: account, device, consent v1 (self), session; only hashes stored', async () => {
+  it('16 or older: account, device, consent to the current notice (self), session; only hashes stored', async () => {
     const w = world();
     const token = await invite(w, { label: 'test-adult' });
     const dev = device();
-    const response = await send(w, '/api/auth/redeem', { body: { token, device: dev, consent: adult }, headers: { 'X-Mana-Version': '202610231500' } });
+    const response = await send(w, '/api/auth/redeem', { body: { token, device: dev, consent: adult }, headers: { 'X-Mana-Version': String(MIN_CLIENT + 1) } });
     expect(response.status).toBe(200);
     const { userId, device: got } = (await response.json()) as { userId: string; device: unknown };
     expect(got).toEqual(dev);
     expect(rows(w, 'SELECT label, minor, created_at FROM users WHERE id = ?', userId)).toEqual([{ label: 'test-adult', minor: 0, created_at: T0 }]);
     expect(rows(w, 'SELECT notice_version, given_by, parent_name, device_id, given_at FROM consents WHERE user_id = ?', userId)).toEqual([
-      { notice_version: 1, given_by: 'self', parent_name: null, device_id: dev.id, given_at: T0 },
+      { notice_version: NOTICE_VERSION, given_by: 'self', parent_name: null, device_id: dev.id, given_at: T0 },
     ]);
     expect(rows(w, 'SELECT user_id, name, app_version, revoked_at FROM devices WHERE id = ?', dev.id)).toEqual([
-      { user_id: userId, name: dev.name, app_version: 202610231500, revoked_at: null },
+      { user_id: userId, name: dev.name, app_version: MIN_CLIENT + 1, revoked_at: null },
     ]);
     const cookieToken = cookieOf(response).split('=')[1]!;
     expect(rows(w, 'SELECT token_hash, expires_at FROM sessions')).toEqual([{ token_hash: await sha256Hex(cookieToken), expires_at: T0 + SESSION_IDLE }]);
@@ -198,7 +198,7 @@ describe('POST /api/auth/redeem', () => {
     const { userId } = await signIn(w, { minor: 1, consent: parent('  Nodira   Karimova ') });
     expect(rows(w, 'SELECT minor FROM users')).toEqual([{ minor: 1 }]);
     expect(rows(w, 'SELECT given_by, parent_name, notice_version FROM consents WHERE user_id = ?', userId)).toEqual([
-      { given_by: 'parent', parent_name: 'Nodira Karimova', notice_version: 1 },
+      { given_by: 'parent', parent_name: 'Nodira Karimova', notice_version: NOTICE_VERSION },
     ]);
   });
 

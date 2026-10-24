@@ -10,11 +10,12 @@
  */
 import type { FSRS } from 'ts-fsrs';
 import { BATCH_GAP_MS, KEEPALIVE_BYTES, PULL_AGAIN_MS, PUSH_BATCH, PUSH_BATCH_BYTES, SendTimer, backoffDelay, smallerBatch } from '../core/sync';
+import { NOTICE_VERSION } from '../core/notice';
 import { PULL_MAX } from '../core/syncProtocol';
 import type { ApiResult, SyncTransport } from './api';
 import type { ManaDb } from './db';
 import { notifySyncChanged, onQueued } from './syncEvents';
-import { applyPull, applyPushResult, markNeedsUpdate, markSynced, nextBatch, syncOf } from './syncStore';
+import { applyPull, applyPushResult, markNeedsConsent, markNeedsUpdate, markSynced, nextBatch, syncOf } from './syncStore';
 
 export interface SyncEnv {
   db: ManaDb;
@@ -30,16 +31,18 @@ export interface SyncEnv {
   onNeedsUpdate?: () => void;
 }
 
-export type RunResult = 'ok' | 'offline' | 'failed' | 'unauthorized' | 'update' | 'busy' | 'signedOut';
+export type RunResult = 'ok' | 'offline' | 'failed' | 'unauthorized' | 'update' | 'consent' | 'busy' | 'signedOut';
 
 const LOCK = 'mana-sync';
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** What a failed request means for the run. */
-function failure(res: Extract<ApiResult<unknown>, { ok: false }>, online: boolean): 'unauthorized' | 'update' | 'offline' | 'retry' | 'failed' {
+function failure(res: Extract<ApiResult<unknown>, { ok: false }>, online: boolean): 'unauthorized' | 'update' | 'consent' | 'offline' | 'retry' | 'failed' {
   if (res.status === 401) return 'unauthorized';
   if (res.status === 426) return 'update';
+  // No consent to the current notice (R39): wait for it — no retries, the queue stays.
+  if (res.status === 403 && res.error === 'consent_required') return 'consent';
   if (res.status === 0 && !online) return 'offline';
   if (res.status === 0 || res.status >= 500 || res.status === 413) return 'retry';
   return 'failed';
@@ -75,6 +78,10 @@ async function run(env: SyncEnv): Promise<RunResult> {
       env.onNeedsUpdate?.();
       return 'update';
     }
+    if (what === 'consent') {
+      await markNeedsConsent(db, NOTICE_VERSION);
+      return 'consent';
+    }
     if (what === 'retry') {
       const smaller = smallerBatch(batch.ids.length);
       if (smaller !== null) {
@@ -98,6 +105,7 @@ async function run(env: SyncEnv): Promise<RunResult> {
         env.onNeedsUpdate?.();
         return 'update';
       }
+      if (what === 'consent') await markNeedsConsent(db, NOTICE_VERSION);
       if (changed) notifySyncChanged();
       return what === 'retry' ? 'failed' : what;
     }
@@ -204,7 +212,7 @@ export class SyncEngine {
         } else if (result === 'failed' || result === 'busy') {
           this.failures++;
           this.retryAt = Date.now() + backoffDelay(this.failures);
-        } else if (result === 'unauthorized' || result === 'update' || result === 'signedOut') {
+        } else if (result === 'unauthorized' || result === 'update' || result === 'consent' || result === 'signedOut') {
           this.stop();
         }
       })

@@ -68,6 +68,11 @@ export interface SyncState {
   needsUpdate?: { reason: 'client' | 'rules'; build: number; at: Date };
   /** Records came with newer rules and the cards were not rebuilt: rebuild after the update. */
   needsRebuild?: boolean;
+  /**
+   * The server wants the account's consent to this notice version first (R39); cleared by the
+   * next exchange that goes through. The screen for it — stage 6a.5.
+   */
+  needsConsent?: { version: number; at: Date };
 }
 
 export type OutboxStatus = 'pending' | 'rejected' | 'conflict';

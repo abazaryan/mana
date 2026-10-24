@@ -258,3 +258,27 @@ describe('the device seen', () => {
     expect(seen()).toBe(T0 + HOUR);
   });
 });
+
+describe('consent to the current notice (R39)', () => {
+  const cases: [string, Parameters<typeof signedIn>[3], number][] = [
+    ['no consent at all', { consent: null }, 403],
+    ['a consent to version 1 only', { consent: { by: 'self', version: 1 } }, 403],
+    ['under 16, consent given by the child (self) to the current version', { minor: true, consent: { by: 'self' } }, 403],
+    ['under 16, a parent agreed to the current version', { minor: true, consent: { by: 'parent' } }, 200],
+    ['16 or older, agreed to the current version', { consent: { by: 'self' } }, 200],
+  ];
+  it.each(cases)('%s → push and pull %i', async (_name, opts, status) => {
+    const w = world();
+    const a = await signedIn(w, undefined, T0, opts);
+    const res = await pushTo(w, a, { records: [record(a)], settings: [{ key: 'newPerDay', value: 10, mode: 'set' }] });
+    expect(res.status).toBe(status);
+    const back = await send(w, '/api/sync/pull', { method: 'GET', cookie: a.cookie });
+    expect(back.status).toBe(status);
+    if (status === 403) {
+      expect(await res.json()).toEqual({ error: 'consent_required' });
+      expect(await back.json()).toEqual({ error: 'consent_required' });
+      expect(count(w, 'SELECT count(*) AS n FROM journal')).toBe(0);
+      expect(count(w, 'SELECT count(*) AS n FROM user_settings')).toBe(0);
+    }
+  });
+});

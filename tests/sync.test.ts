@@ -78,10 +78,10 @@ function transportOf(w: World, d: () => Device): SyncTransport {
 }
 
 /** A device signed in to the account (a new one unless `userId`), with an empty journal. */
-async function device(w: World, userId?: string): Promise<Device> {
+async function device(w: World, userId?: string, opts?: Parameters<typeof signedIn>[3]): Promise<Device> {
   const db = new ManaDb(`sync-${++n}-${Date.now()}`);
   open.push(db);
-  const who = await signedIn(w, userId);
+  const who = await signedIn(w, userId, undefined, opts);
   await ensureDevice(db);
   await db.settings.put({ userId: who.userId, uiLang: 'tg', meaningLang: 'tg', newPerDay: 5, updatedAt: new Date(T) });
   await markSignedIn(db, who.userId, 'test');
@@ -399,6 +399,36 @@ describe('versions', () => {
     await expect(applyPull(a.db, scheduler, page, a.env.build)).rejects.toThrow();
     expect(await a.db.log.count()).toBe(0);
     expect((await a.db.meta.get('device'))!.sync).toBeUndefined();
+  });
+});
+
+describe('consent to the current notice (R39)', () => {
+  it('403 consent_required: one request, no retries, the queue stays; after the consent it goes', async () => {
+    const w = world();
+    const a = await device(w, undefined, { consent: null });
+    await recordReview(a.db, scheduler, await actorOf(a), answer('e1', T, Rating.Good));
+    await recordReview(a.db, scheduler, await actorOf(a), answer('e2', T, Rating.Good));
+    await sync(a, 'consent');
+    expect(a.calls).toHaveLength(1);
+    expect((await queueCounts(a.db)).pending).toBe(2);
+    expect((await a.db.meta.get('device'))!.sync!.needsConsent).toMatchObject({ version: 2 });
+    expect(w.db.sqlite.prepare('SELECT count(*) AS n FROM journal').get()).toEqual({ n: 0 });
+
+    // The consent is given (stage 6a.5 will do it on a screen): the queue goes, the mark goes.
+    w.db.sqlite
+      .prepare("INSERT INTO consents (id, user_id, notice_version, given_by, parent_name, device_id, given_at) VALUES ('c', ?, 2, 'self', NULL, 'd', 1)")
+      .run(a.who.userId);
+    await sync(a);
+    expect((await queueCounts(a.db)).pending).toBe(0);
+    expect((await a.db.meta.get('device'))!.sync!.needsConsent).toBeUndefined();
+  });
+
+  it('under 16 with a consent the child gave (self): refused too', async () => {
+    const w = world();
+    const a = await device(w, undefined, { minor: true, consent: { by: 'self' } });
+    await recordReview(a.db, scheduler, await actorOf(a), answer('e1', T, Rating.Good));
+    await sync(a, 'consent');
+    expect((await queueCounts(a.db)).pending).toBe(1);
   });
 });
 

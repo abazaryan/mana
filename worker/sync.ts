@@ -4,9 +4,11 @@
  * computed here (cards are derived on the devices, R10).
  *
  * The number of D1 queries does not grow with a push: all records go in one JSON parameter
- * (json_each), so a push is one session read and one batch of at most five statements.
+ * (json_each), so a push is the session read, the consent check and one batch of at most six
+ * statements. Both routes need the account's consent to the current notice (403 otherwise).
  */
 import { checkPushed, type RecordProblem, type StoredRecord } from '../src/core/journalRecord.ts';
+import { NOTICE_VERSION } from '../src/core/notice.ts';
 import {
   isSyncedSetting,
   PULL_MAX,
@@ -26,6 +28,26 @@ import { sha256Hex } from './tokens.ts';
 type Json = Record<string, unknown>;
 
 const isObject = (value: unknown): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * The account agreed to the current notice (R39): a consent of version NOTICE_VERSION or later,
+ * given by a parent or guardian when the account is under 16 (R37 item 9). Without it nothing
+ * of the journal or the settings is stored or sent back — 403 consent_required. A query of its
+ * own, not part of the session read: sign-in routes need no consent, and the session stays
+ * one simple join.
+ */
+async function hasConsent(db: D1Database, userId: string): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 AS ok FROM users u WHERE u.id = ?1 AND EXISTS (
+         SELECT 1 FROM consents c WHERE c.user_id = u.id AND c.notice_version >= ?2 AND (u.minor = 0 OR c.given_by = 'parent'))`,
+    )
+    .bind(userId, NOTICE_VERSION)
+    .first();
+  return row !== null;
+}
+
+const noConsent = () => error('consent_required', 403);
 
 /** Settings changes in one push: a few keys, each once at most. */
 const MAX_SETTINGS = 10;
@@ -121,6 +143,7 @@ async function readRecords(list: readonly unknown[], session: Session, now: numb
  */
 export const makePush = (returning: boolean) => withSession(async ({ env, body, now }: Call, session) => {
   const db = env.DB;
+  if (!(await hasConsent(db, session.userId))) return noConsent();
   if (!isObject(body) || !Array.isArray(body.records) || body.records.length > PUSH_MAX_RECORDS) return error('bad_request', 400);
   const settings = readSettingChanges(body.settings);
   if (!settings) return error('bad_request', 400);
@@ -169,6 +192,7 @@ function queryInt(params: URLSearchParams, name: string, fallback: number, min: 
  * order, and every synced setting. Bodies go out as stored, without being parsed (CPU).
  */
 export const pull = withSession(async ({ request, env, now }: Call, session) => {
+  if (!(await hasConsent(env.DB, session.userId))) return noConsent();
   const params = new URL(request.url).searchParams;
   const after = queryInt(params, 'after', 0, 0, Number.MAX_SAFE_INTEGER);
   const limit = queryInt(params, 'limit', PULL_MAX, 1, PULL_MAX);
