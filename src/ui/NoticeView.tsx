@@ -35,6 +35,15 @@ export function NoticeBlocks({ blocks }: { blocks: NoticeBlock[] }) {
               {block.items.map((item, j) => (
                 <li key={j}>
                   <Runs runs={item} />
+                  {(block.sub?.[j]?.length ?? 0) > 0 && (
+                    <ul className="sub">
+                      {block.sub![j]!.map((part, k) => (
+                        <li key={k}>
+                          <Runs runs={part} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

@@ -9,7 +9,7 @@
  * server accepts no other. A new text in docs/NOTICE.md means a new version and new consent
  * (STAGE6_RESEARCH 8.5): change both together (a test checks the version line of the text).
  */
-export const NOTICE_VERSION = 1;
+export const NOTICE_VERSION = 2;
 
 export type NoticeLang = 'tg' | 'ru' | 'en';
 
@@ -22,7 +22,11 @@ export interface Inline {
 
 export type NoticeBlock =
   | { kind: 'p'; inline: Inline[] }
-  | { kind: 'list'; items: Inline[][] }
+  /**
+   * "– item" lines; "· sub-item" lines under an item (version 2: what is stored, in detail) go
+   * to `sub` at the same index (absent or empty — none).
+   */
+  | { kind: 'list'; items: Inline[][]; sub?: Inline[][][] }
   /** "Your name: [field]" — a text field with this label. */
   | { kind: 'field'; label: string }
   /** "☐ I am a parent…" — a checkbox with this label. */
@@ -59,8 +63,26 @@ export function inline(line: string): Inline[] {
 }
 
 const ITEM = /^[–-]\s+/;
+const SUB = /^·\s+/;
 const FIELD = /^(.*?):\s*\[[^\]]+\]\s*$/;
 const CHECK = /^☐\s*(.*)$/;
+
+/** Item lines, each perhaps followed by its sub-item lines, as one list block. */
+function list(lines: string[]): NoticeBlock {
+  const items: Inline[][] = [];
+  const sub: Inline[][][] = [];
+  for (const line of lines) {
+    if (SUB.test(line)) sub[items.length - 1]!.push(inline(line.replace(SUB, '')));
+    else {
+      items.push(inline(line.replace(ITEM, '')));
+      sub.push([]);
+    }
+  }
+  return sub.some((s) => s.length > 0) ? { kind: 'list', items, sub } : { kind: 'list', items };
+}
+
+/** A run of list lines: it starts with an item, then items and their sub-items. */
+const isList = (lines: string[]) => lines.length > 0 && ITEM.test(lines[0]!) && lines.every((l) => ITEM.test(l) || SUB.test(l));
 
 function blocks(lines: string[]): NoticeBlock[] {
   const out: NoticeBlock[] = [];
@@ -68,11 +90,11 @@ function blocks(lines: string[]): NoticeBlock[] {
   const flush = () => {
     if (group.length === 0) return;
     const [first = '', ...rest] = group;
-    if (ITEM.test(first)) {
-      out.push({ kind: 'list', items: group.map((l) => inline(l.replace(ITEM, ''))) });
-    } else if (rest.length > 0 && rest.every((l) => ITEM.test(l))) {
+    if (isList(group)) {
+      out.push(list(group));
+    } else if (isList(rest)) {
       out.push({ kind: 'p', inline: inline(first) });
-      out.push({ kind: 'list', items: rest.map((l) => inline(l.replace(ITEM, ''))) });
+      out.push(list(rest));
     } else {
       for (const line of group) {
         const field = FIELD.exec(line);

@@ -36,6 +36,27 @@ describe('docs/NOTICE.md — the approved notice, read at build time', () => {
     for (const lang of LANGS) expect(text(parseNotice(markdown, lang).notice.blocks)).not.toContain('auth_attempts');
   });
 
+  it.each(LANGS)('%s: "what we store" is one list whose first item has its sub-items (version 2), no stray bullets', (lang) => {
+    const { notice } = parseNotice(markdown, lang);
+    const lists = notice.blocks.filter((b) => b.kind === 'list');
+    const stored = lists[0]!;
+    expect(stored.kind === 'list' && stored.items.length).toBeGreaterThanOrEqual(6);
+    expect(stored.kind === 'list' && stored.sub?.[0]?.length).toBe(6);
+    const paragraphs = notice.blocks.filter((b) => b.kind === 'p').map((b) => (b.kind === 'p' ? b.inline.map((r) => r.text).join('') : ''));
+    expect(paragraphs.filter((t) => /^[–·-]\s/.test(t))).toEqual([]);
+  });
+
+  it('no line of the header (with its service line, corrected before publication) is in any shown text', () => {
+    const lines = markdown.split('\n');
+    const header = lines.slice(1, lines.indexOf('## tg')).map((l) => l.replace(/^[-–]\s+/, '').trim()).filter((l) => l.length > 20 && l !== '---');
+    expect(header.length).toBeGreaterThanOrEqual(5);
+    for (const lang of LANGS) {
+      const { notice, parent } = parseNotice(markdown, lang);
+      const shown = [text(notice.blocks), text(parent.blocks), notice.title, parent.title].join('\n');
+      for (const line of header) expect(shown).not.toContain(line);
+    }
+  });
+
   it('the header of the file names the same version', () => {
     expect(markdown.split('\n')[0]).toMatch(new RegExp(`\\s${NOTICE_VERSION} \\(`));
   });
@@ -51,6 +72,23 @@ describe('inline markdown', () => {
       { text: 'cnpd.public.lu', href: 'https://cnpd.public.lu' },
       { text: ')' },
     ]);
+  });
+
+  it('sub-items go under the item before them; a list may follow a lead-in line', () => {
+    const md = ['## en', '### Notice', 'We store:', '– log — one record:', '  · what', '  · how', '– settings', '', 'End.', '### Parent', 'Name: [field]', '☐ I agree.'].join('\n');
+    const [lead, items, end] = parseNotice(md, 'en').notice.blocks;
+    expect(lead).toEqual({ kind: 'p', inline: [{ text: 'We store:' }] });
+    expect(items).toEqual({
+      kind: 'list',
+      items: [[{ text: 'log — one record:' }], [{ text: 'settings' }]],
+      sub: [[[{ text: 'what' }], [{ text: 'how' }]], []],
+    });
+    expect(end).toEqual({ kind: 'p', inline: [{ text: 'End.' }] });
+  });
+
+  it('a list without sub-items has no sub field (version 1 shape)', () => {
+    const md = ['## en', '### Notice', '– a', '– b', '### Parent', 'Name: [field]'].join('\n');
+    expect(parseNotice(md, 'en').notice.blocks).toEqual([{ kind: 'list', items: [[{ text: 'a' }], [{ text: 'b' }]] }]);
   });
 
   it('a missing language or section is an error, not an empty screen', () => {
