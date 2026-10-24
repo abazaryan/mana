@@ -338,7 +338,7 @@ Cloudflare); `400 {"error":"invalid"}` (перец на месте). Затем:
 
 ### Миграция 0003 — порядок
 
-1. Локально, движок D1: `node tools/admin/wrangler.ts d1 migrations apply mana --local` → `0003_sync.sql ✅`
+1. Местный D1 в `wrangler`: `node tools/admin/wrangler.ts d1 migrations apply mana --local` → `0003_sync.sql ✅`
    (сделано 23.10.2026: 4 команды; обе таблицы STRICT — вставка BLOB в TEXT отклонена).
 2. Что применится (только чтение): `node tools/admin/wrangler.ts d1 migrations list mana --remote` —
    должна быть только `0003_sync.sql`.
