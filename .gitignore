@@ -17,6 +17,8 @@ reference/
 decks/
 # Built decks and lesson texts dropped into the repository root
 /*.zip
+# Study log files saved from the app (personal data; any folder)
+mana-journal-*.json
 
 # Secrets and speech-recognizer lab (recordings live outside the repo, in E:\dev\mana-lab)
 .env
