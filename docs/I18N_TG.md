@@ -157,20 +157,20 @@
 | `pack.unsupported` | Этот браузер не умеет распознавать на устройстве. | This browser has no on-device recognition. | Ин мурургар бозшиносӣ дар дастгоҳро надорад. |
 | `pack.download` | Скачать {lang} для распознавания на устройстве | Download {lang} for on-device recognition | Боргирии забони {lang} барои бозшиносӣ дар дастгоҳ |
 | `pack.failed` | Скачать не удалось. | The download failed. | Боргирӣ нашуд. |
-| `decks.paste` | Вставить текст колоды | Paste deck text | Часпондани матни маҷмӯа |
+| `decks.paste` | Вставить текст колоды | Paste deck text | Ҷойгузории матни маҷмӯа |
 | `decks.makeWithAi` | Сделать колоду с ИИ | Make a deck with AI | Сохтани маҷмӯа бо ҳуши маснӯӣ |
 | `privacy.voice` | Голосовой ответ распознаёт браузер: Chrome отправляет звук в Google, Edge — в Microsoft. | Your browser recognises voice answers: Chrome sends the audio to Google, Edge to Microsoft. | Гуфтори шуморо мурургар бозшиносӣ мекунад: Chrome садоро ба Google мефиристад, Edge — ба Microsoft. |
 | `paste.title` | Текст колоды | Deck text | Матни маҷмӯа |
-| `paste.hint` | Вставьте сюда ответ ИИ с deck.json целиком. | Paste the answer of the AI with the whole deck.json here. | Ҷавоби ҳуши маснӯиро бо deck.json-и пурра ин ҷо часпонед. |
+| `paste.hint` | Вставьте сюда ответ ИИ с deck.json целиком. | Paste the answer of the AI with the whole deck.json here. | Ҷавоби ҳуши маснӯиро бо deck.json-и пурра ин ҷо ҷойгузорӣ кунед. |
 | `import.notes` | Сведения: {n} | Notes: {n} | Маълумот: {n} |
 | `import.fixFirst` | Лучше сначала исправить колоду: отдайте «Копию для ИИ» вашему ИИ. | Better fix the deck first: give the “Copy for the AI” to your AI. | Беҳтар аст аввал маҷмӯаро ислоҳ кунед: «Нусха барои ҳуши маснӯӣ»-ро ба ҳуши маснӯӣ диҳед. |
 | `import.copyReport` | Копия для ИИ | Copy for the AI | Нусха барои ҳуши маснӯӣ |
 | `common.copied` | Скопировано | Copied | Нусха гирифта шуд |
 | `common.copyFailed` | Не удалось скопировать — выделите текст ниже вручную. | Could not copy — select the text below by hand. | Нусха гирифта нашуд — матни поёнро дастӣ интихоб кунед. |
-| `prompt.step1` | Нажмите «Копировать инструкцию», вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT) и отправьте. ИИ будет говорить по-русски; можно попросить другой язык. | Tap “Copy the instructions”, paste the text into a chat with an AI (Claude, Gemini, ChatGPT) and send it. The AI will talk in English; you can ask for another language. | «Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед. |
+| `prompt.step1` | Нажмите «Копировать инструкцию», вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT) и отправьте. ИИ будет говорить по-русски; можно попросить другой язык. | Tap “Copy the instructions”, paste the text into a chat with an AI (Claude, Gemini, ChatGPT) and send it. The AI will talk in English; you can ask for another language. | «Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) ҷойгузорӣ кунед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед. |
 | `prompt.step2` | ИИ сначала спросит: из чего делать колоду (тема, текст или фото страницы учебника), что из этого взять и сколько записей. | The AI asks first: what to make the deck from (a topic, a text or a photo of a textbook page), what to take from it and how many entries. | Ҳуши маснӯӣ аввал мепурсад: маҷмӯаро аз чӣ созад (мавзӯъ, матн ё акси саҳифаи китоби дарсӣ), чиро аз он гирад ва чанд омӯзбарг бошад. |
 | `prompt.step3` | Затем ИИ покажет таблицу записей — проверьте её и напишите исправления. deck.json он даст только после вашего подтверждения. | Then the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after you confirm. | Баъд ҳуши маснӯӣ ҷадвали омӯзбаргҳоро нишон медиҳад — онро санҷед ва ислоҳҳоро нависед. deck.json-ро танҳо пас аз таъйиди шумо медиҳад. |
-| `prompt.step4` | Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить. | Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them. | Ҷавоби ҳуши маснӯиро дар «Моно» часпонед: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ часпонед ва дархост кунед, ки ислоҳ кунад. |
+| `prompt.step4` | Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить. | Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them. | Ҷавоби ҳуши маснӯиро дар «Моно» ҷойгузорӣ кунед: «Ҷойгузории матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ ҷойгузорӣ кунед ва дархост кунед, ки ислоҳ кунад. |
 | `prompt.step5` | Звук необязателен: без него карточки прочитает голос браузера. | Audio is optional: without it the browser voice reads the cards. | Файли садо ихтиёрӣ аст: бе он омӯзбаргҳоро садои мурургар мехонад. |
 | `prompt.personal` | За содержание своей колоды отвечаете вы. Если верный ответ засчитан как неверный — исправьте колоду с ИИ. | You are responsible for the content of your deck. If a correct answer is marked wrong, fix the deck with the AI. | Масъули муҳтавои маҷмӯаи худ шумо ҳастед. Агар ҷавоби дуруст нодуруст ҳисоб шавад, маҷмӯаро бо ҳуши маснӯӣ ислоҳ кунед. |
 | `prompt.copy` | Копировать инструкцию | Copy the instructions | Нусхаи дастур |
@@ -200,7 +200,7 @@
 | `backup.error.version` | Файл из более новой версии приложения. Обновите приложение. | The file comes from a newer version of the app. Update the app. | Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед. |
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |
-| `backup.restoreSignedIn` | Пока вы в аккаунте, восстановление из файла отключено; оно появится позже. Сохранение журнала в файл работает. | While you are signed in, restoring from a file is turned off; it will come later. Saving the study log to a file works. | То вақте ки ба ҳисоб ворид ҳастед, бозёбӣ аз файл ғайрифаъол аст; он баъдтар илова мешавад. Захираи таърихча дар файл кор мекунад. |
+| `backup.restoreSignedIn` | Восстановление из файла для аккаунта пока недоступно. Сохранение журнала в файл работает. | Restoring from a file isn't available for accounts yet. Saving the study log to a file works. | Бозёбӣ аз файл ҳанӯз барои ҳисоби корбарӣ дар дастрас нест. Захираи таърихча дар файл кор мекунад. |
 | `backup.error.failed` | Ошибка: {error} | Error: {error} | Хато: {error} |
 | `migrate.title` | Правила повторений обновлены | Review rules updated | Қоидаҳои такрор барӯз шуданд |
 | `migrate.text` | Сроки повторений пересчитаются по новым правилам. Сначала журнал сохранится в файл — на всякий случай; сам журнал не меняется. | Review dates will be recalculated with the new rules. First the study log is saved to a file, just in case; the log itself does not change. | Вақти такрорҳо бо қоидаҳои нав аз нав ҳисоб мешавад. Аввал таърихча дар файл захира мешавад — барои эҳтиёт; худи таърихча тағйир намеёбад. |
@@ -218,7 +218,7 @@
 | `account.save` | Сохранить | Save | Захира |
 | `account.devices` | Устройства | Devices | Дастгоҳҳо |
 | `account.thisDevice` | (это устройство) | (this device) | (ин дастгоҳ) |
-| `account.lastSeen` | Последняя связь с сервером: {date} | Last in touch with the server: {date} | Охирин ҳамгомсозӣ: {date} |
+| `account.lastSeen` | Последний раз на связи: {date} | Last seen: {date} | Охирин боздид: {date} |
 | `account.remove` | Убрать | Remove | Ҳазф |
 | `account.removeConfirm` | Убрать «{name}» из аккаунта? Данные на нём останутся, но для нового входа понадобится приглашение или код. | Remove “{name}” from the account? Its data stays on it, but signing in again will need an invitation or a code. | Дастгоҳи «{name}» аз ҳисоб ҳазф шавад? Додаҳояш дар худи он мемонанд, вале барои вуруди дубора даъватнома ё код лозим мешавад. |
 | `account.addDevice` | Добавить устройство | Add a device | Иловаи дастгоҳ |
@@ -230,19 +230,19 @@
 | `account.signedOutBy` | Это устройство больше не в аккаунте: его убрали из аккаунта с другого устройства или им долго не пользовались. Данные на устройстве на месте. | This device is no longer signed in: it was removed from the account on another device or not used for a long time. The data on this device is still here. | Ин дастгоҳ дигар ба ҳисоб ворид нест: онро бо дастгоҳи дигар аз ҳисоб ҳазф карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд. |
 | `account.offline` | Сервер не отвечает. Попробуйте позже. | The server isn't responding. Try again later. | Сервер дар дастрас нест. Баъдтар дубора талош кунед. |
 | `account.privacy` | Данные и конфиденциальность | Data and privacy | Додаҳо ва ҳарими хусусӣ |
-| `sync.pending` | Ждут отправки: {n} | Waiting to be sent: {n} | Ҳанӯз фиристода нашуд: {n} |
-| `sync.rejected` | Не приняты сервером: {n} | Not accepted by the server: {n} | Сервер қабул накард: {n} |
-| `sync.rejectedHint` | Они остались на этом устройстве и попадут в файл журнала. | They stay on this device and go into the study log file. | Онҳо дар ҳамин дастгоҳ мемонанд ва ба файли таърихчаи тамрин дохил мешаванд. |
+| `sync.pending` | Ждут отправки: {n} | Waiting to be sent: {n} | Дар интизори ирсол: {n} |
+| `sync.rejected` | Не приняты сервером: {n} | Not accepted by the server: {n} | Сервер рад кард: {n} |
+| `sync.rejectedHint` | Они остались на этом устройстве и попадут в файл журнала. | They stay on this device and go into the study log file. | Онҳо дар ҳамин дастгоҳ мемонанд ва дар файли таърихчаи тамрин ҳам гунҷонида мешаванд. |
 | `sync.last` | Последняя синхронизация: {date} | Last synced: {date} | Охирин ҳамгомсозӣ: {date} |
 | `sync.never` | Ещё не синхронизировано | Not synced yet | Ҳанӯз ҳамгомсозӣ нашудааст |
-| `update.title` | Нужна новая версия приложения | A newer version of the app is needed | Нусхаи нави барнома лозим аст |
-| `update.text` | Ваши ответы сохранены. Эта версия приложения старше данных на сервере. Перезагрузите — загрузится новая версия. | Your answers are saved. This version of the app is older than the data on the server. Reload to get the new version. | Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома аз додаҳои сервер кӯҳнатар аст. Барномаро дубора кушоед — нусхаи нав бор мешавад. |
-| `update.otherTab` | Приложение обновилось в другом окне. Перезагрузите эту страницу. | The app was updated in another window. Reload this page. | Барнома дар равзанаи дигар барӯз шуд. Ин саҳифаро дубора кушоед. |
-| `update.reload` | Перезагрузить | Reload | Дубора кушодан |
-| `update.wait` | Новая версия ещё не пришла. Попробуйте через несколько минут. | The new version hasn't arrived yet. Try again in a few minutes. | Нусхаи нав ҳанӯз нарасидааст. Баъд аз чанд дақиқа дубора талош кунед. |
+| `update.title` | Нужно обновление | Update needed | Барӯзрасонӣ лозим аст |
+| `update.text` | Ваши ответы сохранены. Эта версия приложения старше данных на сервере. Перезагрузите — загрузится новая версия. | Your answers are saved. This version of the app is older than the data on the server. Reload to get the new version. | Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома кӯҳна шудааст. Саҳифаро дубора боргузорӣ кунед, то нусхаи нав кушода шавад. |
+| `update.otherTab` | Приложение обновилось в другом окне. Перезагрузите эту страницу. | The app was updated in another window. Reload this page. | Барнома дар равзанаи дигар барӯз шуд. Саҳифаро дубора боргузорӣ кунед. |
+| `update.reload` | Перезагрузить | Reload | Боргузории муҷаддад |
+| `update.wait` | Новая версия ещё не пришла. Попробуйте через несколько минут. | The new version hasn't arrived yet. Try again in a few minutes. | Нусхаи нав ҳанӯз дар дастрас нест. Баъд аз чанд дақиқа дубора талош кунед. |
 | `signin.title` | Вход | Sign in | Вуруд |
 | `signin.label` | Ссылка-приглашение или код | Invitation link or code | Даъватнома ё код |
-| `signin.hint` | Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства. | Paste the invitation link from the message or enter the 8-character code from your other device. | Даъватномаро аз паём часпонед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед. |
+| `signin.hint` | Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства. | Paste the invitation link from the message or enter the 8-character code from your other device. | Даъватномаро аз паём ҷойгузорӣ кунед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед. |
 | `signin.submit` | Войти | Sign in | Вуруд |
 | `signin.invalid` | Приглашение или код не подходят: неверные, уже использованы или срок истёк. Попросите новые. | The invitation or code doesn't work: it is wrong, already used or expired. Ask for a new one. | Даъватнома ё код кор намекунад: нодуруст аст, аз қабл истифода шудааст ё мунқазӣ шудааст. Навашро дархост кунед. |
 | `signin.tooMany` | Слишком много попыток. Попробуйте позже. | Too many attempts. Try again later. | Теъдоди талошҳо аз ҳад зиёд шуд. Баъдтар дубора талош кунед. |

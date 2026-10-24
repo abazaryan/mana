@@ -364,7 +364,7 @@ export const STRINGS = {
   'pack.failed': { tg: 'Боргирӣ нашуд.', ru: 'Скачать не удалось.', en: 'The download failed.' },
 
   // Personal decks without a server, browser voice (Р33 пп. 14–16; tg — draft for the owner, 21.10.2026)
-  'decks.paste': { tg: 'Часпондани матни маҷмӯа', ru: 'Вставить текст колоды', en: 'Paste deck text' },
+  'decks.paste': { tg: 'Ҷойгузории матни маҷмӯа', ru: 'Вставить текст колоды', en: 'Paste deck text' },
   'decks.makeWithAi': { tg: 'Сохтани маҷмӯа бо ҳуши маснӯӣ', ru: 'Сделать колоду с ИИ', en: 'Make a deck with AI' },
   'privacy.voice': {
     tg: 'Гуфтори шуморо мурургар бозшиносӣ мекунад: Chrome садоро ба Google мефиристад, Edge — ба Microsoft.',
@@ -373,7 +373,7 @@ export const STRINGS = {
   },
   'paste.title': { tg: 'Матни маҷмӯа', ru: 'Текст колоды', en: 'Deck text' },
   'paste.hint': {
-    tg: 'Ҷавоби ҳуши маснӯиро бо deck.json-и пурра ин ҷо часпонед.',
+    tg: 'Ҷавоби ҳуши маснӯиро бо deck.json-и пурра ин ҷо ҷойгузорӣ кунед.',
     ru: 'Вставьте сюда ответ ИИ с deck.json целиком.',
     en: 'Paste the answer of the AI with the whole deck.json here.',
   },
@@ -391,7 +391,7 @@ export const STRINGS = {
     en: 'Could not copy — select the text below by hand.',
   },
   'prompt.step1': {
-    tg: '«Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) часпонед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед.',
+    tg: '«Нусхаи дастур»-ро фишор диҳед, матнро дар гуфтугӯ бо ҳуши маснӯӣ (Claude, Gemini, ChatGPT) ҷойгузорӣ кунед ва фиристед. Ҳуши маснӯӣ бо шумо ба забони русӣ гуфтугӯ мекунад; метавонед забони дигарро дархост кунед.',
     ru: 'Нажмите «Копировать инструкцию», вставьте текст в чат с ИИ (Claude, Gemini, ChatGPT) и отправьте. ИИ будет говорить по-русски; можно попросить другой язык.',
     en: 'Tap “Copy the instructions”, paste the text into a chat with an AI (Claude, Gemini, ChatGPT) and send it. The AI will talk in English; you can ask for another language.',
   },
@@ -406,7 +406,7 @@ export const STRINGS = {
     en: 'Then the AI shows a table of the entries — check it and write your corrections. It gives deck.json only after you confirm.',
   },
   'prompt.step4': {
-    tg: 'Ҷавоби ҳуши маснӯиро дар «Моно» часпонед: «Часпондани матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ часпонед ва дархост кунед, ки ислоҳ кунад.',
+    tg: 'Ҷавоби ҳуши маснӯиро дар «Моно» ҷойгузорӣ кунед: «Ҷойгузории матни маҷмӯа». Агар санҷиш хато ё ҳушдор ёбад — «Нусха барои ҳуши маснӯӣ»-ро фишор диҳед, дар гуфтугӯ ҷойгузорӣ кунед ва дархост кунед, ки ислоҳ кунад.',
     ru: 'Ответ ИИ вставьте в «Ману»: «Вставить текст колоды». Если проверка найдёт ошибки или предупреждения — «Копия для ИИ», вставьте её ИИ и попросите исправить.',
     en: 'Paste the answer of the AI into Mana: “Paste deck text”. If the check finds errors or warnings — “Copy for the AI”, paste it to the AI and ask it to fix them.',
   },
@@ -507,9 +507,9 @@ export const STRINGS = {
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
   'backup.restoreSignedIn': {
-    tg: 'То вақте ки ба ҳисоб ворид ҳастед, бозёбӣ аз файл ғайрифаъол аст; он баъдтар илова мешавад. Захираи таърихча дар файл кор мекунад.',
-    ru: 'Пока вы в аккаунте, восстановление из файла отключено; оно появится позже. Сохранение журнала в файл работает.',
-    en: 'While you are signed in, restoring from a file is turned off; it will come later. Saving the study log to a file works.',
+    tg: 'Бозёбӣ аз файл ҳанӯз барои ҳисоби корбарӣ дар дастрас нест. Захираи таърихча дар файл кор мекунад.',
+    ru: 'Восстановление из файла для аккаунта пока недоступно. Сохранение журнала в файл работает.',
+    en: "Restoring from a file isn't available for accounts yet. Saving the study log to a file works.",
   },
   'backup.error.failed': { tg: 'Хато: {error}', ru: 'Ошибка: {error}', en: 'Error: {error}' },
 
@@ -558,7 +558,7 @@ export const STRINGS = {
   'account.save': { tg: 'Захира', ru: 'Сохранить', en: 'Save' },
   'account.devices': { tg: 'Дастгоҳҳо', ru: 'Устройства', en: 'Devices' },
   'account.thisDevice': { tg: '(ин дастгоҳ)', ru: '(это устройство)', en: '(this device)' },
-  'account.lastSeen': { tg: 'Охирин ҳамгомсозӣ: {date}', ru: 'Последняя связь с сервером: {date}', en: 'Last in touch with the server: {date}' },
+  'account.lastSeen': { tg: 'Охирин боздид: {date}', ru: 'Последний раз на связи: {date}', en: 'Last seen: {date}' },
   'account.remove': { tg: 'Ҳазф', ru: 'Убрать', en: 'Remove' },
   'account.removeConfirm': {
     tg: 'Дастгоҳи «{name}» аз ҳисоб ҳазф шавад? Додаҳояш дар худи он мемонанд, вале барои вуруди дубора даъватнома ё код лозим мешавад.',
@@ -591,31 +591,31 @@ export const STRINGS = {
   },
   'account.privacy': { tg: 'Додаҳо ва ҳарими хусусӣ', ru: 'Данные и конфиденциальность', en: 'Data and privacy' },
 
-  // Sync (stage 6a.3, R39). tg — DRAFT candidates for the terminology chat, not approved yet;
-  // account.lastSeen above changed its meaning too (the last exchange, not the last sign-in).
-  'sync.pending': { tg: 'Ҳанӯз фиристода нашуд: {n}', ru: 'Ждут отправки: {n}', en: 'Waiting to be sent: {n}' },
-  'sync.rejected': { tg: 'Сервер қабул накард: {n}', ru: 'Не приняты сервером: {n}', en: 'Not accepted by the server: {n}' },
+  // Sync (stage 6a.3, R39; tg approved by the terminology chat 24.10.2026). account.lastSeen above
+  // changed its meaning too: the last exchange with the server, not the last sign-in.
+  'sync.pending': { tg: 'Дар интизори ирсол: {n}', ru: 'Ждут отправки: {n}', en: 'Waiting to be sent: {n}' },
+  'sync.rejected': { tg: 'Сервер рад кард: {n}', ru: 'Не приняты сервером: {n}', en: 'Not accepted by the server: {n}' },
   'sync.rejectedHint': {
-    tg: 'Онҳо дар ҳамин дастгоҳ мемонанд ва ба файли таърихчаи тамрин дохил мешаванд.',
+    tg: 'Онҳо дар ҳамин дастгоҳ мемонанд ва дар файли таърихчаи тамрин ҳам гунҷонида мешаванд.',
     ru: 'Они остались на этом устройстве и попадут в файл журнала.',
     en: 'They stay on this device and go into the study log file.',
   },
   'sync.last': { tg: 'Охирин ҳамгомсозӣ: {date}', ru: 'Последняя синхронизация: {date}', en: 'Last synced: {date}' },
   'sync.never': { tg: 'Ҳанӯз ҳамгомсозӣ нашудааст', ru: 'Ещё не синхронизировано', en: 'Not synced yet' },
-  'update.title': { tg: 'Нусхаи нави барнома лозим аст', ru: 'Нужна новая версия приложения', en: 'A newer version of the app is needed' },
+  'update.title': { tg: 'Барӯзрасонӣ лозим аст', ru: 'Нужно обновление', en: 'Update needed' },
   'update.text': {
-    tg: 'Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома аз додаҳои сервер кӯҳнатар аст. Барномаро дубора кушоед — нусхаи нав бор мешавад.',
+    tg: 'Ҷавобҳоятон захира шудаанд. Ин нусхаи барнома кӯҳна шудааст. Саҳифаро дубора боргузорӣ кунед, то нусхаи нав кушода шавад.',
     ru: 'Ваши ответы сохранены. Эта версия приложения старше данных на сервере. Перезагрузите — загрузится новая версия.',
     en: 'Your answers are saved. This version of the app is older than the data on the server. Reload to get the new version.',
   },
   'update.otherTab': {
-    tg: 'Барнома дар равзанаи дигар барӯз шуд. Ин саҳифаро дубора кушоед.',
+    tg: 'Барнома дар равзанаи дигар барӯз шуд. Саҳифаро дубора боргузорӣ кунед.',
     ru: 'Приложение обновилось в другом окне. Перезагрузите эту страницу.',
     en: 'The app was updated in another window. Reload this page.',
   },
-  'update.reload': { tg: 'Дубора кушодан', ru: 'Перезагрузить', en: 'Reload' },
+  'update.reload': { tg: 'Боргузории муҷаддад', ru: 'Перезагрузить', en: 'Reload' },
   'update.wait': {
-    tg: 'Нусхаи нав ҳанӯз нарасидааст. Баъд аз чанд дақиқа дубора талош кунед.',
+    tg: 'Нусхаи нав ҳанӯз дар дастрас нест. Баъд аз чанд дақиқа дубора талош кунед.',
     ru: 'Новая версия ещё не пришла. Попробуйте через несколько минут.',
     en: "The new version hasn't arrived yet. Try again in a few minutes.",
   },
@@ -624,7 +624,7 @@ export const STRINGS = {
   'signin.title': { tg: 'Вуруд', ru: 'Вход', en: 'Sign in' },
   'signin.label': { tg: 'Даъватнома ё код', ru: 'Ссылка-приглашение или код', en: 'Invitation link or code' },
   'signin.hint': {
-    tg: 'Даъватномаро аз паём часпонед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед.',
+    tg: 'Даъватномаро аз паём ҷойгузорӣ кунед ё коди 8-нависаиро аз дастгоҳи дигаратон ворид кунед.',
     ru: 'Вставьте ссылку-приглашение из сообщения или введите код из 8 знаков с другого вашего устройства.',
     en: 'Paste the invitation link from the message or enter the 8-character code from your other device.',
   },
