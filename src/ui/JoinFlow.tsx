@@ -133,7 +133,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
     return (
       <section>
         <h1>{t('join.title')}</h1>
-        {screen.transfer ? <TransferDone queued={screen.queued} /> : <p role="status">{t('signin.done')}</p>}
+        {screen.transfer ? <TransferDone db={db} queued={screen.queued} /> : <p role="status">{t('signin.done')}</p>}
         <a className="primary big center mt" href="#/">
           {t('nav.decks')}
         </a>

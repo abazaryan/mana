@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { backupFileName } from '../core/backup';
 import type { MetaRow } from '../core/model';
 import type { ManaDb } from '../platform/db';
 import { downloadText } from '../platform/files';
 import { exportJournal } from '../platform/repo';
+import { onSyncChanged } from '../platform/syncEvents';
+import { queueCounts } from '../platform/syncStore';
 import { useI18n } from './i18n';
 
 interface Props {
@@ -56,13 +58,26 @@ export function TransferQuestion({ db, meta, onYes, onNo }: Props) {
   );
 }
 
-/** After a transfer: done, and how many records are on their way. */
-export function TransferDone({ queued }: { queued: number }) {
+/**
+ * After a transfer: done, and how many records still wait — counted live: after signing in again
+ * most of the queue leaves without a push, once the server is found to have it.
+ */
+export function TransferDone({ db, queued }: { db: ManaDb; queued: number }) {
   const { t } = useI18n();
+  const [pending, setPending] = useState(queued);
+  useEffect(() => {
+    const read = () => void queueCounts(db).then((c) => setPending(c.pending));
+    const timer = setInterval(read, 1000);
+    const off = onSyncChanged(read);
+    return () => {
+      clearInterval(timer);
+      off();
+    };
+  }, [db]);
   return (
     <>
       <p role="status">{t('transfer.done')}</p>
-      {queued > 0 && <p className="hint">{t('sync.pending', { n: queued })}</p>}
+      {pending > 0 && <p className="hint">{t('sync.pending', { n: pending })}</p>}
     </>
   );
 }

@@ -12,7 +12,7 @@ import { DeckScreen } from './DeckScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
-import { inviteToken } from './inviteToken';
+import { inviteOpened, inviteToken } from './inviteToken';
 import { JoinFlow } from './JoinFlow';
 import { KeyboardModeProvider } from './keyboardMode';
 import { LabCards } from './LabCards';
@@ -215,7 +215,7 @@ export function MainApp({ route }: { route: Route }) {
           )}
           {!blocked && route.name === 'decks' && <DecksScreen db={db} />}
           {!blocked && route.name === 'join' && (
-            <JoinFlow db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
+            <JoinFlow key={inviteOpened()} db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
           )}
           {!blocked && route.name === 'signin' && (
             <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />

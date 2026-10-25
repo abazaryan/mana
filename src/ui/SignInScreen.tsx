@@ -70,7 +70,7 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
     return (
       <section>
         <h1>{t('signin.title')}</h1>
-        {done.transfer ? <TransferDone queued={done.queued} /> : <p role="status">{t('signin.done')}</p>}
+        {done.transfer ? <TransferDone db={db} queued={done.queued} /> : <p role="status">{t('signin.done')}</p>}
         <a className="primary big center mt" href="#/">
           {t('nav.decks')}
         </a>

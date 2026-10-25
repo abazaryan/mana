@@ -7,18 +7,26 @@
 import { tokenFromHash } from '../core/auth';
 
 let token: string | null = null;
+/** How many times a link was opened or pasted: the invitation screens start afresh on each (after a "no" the same link is opened again, R40). */
+let opened = 0;
 
 /** `#/join/<token>` in the address → remember the token, leave `#/join`. */
 export function captureInviteToken(): void {
   const found = tokenFromHash(location.hash);
   if (!found) return;
   token = found;
+  opened++;
   history.replaceState(history.state, '', `${location.pathname}${location.search}#/join`);
 }
 
 /** A link pasted on the sign-in screen. */
 export function setInviteToken(value: string): void {
   token = value;
+  opened++;
+}
+
+export function inviteOpened(): number {
+  return opened;
 }
 
 export function inviteToken(): string | null {
