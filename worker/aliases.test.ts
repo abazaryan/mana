@@ -164,6 +164,20 @@ describe('device invitation and pairing code with an earlier id', () => {
     expect((await send(w, '/api/auth/redeem', { body: { token, device: device(), formerUserId: a.userId } })).status).toBe(200);
   });
 
+  it('a body of the 6a.3 build (no formerUserId): a device invitation and a code sign in to the same account, nothing written', async () => {
+    const w = world();
+    const former = uuid();
+    const a = await accountWithAlias(w, former);
+    const byInvite = await send(w, '/api/auth/redeem', { body: { token: await invite(w, 'device', a.userId), device: device() } });
+    expect(byInvite.status).toBe(200);
+    expect(await byInvite.json()).toMatchObject({ userId: a.userId, formerUserIds: [former] });
+    const byCode = await send(w, '/api/auth/pair', { body: { code: await code(w, a.cookie), device: device() } });
+    expect(byCode.status).toBe(200);
+    expect(await byCode.json()).toMatchObject({ userId: a.userId, formerUserIds: [former] });
+    expect(aliases(w)).toEqual([{ user_id: a.userId, alias_id: former }]);
+    expect(rows(w, 'SELECT count(*) AS n FROM users')).toEqual([{ n: 1 }]);
+  });
+
   it('localUserId with a device invitation — 400', async () => {
     const w = world();
     const a = await signedIn(w);
