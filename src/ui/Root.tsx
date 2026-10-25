@@ -12,11 +12,13 @@ export type Route =
   | { name: 'join' }
   | { name: 'signin' }
   /** The data notice ("Data and privacy"). */
-  | { name: 'privacy' };
+  | { name: 'privacy' }
+  /** Hidden: numbers and hashes of the cards for the checks of a transfer (R40); no link leads here. */
+  | { name: 'labCards' };
 
 /**
  * Hash routes: #/, #/deck/<id>, #/study/<id> (#/study/<id>/new: "add anyway"), #/settings, #/join (#/join/<token> is
- * an invitation link: the token is taken out at once), #/signin, #/privacy.
+ * an invitation link: the token is taken out at once), #/signin, #/privacy, #/lab/cards (hidden).
  */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -24,6 +26,7 @@ export function parseRoute(hash: string): Route {
   if (parts[0] === 'join') return { name: 'join' };
   if (parts[0] === 'signin') return { name: 'signin' };
   if (parts[0] === 'privacy') return { name: 'privacy' };
+  if (parts[0] === 'lab' && parts[1] === 'cards') return { name: 'labCards' };
   if (parts[0] === 'deck' && parts[1]) return { name: 'deck', deckId: decodeURIComponent(parts[1]) };
   if (parts[0] === 'study' && parts[1]) {
     const deckId = decodeURIComponent(parts[1]);

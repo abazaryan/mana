@@ -289,3 +289,4 @@ html.osk-open body{padding-bottom:var(--osk-h,0px);}
 .devices li{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 8px;overflow-wrap:anywhere;}
 .pairing{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
 .code-big{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2rem;font-weight:700;letter-spacing:.12em;text-align:center;margin:4px 0 8px;}
+.lab-report{white-space:pre-wrap;overflow-wrap:anywhere;font:400 .8rem/1.45 ui-monospace,Consolas,monospace;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;}

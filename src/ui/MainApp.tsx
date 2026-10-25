@@ -15,6 +15,7 @@ import { I18nProvider, useI18n } from './i18n';
 import { inviteToken } from './inviteToken';
 import { JoinFlow } from './JoinFlow';
 import { KeyboardModeProvider } from './keyboardMode';
+import { LabCards } from './LabCards';
 import { noticeText } from './noticeText';
 import { NoticeView } from './NoticeView';
 import type { Route } from './Root';
@@ -220,6 +221,7 @@ export function MainApp({ route }: { route: Route }) {
             <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />
           )}
           {!(update && updateShown) && route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
+          {!(update && updateShown) && route.name === 'labCards' && <LabCards db={db} />}
         </Shell>
       </KeyboardModeProvider>
     </I18nProvider>
