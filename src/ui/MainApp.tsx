@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUILD } from '../core/build';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { createScheduler, RULES_VERSION } from '../core/scheduler';
-import { setUnauthorizedHandler, syncTransport, whoAmI } from '../platform/api';
+import { setUnauthorizedHandler, syncTransport } from '../platform/api';
 import { getDb } from '../platform/db';
 import { ensureDevice, getSettings, markSignedOut, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
 import { SyncEngine } from '../platform/syncClient';
@@ -20,6 +20,7 @@ import { NoticeView } from './NoticeView';
 import type { Route } from './Root';
 import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
+import { finishTransfer, refreshAccount } from './signIn';
 import { SignInScreen } from './SignInScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
@@ -37,7 +38,9 @@ type Boot =
 const db = getDb();
 
 async function load(): Promise<Boot> {
-  const meta = await ensureDevice(db);
+  let meta = await ensureDevice(db);
+  // A transfer of answers whose tab closed before the device side was done (R40): the server decides.
+  if (meta.pendingTransfer && (await finishTransfer(db, createScheduler()).catch(() => false))) meta = (await db.meta.get('device')) ?? meta;
   const rulesUpdate = await needsRulesUpdate(db, meta);
   // After an update the "older version" mark of sync goes; cards left for it are rebuilt.
   const needsUpdate = await settleUpdate(db, createScheduler(), BUILD, RULES_VERSION);
@@ -68,11 +71,13 @@ export function MainApp({ route }: { route: Route }) {
     return () => setUnauthorizedHandler(null);
   }, []);
 
-  // Signed in: one quiet check at start (it also keeps the session alive). Without sign-in — no request at all.
+  // Signed in: one quiet check at start (it also keeps the session alive) that refreshes the
+  // account's earlier ids; records left under one of them move to the account (R40). Without
+  // sign-in — no request at all.
   const signedIn = boot.phase === 'ready' && boot.meta.account !== undefined;
   useEffect(() => {
-    if (signedIn) void whoAmI();
-  }, [signedIn]);
+    if (signedIn) void refreshAccount(db, createScheduler()).then((moved) => moved && reload());
+  }, [signedIn, reload]);
 
   // "A newer version is needed" (stage 6a.3): from sync, or another window upgraded the database.
   // While a portion is open, the screen waits until the current card is saved (the next record).

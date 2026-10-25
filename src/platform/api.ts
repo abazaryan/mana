@@ -24,6 +24,8 @@ interface RequestOptions {
   raw?: string;
   /** fetch keepalive: the request may outlive the page (sent while it goes to the background). */
   keepalive?: boolean;
+  /** A 401 is an answer here, not "the session ended" (the check of an unfinished transfer, R40). */
+  quiet401?: boolean;
 }
 
 async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, options: RequestOptions = {}): Promise<ApiResult<T>> {
@@ -45,7 +47,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
   }
   const data = (await response.json().catch(() => null)) as unknown;
   if (response.ok) return { ok: true, data: data as T };
-  if (response.status === 401) onUnauthorized?.();
+  if (response.status === 401 && options.quiet401 !== true) onUnauthorized?.();
   const code = data !== null && typeof data === 'object' && 'error' in data ? String((data as { error: unknown }).error) : 'http';
   return { ok: false, status: response.status, error: code };
 }
@@ -58,7 +60,15 @@ export interface DeviceRef {
 export interface SignedIn {
   userId: string;
   device: DeviceRef;
+  /** The account's earlier ids (R40); absent from a server before 6a.4. */
+  formerUserIds?: string[];
 }
+
+/**
+ * A device with answers names its local user (R40): the new account's id with an account
+ * invitation, an earlier id of the account with a device invitation or a code.
+ */
+export type TransferIds = { localUserId: string } | { formerUserId: string } | null;
 
 export interface DeviceInfo {
   id: string;
@@ -68,11 +78,14 @@ export interface DeviceInfo {
 }
 
 export const inviteInfo = (token: string) => request<{ kind: 'account' | 'device'; minor: boolean }>('POST', 'auth/invite', { token });
-export const redeemInvite = (token: string, device: DeviceRef, consent: Consent | null) =>
-  request<SignedIn>('POST', 'auth/redeem', consent ? { token, device, consent } : { token, device });
-export const pairDevice = (code: string, device: DeviceRef) => request<SignedIn>('POST', 'auth/pair', { code, device });
+export const redeemInvite = (token: string, device: DeviceRef, consent: Consent | null, transfer: TransferIds = null) =>
+  request<SignedIn>('POST', 'auth/redeem', { token, device, ...(consent ? { consent } : {}), ...transfer });
+export const pairDevice = (code: string, device: DeviceRef, formerUserId: string | null = null) =>
+  request<SignedIn>('POST', 'auth/pair', formerUserId ? { code, device, formerUserId } : { code, device });
 export const issuePairingCode = () => request<{ code: string; expiresAt: number }>('POST', 'auth/pairing-code');
-export const whoAmI = () => request<SignedIn>('GET', 'auth/me');
+export const whoAmI = (quiet401 = false) => request<SignedIn>('GET', 'auth/me', undefined, { quiet401 });
+/** A backup file of another installation joins the account (R40). */
+export const addFormerUserId = (aliasId: string) => request<{ formerUserIds: string[] }>('POST', 'auth/alias', { aliasId });
 export const listDevices = () => request<{ devices: DeviceInfo[] }>('GET', 'auth/devices');
 export const renameDevice = (name: string) => request<{ ok: true; name: string }>('POST', 'auth/device', { name });
 export const revokeDevice = (deviceId: string) => request<{ ok: true }>('POST', 'auth/devices/revoke', { deviceId });

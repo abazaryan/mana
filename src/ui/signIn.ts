@@ -1,25 +1,28 @@
 /**
- * The last step of both ways in (invitation, pairing code): refuse a device with answers (until
- * stage 6a.4 — its data is not touched), send the request, retry once with a new device id if the
- * server says the id is another account's, then remember the account on the device.
+ * The last step of both ways in (invitation, pairing code), and the transfer of answers (stage
+ * 6a.4, R40). A device with answers is asked first (the screens): "no" sends nothing. "Yes": the
+ * device remembers the transfer, sends its local userId with the request, and after the server's
+ * yes moves its records to the account in one transaction. Retry once with a new device id if the
+ * server says the id is another account's.
  */
+import type { FSRS } from 'ts-fsrs';
 import { defaultDeviceName } from '../core/auth';
 import type { MetaRow } from '../core/model';
-import type { ApiResult, DeviceRef, SignedIn } from '../platform/api';
+import { whoAmI, type ApiResult, type DeviceRef, type SignedIn } from '../platform/api';
 import type { ManaDb } from '../platform/db';
-import { hasLocalAnswers, markSignedIn, renewDeviceId } from '../platform/repo';
+import { adoptAccount, beginTransfer, forgetTransfer, markSignedIn, renewDeviceId, setFormerUserIds, settleLeftovers } from '../platform/repo';
 import type { StringKey } from './strings';
 
-export type SignInFailure = 'hasAnswers' | 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'error';
-export type SignInOutcome = { ok: true; meta: MetaRow } | { ok: false; reason: SignInFailure };
+export type SignInFailure = 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'userTaken' | 'error';
+export type SignInOutcome = { ok: true; meta: MetaRow; queued: number } | { ok: false; reason: SignInFailure };
 
 export const FAILURE_TEXT: Record<SignInFailure, StringKey> = {
-  hasAnswers: 'signin.hasAnswers',
   invalid: 'signin.invalid',
   tooMany: 'signin.tooMany',
   already: 'signin.already',
   outdated: 'signin.outdated',
   offline: 'account.offline',
+  userTaken: 'transfer.userTaken',
   error: 'signin.error',
 };
 
@@ -35,23 +38,74 @@ export function failureOf(result: { status: number; error: string }): SignInFail
       return 'already';
     case 'upgrade_required':
       return 'outdated';
+    case 'user_taken':
+      return 'userTaken';
     default:
       return 'error';
   }
 }
 
-export async function signInWith(db: ManaDb, send: (device: DeviceRef) => Promise<ApiResult<SignedIn>>): Promise<SignInOutcome> {
-  // TEMPORARY until stage 6a.4: then a device with progress is asked whether to add it to the
-  // account (STAGE6_RESEARCH 5.9) instead of being refused (string signin.hasAnswers).
-  if (await hasLocalAnswers(db)) return { ok: false, reason: 'hasAnswers' };
-  let meta = await db.meta.get('device');
+/**
+ * `send` gets the device and, on a transfer, the local userId (null otherwise); the caller puts
+ * it into the request as the invitation's kind wants it. `transfer` — the user said "yes" to
+ * adding this device's answers (without answers the question is not asked: false).
+ */
+export async function signInWith(
+  db: ManaDb,
+  scheduler: FSRS,
+  transfer: boolean,
+  send: (device: DeviceRef, localUserId: string | null) => Promise<ApiResult<SignedIn>>,
+): Promise<SignInOutcome> {
+  let meta = transfer ? await beginTransfer(db) : await db.meta.get('device');
   if (!meta) return { ok: false, reason: 'error' };
+  const local = transfer ? meta.userId : null;
   const name = defaultDeviceName(navigator.userAgent);
-  let result = await send({ id: meta.deviceId, name });
+  let result = await send({ id: meta.deviceId, name }, local);
   if (!result.ok && result.error === 'device_taken') {
-    meta = await renewDeviceId(db);
-    result = await send({ id: meta.deviceId, name });
+    meta = await renewDeviceId(db, undefined, transfer);
+    result = await send({ id: meta.deviceId, name }, local);
   }
-  if (!result.ok) return { ok: false, reason: failureOf(result) };
-  return { ok: true, meta: await markSignedIn(db, result.data.userId, result.data.device.name) };
+  if (!result.ok) {
+    // No answer at all: the server may have taken it — the start of the app asks (/api/auth/me).
+    if (transfer && result.status !== 0) await forgetTransfer(db);
+    return { ok: false, reason: failureOf(result) };
+  }
+  const { userId, device, formerUserIds = [] } = result.data;
+  if (!transfer) return { ok: true, meta: await markSignedIn(db, userId, device.name, new Date(), formerUserIds), queued: 0 };
+  const adopted = await adoptAccount(db, scheduler, userId, device.name, formerUserIds);
+  return { ok: true, meta: adopted.meta, queued: adopted.queued };
+}
+
+/**
+ * At start: a transfer whose tab closed between the server's yes and the device's transaction
+ * (R40). The server's view decides: signed in as the account that took this device's id —
+ * finish it; no session — forget it; no network — ask again next start. True — finished.
+ */
+export async function finishTransfer(db: ManaDb, scheduler: FSRS): Promise<boolean> {
+  const meta = await db.meta.get('device');
+  const pending = meta?.pendingTransfer;
+  if (!meta || !pending) return false;
+  const res = await whoAmI(true);
+  if (!res.ok) {
+    if (res.status === 401) await forgetTransfer(db);
+    return false;
+  }
+  const { userId, device, formerUserIds = [] } = res.data;
+  if (userId !== pending.localUserId && !formerUserIds.includes(pending.localUserId)) {
+    await forgetTransfer(db);
+    return false;
+  }
+  await adoptAccount(db, scheduler, userId, device.name, formerUserIds);
+  return true;
+}
+
+/**
+ * At start on a signed-in device: the account's earlier ids as the server lists them now, then
+ * records still under one of them move to the account (another window, an older build). True —
+ * records moved.
+ */
+export async function refreshAccount(db: ManaDb, scheduler: FSRS): Promise<boolean> {
+  const res = await whoAmI();
+  if (res.ok && res.data.formerUserIds) await setFormerUserIds(db, res.data.formerUserIds);
+  return settleLeftovers(db, scheduler);
 }

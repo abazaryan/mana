@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { backupFileName } from '../core/backup';
+import { backupFileName, backupOwner, parseBackup, type JournalBackup } from '../core/backup';
 import { primaryLanguage } from '../core/deckFormat';
 import { findLanguagePack, speechLocale } from '../core/languages';
 import type { MetaRow, SettingsRow, SpeechPackState } from '../core/model';
 import { createScheduler } from '../core/scheduler';
+import { addFormerUserId, whoAmI } from '../platform/api';
 import type { ManaDb } from '../platform/db';
 import { downloadText } from '../platform/files';
 import { requestPersistence, storagePersistence, type Persistence } from '../platform/persist';
-import { exportJournal, listDecks, restoreJournal } from '../platform/repo';
+import { exportJournal, listDecks, restoreForAccount, restoreJournal, setFormerUserIds } from '../platform/repo';
 import { installSpeechPack, speechPackState } from '../platform/speechPack';
 import { AccountSection } from './AccountSection';
 import { phrasesApiPresent } from './studyHooks';
@@ -113,8 +114,64 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
     }
   };
 
+  // Signed in (R40): a file of the account or an earlier id joins at once; another installation's
+  // file — after a "yes" here and the server's consent to the new earlier id.
+  const [other, setOther] = useState<JournalBackup | null>(null);
+  const fail = (e: unknown) => setMsg({ text: t('backup.error.failed', { error: e instanceof Error ? e.message : String(e) }), err: true });
+
+  const restoreToAccount = async (backup: JournalBackup) => {
+    const res = await restoreForAccount(db, createScheduler(), backup);
+    if (!res.ok) {
+      setMsg({ text: t(res.error === 'unknownUser' ? 'restore.otherAccount' : 'signin.error'), err: true });
+      return;
+    }
+    setMsg({ text: t('backup.restored', { added: res.added, skipped: res.skipped }), err: false });
+    void requestPersistence().then(setPersist);
+    if (res.added > 0) onDataReplaced();
+  };
+
+  const restoreSignedIn = async (text: string) => {
+    const parsed = parseBackup(text);
+    if (!parsed.ok) {
+      setMsg({ text: t(parsed.error === 'format' ? 'backup.error.json' : `backup.error.${parsed.error}`), err: true });
+      return;
+    }
+    // The account's earlier ids as the server lists them now; without network — as last known.
+    const me = await whoAmI();
+    let current = (await db.meta.get('device')) ?? meta;
+    if (me.ok && me.data.formerUserIds) current = await setFormerUserIds(db, me.data.formerUserIds);
+    if (backupOwner(parsed.backup, current.userId, current.formerUserIds ?? []) === 'account') {
+      await restoreToAccount(parsed.backup);
+    } else if (!me.ok && me.status === 0) {
+      setMsg({ text: t('restore.needsNetwork'), err: true });
+    } else {
+      setMsg(null);
+      setOther(parsed.backup);
+    }
+  };
+
+  const addOther = async (backup: JournalBackup) => {
+    setOther(null);
+    try {
+      const res = await addFormerUserId(backup.userId);
+      if (!res.ok) {
+        const key: StringKey = res.status === 0 ? 'restore.needsNetwork' : res.error === 'user_taken' ? 'restore.otherAccount' : 'signin.error';
+        setMsg({ text: t(key), err: true });
+        return;
+      }
+      await setFormerUserIds(db, res.data.formerUserIds);
+      await restoreToAccount(backup);
+    } catch (e) {
+      fail(e);
+    }
+  };
+
   const restore = async (f: File) => {
     try {
+      if (meta.account) {
+        await restoreSignedIn(await f.text());
+        return;
+      }
       const res = await restoreJournal(db, createScheduler(), await f.text());
       if (!res.ok) {
         const key: StringKey = res.error === 'format' ? 'backup.error.json' : `backup.error.${res.error}`;
@@ -191,12 +248,24 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
         <button className="secondary" type="button" onClick={() => void save()}>
           {t('backup.save')}
         </button>
-        {/* Signed in: off until the transfer of answers (6a.4) — a file of another installation would change the local user. */}
-        <button className="secondary" type="button" disabled={meta.account !== undefined} onClick={() => file.current?.click()}>
+        <button className="secondary" type="button" onClick={() => file.current?.click()}>
           {t('backup.restore')}
         </button>
       </div>
-      {meta.account && <p className="hint">{t('backup.restoreSignedIn')}</p>}
+      {other && (
+        <div className="mt">
+          <p className="prompt">{t('restore.confirmOther')}</p>
+          <p className="hint">{t('restore.confirmOtherHint')}</p>
+          <div className="two mt">
+            <button className="primary" type="button" onClick={() => void addOther(other)}>
+              {t('voice.yes')}
+            </button>
+            <button className="secondary" type="button" onClick={() => setOther(null)}>
+              {t('voice.no')}
+            </button>
+          </div>
+        </div>
+      )}
       <input
         ref={file}
         type="file"

@@ -3,8 +3,9 @@
  * only adds records, skipping UUIDs already present (the journal is append-only, R10).
  *
  * A backup belongs to one local user. Restoring into an installation with an empty
- * journal adopts that user (e.g. after clearing site data). Merging the journals of
- * two installations that both have answers is stage 6 (sync); restore refuses it.
+ * journal adopts that user (e.g. after clearing site data). Without sign-in, merging the
+ * journals of two installations that both have answers is refused. Signed in (stage 6a.4,
+ * R40), a file of the account or of an earlier id of it joins the account's journal.
  */
 import { isoTime, reviveRecord as reviveJson } from './journalRecord';
 import type { LogRecord } from './model';
@@ -111,4 +112,34 @@ export function planRestore(
     add.push(r);
   }
   return { ok: true, adoptUserId, add, skipped: backup.records.length - add.length };
+}
+
+/** Whose file it is for a signed-in device (R40): the account's (its id or an earlier id), or unknown. */
+export function backupOwner(backup: JournalBackup, accountId: string, formerUserIds: readonly string[]): 'account' | 'unknown' {
+  return backup.userId === accountId || formerUserIds.includes(backup.userId) ? 'account' : 'unknown';
+}
+
+export type AccountRestorePlan = { ok: true; add: LogRecord[]; skipped: number } | { ok: false; error: 'unknownUser' };
+
+/**
+ * What a restore adds on a signed-in device (R40, replaces the refusal of R18 item 3 there): a
+ * file of the account or of one of its earlier ids. Its records become the account's — only the
+ * userId changes (the server never held records under an earlier id); ids already here are
+ * skipped. A file of an unknown id must first become an earlier id of the account (the server).
+ */
+export function planAccountRestore(
+  backup: JournalBackup,
+  accountId: string,
+  formerUserIds: readonly string[],
+  existingIds: ReadonlySet<string>,
+): AccountRestorePlan {
+  if (backupOwner(backup, accountId, formerUserIds) !== 'account') return { ok: false, error: 'unknownUser' };
+  const seen = new Set(existingIds);
+  const add: LogRecord[] = [];
+  for (const r of backup.records) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    add.push(r.userId === accountId ? r : { ...r, userId: accountId });
+  }
+  return { ok: true, add, skipped: backup.records.length - add.length };
 }

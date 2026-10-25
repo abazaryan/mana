@@ -506,10 +506,26 @@ export const STRINGS = {
     ru: 'Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации.',
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
-  'backup.restoreSignedIn': {
-    tg: 'Бозёбӣ аз файл ҳанӯз барои ҳисоби корбарӣ дар дастрас нест. Захираи таърихча дар файл кор мекунад.',
-    ru: 'Восстановление из файла для аккаунта пока недоступно. Сохранение журнала в файл работает.',
-    en: "Restoring from a file isn't available for accounts yet. Saving the study log to a file works.",
+  // Restore from a file while signed in (stage 6a.4, R40) — tg draft for the terminology chat.
+  'restore.confirmOther': {
+    tg: 'Ин таърихчаи насби дигар аст. Ба ҳисоб илова шавад?',
+    ru: 'Этот журнал — с другой установки приложения. Добавить его в аккаунт?',
+    en: 'This study log comes from another installation of the app. Add it to your account?',
+  },
+  'restore.confirmOtherHint': {
+    tg: 'Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд.',
+    ru: 'Его ответы появятся на всех ваших устройствах и могут изменить сроки повторений.',
+    en: 'Its answers will appear on all your devices and may change review dates.',
+  },
+  'restore.needsNetwork': {
+    tg: 'Барои илова кардани таърихчаи насби дигар интернет лозим аст. Баъдтар дубора талош кунед.',
+    ru: 'Чтобы добавить журнал другой установки, нужен интернет. Попробуйте позже.',
+    en: 'Adding the study log of another installation needs an internet connection. Try again later.',
+  },
+  'restore.otherAccount': {
+    tg: 'Ин таърихча ба ҳисоби дигар тааллуқ дорад ва ба ин ҳисоб илова намешавад.',
+    ru: 'Этот журнал принадлежит другому аккаунту — в этот аккаунт его добавить нельзя.',
+    en: "This study log belongs to another account and can't be added to this one.",
   },
   'backup.error.failed': { tg: 'Хато: {error}', ru: 'Ошибка: {error}', en: 'Error: {error}' },
 
@@ -639,12 +655,36 @@ export const STRINGS = {
     ru: 'Слишком много попыток. Попробуйте позже.',
     en: 'Too many attempts. Try again later.',
   },
-  // TEMPORARY until stage 6a.4: there this refusal is replaced by the question about adding this
-  // device's progress to the account (STAGE6_RESEARCH 5.9, R37 item 2).
-  'signin.hasAnswers': {
-    tg: 'Дар ин дастгоҳ аз қабл пешрафти шумо захира шудааст. Барнома ҳоло онро ба ҳисобатон илова карда наметавонад, бинобар ин вуруд ба ҳисоб дар ин дастгоҳ ғайрифаъол аст. Додаҳоятон тағйире накардаанд ва дар ҷояшон ҳастанд.',
-    ru: 'На этом устройстве уже сохранён ваш прогресс. Приложение пока не умеет добавить его в аккаунт, поэтому вход на этом устройстве отключён. Ваши данные не изменились и на месте.',
-    en: "Your progress is already saved on this device. The app can't add it to an account yet, so signing in is turned off on this device. Your data hasn't changed and is still here.",
+  // Transfer of answers (stage 6a.4, R40). transfer.question — tg approved 21.10.2026; the rest — tg draft for the terminology chat.
+  'transfer.question': {
+    tg: 'Пешрафти ин дастгоҳ ба ҳисобатон илова шавад?',
+    ru: 'Добавить прогресс с этого устройства в аккаунт?',
+    en: "Add this device's progress to your account?",
+  },
+  'transfer.hint': {
+    tg: 'Ҷавобҳои ин дастгоҳ ба ҳисобатон фиристода мешаванд ва дар дастгоҳҳои дигаратон пайдо мешаванд. Беҳтар аст пеш аз ин таърихчаро дар файл захира кунед.',
+    ru: 'Ответы этого устройства уйдут в аккаунт и появятся на других ваших устройствах. Перед этим лучше сохранить журнал в файл.',
+    en: "This device's answers will go to your account and appear on your other devices. It's best to save the study log to a file first.",
+  },
+  'transfer.declined': {
+    tg: 'Шумо ба ҳисоб ворид нашудед. Пешрафт танҳо дар ҳамин дастгоҳ мемонад. Баъдтар метавонед ворид шавед — бо ҳамин даъватнома, то мунқазӣ нашудааст, ё бо коди нав.',
+    ru: 'Вы не вошли в аккаунт. Прогресс остаётся только на этом устройстве. Войти можно позже — по той же ссылке, пока она действует, или новым кодом.',
+    en: 'You are not signed in. Your progress stays on this device only. You can sign in later with the same link while it is valid, or with a new code.',
+  },
+  'transfer.saving': {
+    tg: 'Пешрафт ба ҳисоб илова мешавад…',
+    ru: 'Прогресс добавляется в аккаунт…',
+    en: 'Adding your progress to the account…',
+  },
+  'transfer.done': {
+    tg: 'Пешрафти ин дастгоҳ ба ҳисоб илова шуд. Ҷавобҳо фиристода мешаванд — ин метавонад чанд дақиқа вақт гирад.',
+    ru: 'Прогресс этого устройства добавлен в аккаунт. Ответы отправляются — это может занять несколько минут.',
+    en: "This device's progress has been added to the account. The answers are being sent; this may take a few minutes.",
+  },
+  'transfer.userTaken': {
+    tg: 'Пешрафти ин дастгоҳ аз қабл ба ҳисоби дигаре тааллуқ дорад. Ба он ҳисоб ворид шавед — ё таърихчаро дар файл захира кунед ва додаҳоро аз ин дастгоҳ пок кунед.',
+    ru: 'Прогресс этого устройства уже принадлежит другому аккаунту. Войдите в тот аккаунт — или сохраните журнал в файл и очистите данные сайта на этом устройстве.',
+    en: "This device's progress already belongs to another account. Sign in to that account, or save the study log to a file and clear this site's data on this device.",
   },
   'signin.already': {
     tg: 'Шумо дар ин дастгоҳ аз қабл ба ҳисоб ворид шудаед.',
