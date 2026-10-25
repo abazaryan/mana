@@ -17,20 +17,19 @@ import {
   LONG_PRESS_MS,
   REPEAT_DELAY_MS,
   REPEAT_EVERY_MS,
+  ROW_UNITS,
   keyboardRows,
   keyVariants,
   pickVariant,
-  popupGrid,
+  popupCells,
+  popupPlacement,
   releasedChar,
   shiftChar,
   type Key,
 } from '../core/keyboard';
 import type { KeyboardLayout } from '../core/languages';
 import { useI18n } from './i18n';
-import type { StringKey } from './strings';
-
-/** Characters whose name the screen reader gets instead of the glyph. */
-const NAMED: Record<string, StringKey> = { "'": 'kb.apostrophe', '-': 'kb.hyphen' };
+import { charKeyLabel } from './keyNames';
 
 interface Popup {
   variants: string[];
@@ -42,6 +41,8 @@ interface Popup {
   top: number;
   /** Height of the key under the popup: the finger may slide over it. */
   keyH: number;
+  /** Where the finger touched the key. */
+  origin: { x: number; y: number };
 }
 
 interface Press {
@@ -50,6 +51,8 @@ interface Press {
   /** `char` keys: what a tap types (Shift applied). */
   char: string;
   variants: string[];
+  /** Where the finger touched the key. */
+  origin: { x: number; y: number };
   popup: Popup | null;
   index: number | null;
   timer: number | null;
@@ -83,13 +86,14 @@ export function OnScreenKeyboard({
   /** Any key touched (latency, R21). */
   onTouch(): void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const rows = keyboardRows(layout);
   const [shift, setShift] = useState(false);
   const [view, setView] = useState<View | null>(null);
   const press = useRef<Press | null>(null);
   const pointerSeen = useRef(false);
   const box = useRef<HTMLDivElement>(null);
+  const rowsBox = useRef<HTMLDivElement>(null);
   // The handlers below outlive a render (timers): read the current props and Shift here.
   const live = useRef({ onChar, onBackspace, onEnter, shift });
   live.current = { onChar, onBackspace, onEnter, shift };
@@ -162,15 +166,9 @@ export function OnScreenKeyboard({
   };
 
   const openPopup = (p: Press, rect: DOMRect) => {
-    const { cols, rows: popupRows } = popupGrid(p.variants.length);
-    const cellW = Math.max(rect.width, 40);
-    const cellH = Math.min(rect.height, 52);
-    const width = cols * cellW;
-    const vw = document.documentElement.clientWidth;
-    // The first (preselected) variant sits over the key, as far as the screen allows.
-    const left = Math.min(Math.max(4, rect.left + rect.width / 2 - cellW / 2), Math.max(4, vw - width - 4));
-    const top = rect.top - popupRows * cellH - 6;
-    p.popup = { variants: p.variants, cols, rows: popupRows, cellW, cellH, left, top, keyH: rect.height };
+    const letterW = (rowsBox.current?.getBoundingClientRect().width ?? rect.width * ROW_UNITS) / ROW_UNITS;
+    const place = popupPlacement({ key: rect, letterW, count: p.variants.length, viewportW: document.documentElement.clientWidth });
+    p.popup = { variants: p.variants, ...place, keyH: rect.height, origin: p.origin };
     p.index = 0;
     setView({ keyId: p.key.id, bubble: null, popup: { ...p.popup, index: 0 } });
   };
@@ -189,7 +187,17 @@ export function OnScreenKeyboard({
     }
     const char = key.char !== undefined ? shiftChar(key.char, live.current.shift) : '';
     const variants = key.char !== undefined ? keyVariants(layout, key.char, live.current.shift) : [];
-    const p: Press = { pointerId: e.pointerId, key, char, variants, popup: null, index: null, timer: null, repeat: null };
+    const p: Press = {
+      pointerId: e.pointerId,
+      key,
+      char,
+      variants,
+      origin: { x: e.clientX, y: e.clientY },
+      popup: null,
+      index: null,
+      timer: null,
+      repeat: null,
+    };
     press.current = p;
     const rect = el.getBoundingClientRect();
 
@@ -226,6 +234,7 @@ export function OnScreenKeyboard({
       top: g.top,
       x: e.clientX,
       y: e.clientY,
+      origin: g.origin,
       slack: g.cellW,
       below: g.keyH + 40,
     });
@@ -253,7 +262,7 @@ export function OnScreenKeyboard({
     onTouch();
     const char = key.char !== undefined ? shiftChar(key.char, live.current.shift) : '';
     if (key.kind === 'backspace') live.current.onBackspace();
-    else commit({ pointerId: -1, key, char, variants: [], popup: null, index: null, timer: null, repeat: null });
+    else commit({ pointerId: -1, key, char, variants: [], origin: { x: 0, y: 0 }, popup: null, index: null, timer: null, repeat: null });
   };
 
   const label = (key: Key): string => {
@@ -266,12 +275,8 @@ export function OnScreenKeyboard({
         return t('kb.space');
       case 'enter':
         return enterLabel;
-      case 'char': {
-        const base = key.char!;
-        const name = NAMED[base] ? t(NAMED[base]) : shiftChar(base, shift);
-        const vs = keyVariants(layout, base, shift);
-        return vs.length ? `${name}, ${t('kb.hold', { list: vs.join(' ') })}` : name;
-      }
+      case 'char':
+        return charKeyLabel(layout, key.char!, shift, lang);
     }
   };
 
@@ -291,13 +296,16 @@ export function OnScreenKeyboard({
   };
 
   const style = { '--key-h': `${KEY_HEIGHT_PX}px`, '--key-h-land': `${KEY_HEIGHT_LANDSCAPE_PX}px` } as CSSProperties;
+  // A fixed share of the row, padding included: a key of width 1 is as wide as a letter
+  // in every row, however many keys the row has (R41; flex-grow would add the padding).
+  const share = (units: number): CSSProperties => ({ flex: `0 0 ${(units / ROW_UNITS) * 100}%` });
 
   return createPortal(
     <div className="osk" ref={box} role="group" aria-label={t('kb.group')} style={style}>
-      <div className="osk-rows">
+      <div className="osk-rows" ref={rowsBox}>
         {rows.map((row, r) => (
           <div className="osk-row" key={r}>
-            {row.indent > 0 && <span className="osk-indent" style={{ flexGrow: row.indent }} />}
+            {row.indent > 0 && <span className="osk-indent" style={share(row.indent)} />}
             {row.keys.map((key) => (
               <button
                 key={key.id}
@@ -309,7 +317,7 @@ export function OnScreenKeyboard({
                 data-on={key.kind === 'shift' && shift ? true : undefined}
                 aria-pressed={key.kind === 'shift' ? shift : undefined}
                 aria-label={label(key)}
-                style={{ flexGrow: key.width }}
+                style={share(key.width)}
                 onPointerDown={(e) => down(key, e)}
                 onPointerMove={move}
                 onPointerUp={up}
@@ -324,7 +332,7 @@ export function OnScreenKeyboard({
                 </span>
               </button>
             ))}
-            {row.indent > 0 && <span className="osk-indent" style={{ flexGrow: row.indent }} />}
+            {row.indent > 0 && <span className="osk-indent" style={share(row.indent)} />}
           </div>
         ))}
       </div>
@@ -339,14 +347,19 @@ export function OnScreenKeyboard({
           aria-hidden="true"
           style={{ left: view.popup.left, top: view.popup.top, gridTemplateColumns: `repeat(${view.popup.cols}, ${view.popup.cellW}px)`, gridAutoRows: `${view.popup.cellH}px` }}
         >
-          {view.popup.variants.map((v, k) => (
-            <span key={v} className="osk-var" data-on={k === view.popup!.index || undefined}>
-              {v}
-            </span>
-          ))}
+          {popupCells(view.popup.variants.length, view.popup.cols, view.popup.rows).map((k, n) =>
+            k === null ? (
+              <span key={`gap${n}`} />
+            ) : (
+              <span key={view.popup!.variants[k]} className="osk-var" data-on={k === view.popup!.index || undefined}>
+                {view.popup!.variants[k]}
+              </span>
+            ),
+          )}
         </div>
       )}
     </div>,
     document.body,
   );
 }
+

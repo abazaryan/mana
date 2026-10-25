@@ -86,6 +86,8 @@
 | `kb.space` | Пробел | Space | Фосила |
 | `kb.apostrophe` | Апостроф | Apostrophe | Апостроф |
 | `kb.hyphen` | Дефис | Hyphen | Хати пайванд |
+| `kb.comma` | Запятая | Comma | Вергул |
+| `kb.period` | Точка | Period | Нуқта |
 | `kb.hold` | удерживайте: {list} | hold for {list} | нигоҳ доред: {list} |
 | `mic.starting` | Микрофон включается… | Starting the microphone… | Микрофон равшан мешавад… |
 | `mic.unsupported` | Этот браузер не распознаёт речь — напишите ответ. | This browser has no speech recognition — type the answer. | Ин мурургар бозшиносии гуфторро надорад — ҷавобро нависед. |

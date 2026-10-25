@@ -167,6 +167,9 @@ export const STRINGS = {
   'kb.space': { tg: 'Фосила', ru: 'Пробел', en: 'Space' },
   'kb.apostrophe': { tg: 'Апостроф', ru: 'Апостроф', en: 'Apostrophe' },
   'kb.hyphen': { tg: 'Хати пайванд', ru: 'Дефис', en: 'Hyphen' },
+  // R41: approved by the owner 25.10.2026.
+  'kb.comma': { tg: 'Вергул', ru: 'Запятая', en: 'Comma' },
+  'kb.period': { tg: 'Нуқта', ru: 'Точка', en: 'Period' },
   'kb.hold': { tg: 'нигоҳ доред: {list}', ru: 'удерживайте: {list}', en: 'hold for {list}' },
   'mic.starting': { tg: 'Микрофон равшан мешавад…', ru: 'Микрофон включается…', en: 'Starting the microphone…' },
   'mic.unsupported': {

@@ -102,16 +102,26 @@ export interface SpokenRules {
 }
 
 /**
- * The on-screen phone keyboard (R6, R31): letter rows, the keys around the space bar
- * and the long-press variants. No digits: numbers are learnt spelt out.
+ * A key of the bottom row (R41). Widths are in letter keys (a letter row is 10);
+ * the space bar takes the rest of the row.
+ */
+export type BottomKey =
+  | { kind: 'char'; char: string; width: number }
+  | { kind: 'space' }
+  | { kind: 'enter'; width: number };
+
+/**
+ * The on-screen phone keyboard (R6, R31, R41): letter rows, the bottom row and the
+ * long-press variants. No digits: numbers are learnt spelt out.
  */
 export interface KeyboardLayout {
   /** Letter rows, top to bottom, one key per character; the last one gets Shift and Backspace. */
   rows: readonly string[];
-  /** Keys left of the space bar. */
-  beforeSpace: readonly string[];
-  /** Keys right of the space bar (before Enter). */
-  afterSpace: readonly string[];
+  /**
+   * The bottom row, left to right: one space bar, one Enter, any character keys.
+   * Absent or invalid (src/core/keyboard.ts, `bottomRowProblems`) → space and Enter only.
+   */
+  bottom?: readonly BottomKey[];
   /** Long press on a key offers these, in this order; the first is preselected. */
   variants: Readonly<Record<string, readonly string[]>>;
 }
@@ -143,10 +153,10 @@ export interface LanguagePack extends LanguageSupport {
 }
 
 /**
- * Punctuation of a French answer: never counted in a written answer (R26) and offered
- * by a long press on "." of the on-screen keyboard (R31). One list for both.
+ * Punctuation never counted in a written French answer (R26, R41): these 13 marks,
+ * unchanged since stage 5. Not the keyboard's list: the keyboard has its own (R41).
  */
-const FRENCH_PUNCTUATION = ['.', ',', '?', '!', ':', ';', '…', '«', '»', '"', '“', '”', '„'] as const;
+const FRENCH_IGNORED_PUNCTUATION = ['.', ',', '?', '!', ':', ';', '…', '«', '»', '"', '“', '”', '„'] as const;
 
 export const FRENCH: LanguagePack = {
   code: 'fr',
@@ -200,9 +210,17 @@ export const FRENCH: LanguagePack = {
   },
   keyboard: {
     rows: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
-    beforeSpace: ["'", '-'],
-    afterSpace: ['.'],
-    // The letters of R6, each on its base letter.
+    // As Gboard on the owner's phone (R41): apostrophe in the place of ?123, Enter in the
+    // place of search; the space bar takes its own place, the globe's and the rest.
+    bottom: [
+      { kind: 'char', char: "'", width: 1.35 },
+      { kind: 'char', char: ',', width: 1 },
+      { kind: 'space' },
+      { kind: 'char', char: '.', width: 1 },
+      { kind: 'enter', width: 1.4 },
+    ],
+    // The letters of R6, each on its base letter; on the apostrophe the hyphen first,
+    // then the marks that "." offered before R41 except "," and ".".
     variants: {
       e: ['é', 'è', 'ê', 'ë'],
       a: ['à', 'â', 'æ'],
@@ -210,14 +228,14 @@ export const FRENCH: LanguagePack = {
       i: ['î', 'ï'],
       o: ['ô', 'œ'],
       u: ['û', 'ù', 'ü'],
-      '.': FRENCH_PUNCTUATION.filter((m) => m !== '.'),
+      "'": ['-', '?', '!', ':', ';', '…', '«', '»', '"', '“', '”', '„'],
     },
   },
   writing: {
     // French typography: a space before `? ! : ; »` and after `«`. Correct in print,
     // invisible on screen, not something to test the learner on.
     typographicSpace: /\s+(?=[?!:;»])|(?<=«)\s+/g,
-    ignoredPunctuation: marksPattern(FRENCH_PUNCTUATION),
+    ignoredPunctuation: marksPattern(FRENCH_IGNORED_PUNCTUATION),
     // Elision first so it wins over the two-letter forms.
     leadingArticle: /^(l'|le |la |les |un |une |des )/,
     // Words of 5 characters or less get no typo tolerance: one edit on a short
