@@ -506,11 +506,11 @@ export const STRINGS = {
     ru: 'Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации.',
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
-  // Restore from a file while signed in (stage 6a.4, R40). tg approved 25.10.2026; ru/en alignment pending the owner.
+  // Restore from a file while signed in (stage 6a.4, R40). tg approved 25.10.2026; ru/en aligned by the owner 25.10.2026.
   'restore.confirmOther': {
     tg: 'Ин таърихча аз дастгоҳи дигар, мурургари дигар ё аз пеш аз пок кардани додаҳо аст. Ба ҳисоб илова шавад?',
-    ru: 'Этот журнал — с другой установки приложения. Добавить его в аккаунт?',
-    en: 'This study log comes from another installation of the app. Add it to your account?',
+    ru: 'Этот журнал — с другого устройства, из другого браузера или сделан до очистки данных. Добавить его в аккаунт?',
+    en: 'This study log comes from another device, another browser, or from before the data was cleared. Add it to your account?',
   },
   'restore.confirmOtherHint': {
     tg: 'Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд.',
@@ -519,8 +519,8 @@ export const STRINGS = {
   },
   'restore.needsNetwork': {
     tg: 'Барои илова кардани ин таърихча ба ҳисоб интернет лозим аст. Баъдтар дубора талош кунед.',
-    ru: 'Чтобы добавить журнал другой установки, нужен интернет. Попробуйте позже.',
-    en: 'Adding the study log of another installation needs an internet connection. Try again later.',
+    ru: 'Чтобы добавить этот журнал в аккаунт, нужен интернет. Попробуйте позже.',
+    en: 'Adding this study log to your account needs an internet connection. Try again later.',
   },
   'restore.otherAccount': {
     tg: 'Ин таърихча ба ҳисоби дигар тааллуқ дорад ва ба ин ҳисоб илова намешавад.',
@@ -655,7 +655,7 @@ export const STRINGS = {
     ru: 'Слишком много попыток. Попробуйте позже.',
     en: 'Too many attempts. Try again later.',
   },
-  // Transfer of answers (stage 6a.4, R40). tg approved 25.10.2026 (transfer.question — 21.10.2026); ru/en alignment pending the owner.
+  // Transfer of answers (stage 6a.4, R40). tg approved 25.10.2026 (transfer.question — 21.10.2026); ru/en aligned by the owner 25.10.2026.
   'transfer.question': {
     tg: 'Пешрафти ин дастгоҳ ба ҳисобатон илова шавад?',
     ru: 'Добавить прогресс с этого устройства в аккаунт?',
@@ -663,13 +663,13 @@ export const STRINGS = {
   },
   'transfer.hint': {
     tg: 'Пешрафти ин дастгоҳ ба ҳисобатон фиристода мешавад ва дар дастгоҳҳои дигаратон пайдо мешавад. Беҳтар аст пеш аз ин таърихчаро дар файл захира кунед.',
-    ru: 'Ответы этого устройства уйдут в аккаунт и появятся на других ваших устройствах. Перед этим лучше сохранить журнал в файл.',
-    en: "This device's answers will go to your account and appear on your other devices. It's best to save the study log to a file first.",
+    ru: 'Прогресс этого устройства уйдёт в аккаунт и появится на других ваших устройствах. Перед этим лучше сохранить журнал в файл.',
+    en: "This device's progress will go to your account and appear on your other devices. It's best to save the study log to a file first.",
   },
   'transfer.declined': {
     tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Ҳар вақт хостед, бо ҳамин даъватнома (агар ҳанӯз эътибор дорад) ё бо коди нав ворид шавед.',
-    ru: 'Вы не вошли в аккаунт. Прогресс остаётся только на этом устройстве. Войти можно позже — по той же ссылке, пока она действует, или новым кодом.',
-    en: 'You are not signed in. Your progress stays on this device only. You can sign in later with the same link while it is valid, or with a new code.',
+    ru: 'Вы не вошли в аккаунт; прогресс остаётся на этом устройстве. Войти можно в любое время — по этой же ссылке, если она ещё действует, или новым кодом.',
+    en: "You're not signed in; your progress stays on this device. Sign in any time with the same link, if it's still valid, or with a new code.",
   },
   'transfer.saving': {
     tg: 'Пешрафт ба ҳисоб илова мешавад…',
@@ -678,13 +678,13 @@ export const STRINGS = {
   },
   'transfer.done': {
     tg: 'Пешрафти ин дастгоҳ ба ҳисобатон илова шуд. Ирсоли ҷавобҳо мумкин аст чанд дақиқа тӯл кашад.',
-    ru: 'Прогресс этого устройства добавлен в аккаунт. Ответы отправляются — это может занять несколько минут.',
-    en: "This device's progress has been added to the account. The answers are being sent; this may take a few minutes.",
+    ru: 'Прогресс этого устройства добавлен в аккаунт. Отправка ответов может занять несколько минут.',
+    en: "This device's progress has been added to your account. Sending the answers may take a few minutes.",
   },
   'transfer.userTaken': {
     tg: 'Пешрафти ин дастгоҳ ба ҳисоби дигар тааллуқ дорад. Ё вориди он ҳисоб шавед, ё таърихчаро дар файл захира кунед ва додаҳои сайтро аз ин дастгоҳ пок кунед.',
-    ru: 'Прогресс этого устройства уже принадлежит другому аккаунту. Войдите в тот аккаунт — или сохраните журнал в файл и очистите данные сайта на этом устройстве.',
-    en: "This device's progress already belongs to another account. Sign in to that account, or save the study log to a file and clear this site's data on this device.",
+    ru: 'Прогресс этого устройства принадлежит другому аккаунту. Войдите в тот аккаунт или сохраните журнал в файл и очистите данные сайта на этом устройстве.',
+    en: "This device's progress belongs to another account. Either sign in to that account, or save the study log to a file and clear this site's data on this device.",
   },
   'signin.already': {
     tg: 'Шумо дар ин дастгоҳ аз қабл ба ҳисоб ворид шудаед.',
