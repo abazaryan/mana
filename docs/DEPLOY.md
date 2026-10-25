@@ -370,6 +370,46 @@ Rollback к версии 6а.2 или `git revert`. Таблицы 0003 оста
 уже есть таблица `outbox` (схема Dexie 2): старая сборка с ней открывается (проверено на fake-indexeddb,
 `src/platform/db.test.ts`), очередь просто не отправляется.
 
+## Перенос ответов в аккаунт (этап 6а, шаг 6а.4, Р40)
+
+Новые необязательные поля `localUserId` (приглашение `account`) и `formerUserId` (приглашение `device`,
+код привязки) в `POST /api/auth/redeem` и `POST /api/auth/pair`; новый маршрут `POST /api/auth/alias`;
+`/api/auth/me` отдаёт `formerUserIds`. Таблица `user_aliases` — миграция `migrations/0004_user_aliases.sql`.
+Новых секретов и привязок нет. `MIN_CLIENT` не меняется: тело запроса сборки 6а.3 сервер обрабатывает
+как раньше (тест). Скрипты `invite.ts` / `recover.ts` принимают метки без `test-…` только при
+`NOTICE_VERSION ≥ 3` (`tools/admin/testOnly.ts`); `users.ts` показывает число прежних номеров.
+
+### Миграция 0004 — порядок
+
+1. Местный D1 в `wrangler`: `npx wrangler d1 migrations apply mana --local` → `0004_user_aliases.sql ✅`
+   (сделано 25.10.2026: 2 команды).
+2. Что применится (только чтение): `node tools/admin/wrangler.ts d1 migrations list mana --remote` —
+   должна быть только `0004_user_aliases.sql`.
+3. **Применение — только после «Подтверждаю: <команда>» владельца:**
+   `node tools/admin/wrangler.ts d1 migrations apply mana --remote`.
+4. Проверка: `migrations list` (нечего применять), `d1 info` (`"jurisdiction": "eu"`, таблиц на 1 больше),
+   `sqlite_schema` — `user_aliases` `) STRICT`.
+5. Push кода — только после утверждения таджикских строк 6а.4 и применения 0004.
+
+### Проверки после публикации (6а.4)
+
+```
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: <номер сборки>" -H "Content-Type: application/json" -d "{\"aliasId\":\"00000000-0000-4000-8000-000000000000\"}" https://mana.amisipehr.workers.dev/api/auth/alias
+curl.exe -si -X POST -H "Sec-Fetch-Site: same-origin" -H "X-Mana-Version: 202610241449" -H "Content-Type: application/json" -d "{}" https://mana.amisipehr.workers.dev/api/auth/alias
+curl.exe -si -X POST -H "Origin: https://evil.example" https://mana.amisipehr.workers.dev/api/auth/alias
+```
+
+Ожидается: `401 {"error":"unauthorized"}`; `426 {"error":"upgrade_required"}`; `403 {"error":"forbidden"}`.
+Перенос с отправкой на настоящий сервер — только тестовые аккаунты `test-…` и синтетические ответы
+(правила 6а).
+
+### Откат 6а.4
+
+Rollback к версии 6а.3 или `git revert`. Таблица `user_aliases` остаётся и старой версии не мешает.
+На устройствах после переноса записи уже с `userId` аккаунта, в `meta` — поля `formerUserIds`,
+`pendingTransfer`, `sync.pullFirst`: старая сборка их не читает; отметка `pullFirst` ей не мешает (она
+отправляет очередь как обычно, сервер ответит `duplicate`).
+
 ## 5. Установить на телефон (Android, Chrome)
 
 1. Открыть `https://mana.amisipehr.workers.dev` в **Chrome**, коснуться страницы и побыть на
