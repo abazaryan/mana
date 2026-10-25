@@ -46,6 +46,18 @@ export interface MetaRow {
   account?: AccountMark;
   /** Sync with the account (stage 6a.3); absent until the first exchange after sign-in. Device-only. */
   sync?: SyncState;
+  /**
+   * The account's earlier ids (stage 6a.4, R40): installations whose answers joined the account,
+   * as the server last listed them (sign-in, /api/auth/me). A backup file of one of them is the
+   * account's. Records found under one of them are rewritten to the account. Device-only.
+   */
+  formerUserIds?: string[];
+  /**
+   * A sign-in that adds this device's answers to an account was sent (R40): written before the
+   * request, removed when the device side is done. Found at start — /api/auth/me tells whether
+   * the server took it, and the transfer is finished or forgotten. Device-only.
+   */
+  pendingTransfer?: { localUserId: string; at: Date };
 }
 
 /**
@@ -73,6 +85,12 @@ export interface SyncState {
    * next exchange that goes through. The screen for it — stage 6a.5.
    */
   needsConsent?: { version: number; at: Date };
+  /**
+   * After a transfer, a new sign-in or a restore while signed in (R40): take everything from the
+   * server before sending anything. A received record equal to a queued one leaves the queue
+   * (the server has it); the last page clears the mark, then the rest of the queue goes.
+   */
+  pullFirst?: boolean;
 }
 
 export type OutboxStatus = 'pending' | 'rejected' | 'conflict';

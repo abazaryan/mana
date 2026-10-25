@@ -6,7 +6,7 @@
 import Dexie from 'dexie';
 import type { FSRS } from 'ts-fsrs';
 import { rebuildCards } from '../core/cards';
-import { reviveRecord } from '../core/journalRecord';
+import { canonicalJson, reviveRecord } from '../core/journalRecord';
 import type { LogRecord, MetaRow, OutboxRow, SettingsRow, SyncState } from '../core/model';
 import { batchLength, hasNewerRules, mergeSettings, settingsToSend, touchedCards, type SyncedValues } from '../core/sync';
 import { SYNCED_SETTINGS, type PullResponse, type PushResponse, type ServerSettings, type SettingChange } from '../core/syncProtocol';
@@ -46,11 +46,13 @@ export interface Batch {
  * The next push: pending records in queue order (each as JSON.stringify writes it — the same
  * text every time), at most `maxCount` and `maxBytes`; with them the settings to send. Null —
  * nothing to send. `withSettings` false: records only (the push while the page goes away).
+ * Nothing either while the account's records are still being taken first (pullFirst, R40).
  */
 export async function nextBatch(db: ManaDb, maxCount: number, maxBytes: number, withSettings = true): Promise<Batch | null> {
   const meta = await deviceRow(db);
   if (!meta.account) return null;
   const sync = syncOf(meta);
+  if (sync.pullFirst) return null;
   const local = withSettings ? await db.settings.get(meta.userId) : undefined;
   const settings = local ? settingsToSend(valuesOf(local), sync.settingsRev, sync.dirty) : [];
   const settingsJson = settings.length > 0 ? `,"settings":${JSON.stringify(settings)}` : '';
@@ -122,9 +124,13 @@ export interface PullOutcome {
  * are skipped), the cursor, the touched cards rebuilt from their whole history, the settings.
  * With records of newer rules: everything is saved, but the cards are left for after the update.
  * A record this version cannot read stops the page: nothing is stored, the cursor stays.
+ *
+ * A received record this device has with the same canonical JSON and still waiting in the queue
+ * leaves the queue: the server holds it (R40). Another content stays and meets its conflict. The
+ * last page ends "take everything first" (pullFirst).
  */
 export async function applyPull(db: ManaDb, scheduler: FSRS, res: PullResponse, build: number, now = new Date()): Promise<PullOutcome> {
-  return db.transaction('rw', [db.meta, db.log, db.cards, db.settings], async () => {
+  return db.transaction('rw', [db.meta, db.log, db.cards, db.settings, db.outbox], async () => {
     const meta = await deviceRow(db);
     const records = res.records.map((r) => {
       const rec = reviveRecord(r, meta.userId);
@@ -134,9 +140,14 @@ export async function applyPull(db: ManaDb, scheduler: FSRS, res: PullResponse, 
     const known = await db.log.bulkGet(records.map((r) => String(r.id)));
     const fresh = records.filter((_, i) => !known[i]);
     if (fresh.length > 0) await db.log.bulkAdd(fresh as unknown as LogRecord[]);
+    const mine = records.filter((r, i) => known[i] && canonicalJson(known[i]) === canonicalJson(r));
+    const waiting = await db.outbox.bulkGet(mine.map((r) => String(r.id)));
+    const held = mine.filter((_, i) => waiting[i]?.status === 'pending').map((r) => String(r.id));
+    if (held.length > 0) await db.outbox.bulkDelete(held);
     const sync = syncOf(meta);
     const newerRules = hasNewerRules(fresh) || sync.needsRebuild === true;
     const extra: Partial<SyncState> = { cursor: res.next };
+    if (sync.pullFirst && !res.more) extra.pullFirst = undefined;
     if (newerRules) {
       extra.needsRebuild = true;
       if (hasNewerRules(fresh)) extra.needsUpdate = { reason: 'rules', build, at: now };

@@ -5,7 +5,7 @@
  */
 import Dexie from 'dexie';
 import type { FSRS } from 'ts-fsrs';
-import { parseBackup, planRestore, serializeBackup, type BackupError } from '../core/backup';
+import { parseBackup, planAccountRestore, planRestore, serializeBackup, type BackupError, type JournalBackup } from '../core/backup';
 import { answerCard, rebuildCards } from '../core/cards';
 import type { DeckArchive, DeckAudio } from '../core/deckArchive';
 import type { Skill } from '../core/deckFormat';
@@ -21,6 +21,7 @@ import type {
   LogRecord,
   MediaRow,
   MetaRow,
+  OutboxRow,
   ReviewRecord,
   SettingsRow,
   VoiceCheck,
@@ -229,12 +230,25 @@ async function enqueue(db: ManaDb, record: LogRecord): Promise<boolean> {
 }
 
 /** Appends a record of this device (and queues it for the server). */
-async function appendRecord(db: ManaDb, record: LogRecord): Promise<void> {
-  const queued = await db.transaction('rw', [db.log, db.meta, db.outbox], async () => {
-    await db.log.add(record);
-    return enqueue(db, record);
+/**
+ * The writer's user as the database knows it now (inside the caller's transaction): an actor of
+ * another window that still holds an earlier id from before a transfer writes as the account
+ * (R40) — its record must not stay under the earlier id, outside the queue.
+ */
+async function currentUser(db: ManaDb, actor: Actor): Promise<string> {
+  const meta = await db.meta.get('device');
+  return meta && meta.userId !== actor.userId && meta.formerUserIds?.includes(actor.userId) ? meta.userId : actor.userId;
+}
+
+/** Appends a record of this device (and queues it for the server); returns it as stored. */
+async function appendRecord<T extends LogRecord>(db: ManaDb, record: T): Promise<T> {
+  const out = await db.transaction('rw', [db.log, db.meta, db.outbox], async () => {
+    const stored: T = { ...record, userId: await currentUser(db, record) };
+    await db.log.add(stored);
+    return { stored, queued: await enqueue(db, stored) };
   });
-  if (queued) notifyQueued();
+  if (out.queued) notifyQueued();
+  return out.stored;
 }
 
 export async function recordIntro(
@@ -243,18 +257,14 @@ export async function recordIntro(
   input: IntroInput,
   newId: NewId = randomId,
 ): Promise<IntroRecord> {
-  const record: IntroRecord = { ...input, id: newId(), type: 'intro', skill: null, ...who(actor) };
-  await appendRecord(db, record);
-  return record;
+  return appendRecord(db, { ...input, id: newId(), type: 'intro', skill: null, ...who(actor) } satisfies IntroRecord);
 }
 
 export type DrillInput = Omit<DrillRecord, 'id' | 'type' | 'userId' | 'deviceId'>;
 
 /** Appends the short practice after Again (R25); never touches the card. */
 export async function recordDrill(db: ManaDb, actor: Actor, input: DrillInput, newId: NewId = randomId): Promise<DrillRecord> {
-  const record: DrillRecord = { ...input, id: newId(), type: 'drill', ...who(actor) };
-  await appendRecord(db, record);
-  return record;
+  return appendRecord(db, { ...input, id: newId(), type: 'drill', ...who(actor) } satisfies DrillRecord);
 }
 
 /**
@@ -273,22 +283,23 @@ export async function recordReview(
   newId: NewId = randomId,
 ): Promise<{ record: ReviewRecord; card: CardRow }> {
   const out = await db.transaction('rw', [db.log, db.cards, db.meta, db.outbox], async () => {
-    const key: [string, string, string, string] = [actor.userId, input.deckId, input.entryId, input.skill];
+    const userId = await currentUser(db, actor);
+    const key: [string, string, string, string] = [userId, input.deckId, input.entryId, input.skill];
     const prev = (await db.cards.get(key)) ?? null;
     const late = prev?.lastReview != null && prev.lastReview.getTime() >= input.at.getTime();
     // Late: the snapshot is taken from the card as its answers before this one left it.
     const step = answerCard(scheduler, late ? await cardBefore(db, scheduler, key, input.at) : prev, input);
-    const record: ReviewRecord = { ...input, id: newId(), type: 'review', ...who(actor), rules: RULES_VERSION, fsrs: step.fsrs };
+    const record: ReviewRecord = { ...input, id: newId(), type: 'review', userId, deviceId: actor.deviceId, rules: RULES_VERSION, fsrs: step.fsrs };
     await db.log.add(record);
     const queued = await enqueue(db, record);
     if (late) {
-      const [card] = await rebuildCardKeys(db, scheduler, actor.userId, [key]);
+      const [card] = await rebuildCardKeys(db, scheduler, userId, [key]);
       return { record, card: card ?? prev!, queued };
     }
     if (!step.changed && prev) return { record, card: prev, queued };
     const card: CardRow = {
       ...step.card,
-      userId: actor.userId,
+      userId,
       deckId: input.deckId,
       entryId: input.entryId,
       skill: input.skill,
@@ -495,12 +506,13 @@ export async function hasLocalAnswers(db: ManaDb): Promise<boolean> {
 }
 
 /**
- * A new device id for this installation — only while the journal is empty (records carry the
- * device id). Used when the server says the id belongs to another account (409 device_taken).
+ * A new device id for this installation — while the journal is empty, or on a transfer of answers
+ * (`withAnswers`, R40): the records keep the old id, which has no meaning on the server beyond
+ * "which device". Used when the server says the id belongs to another account (409 device_taken).
  */
-export async function renewDeviceId(db: ManaDb, newId: NewId = randomId): Promise<MetaRow> {
+export async function renewDeviceId(db: ManaDb, newId: NewId = randomId, withAnswers = false): Promise<MetaRow> {
   return db.transaction('rw', db.meta, db.log, async () => {
-    if ((await db.log.count()) > 0) throw new Error('renewDeviceId: the journal is not empty');
+    if (!withAnswers && (await db.log.count()) > 0) throw new Error('renewDeviceId: the journal is not empty');
     const row = await db.meta.get('device');
     if (!row) throw new Error('renewDeviceId: no device row');
     const next: MetaRow = { ...row, deviceId: newId() };
@@ -514,7 +526,7 @@ export async function renewDeviceId(db: ManaDb, newId: NewId = randomId): Promis
  * restore adopts a backup's user) and the settings move with it; the account mark is kept.
  * Only on a device without answers — checked before signing in, and here again.
  */
-export async function markSignedIn(db: ManaDb, userId: string, deviceName: string, now = new Date()): Promise<MetaRow> {
+export async function markSignedIn(db: ManaDb, userId: string, deviceName: string, now = new Date(), formerUserIds: readonly string[] = []): Promise<MetaRow> {
   return db.transaction('rw', [db.meta, db.settings, db.log], async () => {
     if ((await db.log.count()) > 0) throw new Error('markSignedIn: the journal is not empty');
     const meta = await db.meta.get('device');
@@ -527,8 +539,8 @@ export async function markSignedIn(db: ManaDb, userId: string, deviceName: strin
       }
     }
     // A new account: its sync starts from nothing (cursor 0, settings first taken from the server).
-    const { sync: _old, ...rest } = meta;
-    const next: MetaRow = { ...rest, userId, account: { userId, deviceName, since: now } };
+    const { sync: _old, pendingTransfer: _none, formerUserIds: _earlier, ...rest } = meta;
+    const next: MetaRow = { ...rest, userId, account: { userId, deviceName, since: now }, ...(formerUserIds.length > 0 ? { formerUserIds: [...formerUserIds] } : {}) };
     await db.meta.put(next);
     return next;
   });
@@ -554,4 +566,175 @@ export async function setAccountDeviceName(db: ManaDb, deviceName: string): Prom
     await db.meta.put(next);
     return next;
   });
+}
+
+// ---------- Transfer of answers (stage 6a.4, R40) ----------
+
+/** Before a sign-in that adds this device's answers: remembered, so a closed tab is finished at start. */
+export async function beginTransfer(db: ManaDb, now = new Date()): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('beginTransfer: no device row');
+    const next: MetaRow = { ...meta, pendingTransfer: { localUserId: meta.userId, at: now } };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/** The server did not take the sign-in (or it was never sent): nothing to finish. */
+export async function forgetTransfer(db: ManaDb): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('forgetTransfer: no device row');
+    const { pendingTransfer: _gone, ...rest } = meta;
+    await db.meta.put(rest);
+    return rest;
+  });
+}
+
+/** The account's earlier ids as the server lists them now (/api/auth/me, the alias route). */
+export async function setFormerUserIds(db: ManaDb, ids: readonly string[]): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('setFormerUserIds: no device row');
+    const known = new Set([...(meta.formerUserIds ?? []), ...ids]);
+    known.delete(meta.userId);
+    const next: MetaRow = { ...meta, formerUserIds: [...known] };
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+type CardKey = [string, string, string, string];
+
+/**
+ * Every record, card and the settings row of `from` become `to`'s (inside the caller's
+ * transaction): only the userId changes — id, time, answers and deviceId stay, so the canonical
+ * JSON is the one any device would get. Cards move as they are (their dates stay by
+ * construction); a card `to` already has is rebuilt from the joined history. A record of `from`
+ * in the send queue would mean it was meant for the server under that id: never rewritten.
+ * Returns the moved records.
+ */
+async function moveUser(db: ManaDb, scheduler: FSRS, from: string, to: string): Promise<LogRecord[]> {
+  const records = await userLog(db, from);
+  if (records.length > 0) {
+    if ((await db.outbox.bulkGet(records.map((r) => r.id))).some(Boolean)) throw new Error('moveUser: a record of an earlier id is in the send queue');
+    await db.log.bulkPut(records.map((r) => ({ ...r, userId: to })));
+  }
+  const cards = await db.cards.where('[userId+deckId]').between([from, Dexie.minKey], [from, Dexie.maxKey]).toArray();
+  if (cards.length > 0) {
+    const key = (userId: string, c: CardRow): CardKey => [userId, c.deckId, c.entryId, c.skill];
+    await db.cards.bulkDelete(cards.map((c) => key(from, c)));
+    const there = await db.cards.bulkGet(cards.map((c) => key(to, c)));
+    await db.cards.bulkPut(cards.filter((_, i) => !there[i]).map((c) => ({ ...c, userId: to })));
+    const clash = cards.filter((_, i) => there[i]).map((c) => key(to, c));
+    if (clash.length > 0) await rebuildCardKeys(db, scheduler, to, clash);
+  }
+  const settings = await db.settings.get(from);
+  if (settings) {
+    await db.settings.delete(from);
+    if (!(await db.settings.get(to))) await db.settings.put({ ...settings, userId: to });
+  }
+  return records.map((r) => ({ ...r, userId: to }));
+}
+
+/** Records into the send queue, those already there (any status) left as they are. */
+async function queueRecords(db: ManaDb, records: readonly LogRecord[]): Promise<number> {
+  const there = await db.outbox.bulkGet(records.map((r) => r.id));
+  const rows: OutboxRow[] = records.filter((_, i) => !there[i]).map((r) => ({ id: r.id, status: 'pending', queuedAt: r.at.getTime() }));
+  await db.outbox.bulkAdd(rows);
+  return rows.length;
+}
+
+export interface Adopted {
+  meta: MetaRow;
+  /** Records put into the send queue. */
+  queued: number;
+}
+
+/**
+ * After the server took a sign-in with this device's answers (R40), in one transaction: the
+ * records, cards and settings of the local user and of every earlier id move to the account
+ * (nothing moves when the account is the local user: the first device, or signing in again);
+ * every record of the account not yet in the send queue goes there; the sync starts again from
+ * the server's first record and takes everything before sending (pullFirst). Repeating it changes
+ * nothing.
+ */
+export async function adoptAccount(
+  db: ManaDb,
+  scheduler: FSRS,
+  accountId: string,
+  deviceName: string,
+  formerUserIds: readonly string[],
+  now = new Date(),
+): Promise<Adopted> {
+  const out = await db.transaction('rw', [db.meta, db.settings, db.log, db.cards, db.outbox], async (): Promise<Adopted> => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('adoptAccount: no device row');
+    const earlier = new Set([...(meta.formerUserIds ?? []), ...formerUserIds, meta.userId]);
+    earlier.delete(accountId);
+    for (const id of earlier) await moveUser(db, scheduler, id, accountId);
+    const queued = await queueRecords(db, await userLog(db, accountId));
+    const { sync: _old, pendingTransfer: _done, ...rest } = meta;
+    const since = meta.account?.userId === accountId ? meta.account.since : now;
+    const next: MetaRow = {
+      ...rest,
+      userId: accountId,
+      account: { userId: accountId, deviceName, since },
+      formerUserIds: [...earlier],
+      sync: { cursor: 0, settingsRev: {}, dirty: [], pullFirst: true },
+    };
+    await db.meta.put(next);
+    return { meta: next, queued };
+  });
+  if (out.queued > 0) notifyQueued();
+  return out;
+}
+
+/**
+ * At start on a signed-in device: records still under an earlier id (written by another window
+ * or an older build after the transfer) move to the account and into the queue — they were never
+ * sent. True — something moved.
+ */
+export async function settleLeftovers(db: ManaDb, scheduler: FSRS): Promise<boolean> {
+  const moved = await db.transaction('rw', [db.meta, db.settings, db.log, db.cards, db.outbox], async () => {
+    const meta = await db.meta.get('device');
+    if (!meta?.account || meta.account.userId !== meta.userId) return 0;
+    let n = 0;
+    for (const id of meta.formerUserIds ?? []) {
+      if (id === meta.userId || (await db.log.where('[userId+at]').between([id, Dexie.minKey], [id, Dexie.maxKey]).count()) === 0) continue;
+      n += await queueRecords(db, await moveUser(db, scheduler, id, meta.userId));
+    }
+    return n;
+  });
+  if (moved > 0) notifyQueued();
+  return moved > 0;
+}
+
+export type AccountRestoreResult = { ok: true; added: number; skipped: number } | { ok: false; error: 'unknownUser' | 'signedOut' };
+
+/**
+ * A backup file on a signed-in device (R40), in one transaction: its records join the account's
+ * journal under the account's id (ids already here skipped), go into the send queue, the cards
+ * are rebuilt; the sync takes everything from the server before sending (pullFirst), so records
+ * the server already has are not sent again. The file must be the account's or an earlier id's.
+ */
+export async function restoreForAccount(db: ManaDb, scheduler: FSRS, backup: JournalBackup): Promise<AccountRestoreResult> {
+  const out = await db.transaction('rw', [db.meta, db.settings, db.log, db.cards, db.outbox], async (): Promise<AccountRestoreResult> => {
+    const meta = await db.meta.get('device');
+    if (!meta?.account || meta.account.userId !== meta.userId) return { ok: false, error: 'signedOut' };
+    const existingIds = new Set((await db.log.toCollection().primaryKeys()) as string[]);
+    const plan = planAccountRestore(backup, meta.userId, meta.formerUserIds ?? [], existingIds);
+    if (!plan.ok) return plan;
+    if (plan.add.length > 0) {
+      await db.log.bulkAdd(plan.add);
+      await queueRecords(db, plan.add);
+      await replaceUserCards(db, scheduler, meta.userId);
+      const sync = meta.sync ?? { cursor: 0, settingsRev: {}, dirty: [] };
+      await db.meta.put({ ...meta, sync: { ...sync, cursor: 0, pullFirst: true } });
+    }
+    return { ok: true, added: plan.add.length, skipped: plan.skipped };
+  });
+  if (out.ok && out.added > 0) notifyQueued();
+  return out;
 }

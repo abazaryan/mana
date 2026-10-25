@@ -48,16 +48,14 @@ function failure(res: Extract<ApiResult<unknown>, { ok: false }>, online: boolea
   return 'failed';
 }
 
-async function run(env: SyncEnv): Promise<RunResult> {
+/**
+ * Sends the queue: settings with the first batch only (a refused key must not loop). `stop` — the
+ * run ends with it; `changed` — settings on this device changed.
+ */
+async function pushQueue(env: SyncEnv, online: () => boolean, sleep: (ms: number) => Promise<void>): Promise<{ stop: RunResult | null; changed: boolean }> {
   const { db, transport } = env;
-  const online = env.online ?? (() => true);
-  const sleep = env.sleep ?? wait;
-  const meta = await db.meta.get('device');
-  if (!meta?.account) return 'signedOut';
-  if (meta.sync?.needsUpdate) return 'update';
   let changed = false;
-
-  // Send the queue: settings with the first batch only (a refused key must not loop).
+  const stop = (result: RunResult) => ({ stop: result, changed });
   let size = PUSH_BATCH;
   let withSettings = true;
   let first = true;
@@ -76,11 +74,11 @@ async function run(env: SyncEnv): Promise<RunResult> {
     if (what === 'update') {
       await markNeedsUpdate(db, 'client', env.build);
       env.onNeedsUpdate?.();
-      return 'update';
+      return stop('update');
     }
     if (what === 'consent') {
       await markNeedsConsent(db, NOTICE_VERSION);
-      return 'consent';
+      return stop('consent');
     }
     if (what === 'retry') {
       const smaller = smallerBatch(batch.ids.length);
@@ -88,9 +86,29 @@ async function run(env: SyncEnv): Promise<RunResult> {
         size = smaller;
         continue;
       }
-      return 'failed';
+      return stop('failed');
     }
-    return what;
+    return stop(what);
+  }
+  return { stop: null, changed };
+}
+
+async function run(env: SyncEnv): Promise<RunResult> {
+  const { db, transport } = env;
+  const online = env.online ?? (() => true);
+  const sleep = env.sleep ?? wait;
+  const meta = await db.meta.get('device');
+  if (!meta?.account) return 'signedOut';
+  if (meta.sync?.needsUpdate) return 'update';
+  // After a transfer or a new sign-in (R40): take everything first, then send only what the server
+  // does not have (nextBatch sends nothing while the mark stands; the last page clears it).
+  const pullFirst = meta.sync?.pullFirst === true;
+  let changed = false;
+
+  if (!pullFirst) {
+    const sent = await pushQueue(env, online, sleep);
+    changed = sent.changed;
+    if (sent.stop) return sent.stop;
   }
 
   // Take everything after the cursor.
@@ -117,6 +135,14 @@ async function run(env: SyncEnv): Promise<RunResult> {
       return 'update';
     }
     if (!out.more) break;
+  }
+  if (pullFirst) {
+    const sent = await pushQueue(env, online, sleep);
+    if (sent.changed) changed = true;
+    if (sent.stop) {
+      if (changed) notifySyncChanged();
+      return sent.stop;
+    }
   }
   await markSynced(db);
   if (changed) notifySyncChanged();
