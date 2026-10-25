@@ -3,16 +3,17 @@
  * database gets only its SHA-256. The link goes to the clipboard and tools/.out/, not the terminal.
  *   node tools/admin/invite.ts --label "test-edge-1" [--minor] [--local]
  * --minor: under 16 — the app asks for a parent's or guardian's consent.
- * Until stage 6a.5 only test accounts: the label must start with "test-".
+ * Only test accounts (label "test-…") until the notice names the earlier installation numbers (testOnly.ts).
  */
 import { INVITE_TTL, ORIGIN } from '../../worker/config.ts';
 import { newToken, sha256Hex } from '../../worker/tokens.ts';
-import { adminAction, fail, handOverLink, siteOrigin, parseArgs, run, sql, TEST_PREFIX } from './d1.ts';
+import { adminAction, fail, handOverLink, siteOrigin, parseArgs, run, sql } from './d1.ts';
+import { labelAllowed, TEST_ONLY_MESSAGE } from './testOnly.ts';
 
 const { flags, values } = parseArgs(process.argv.slice(2));
 const label = values.get('label')?.trim();
 if (!label) fail('Usage: node tools/admin/invite.ts --label "test-…" [--minor] [--local]');
-if (!label.startsWith(TEST_PREFIX)) fail(`Until stage 6a.5 only test accounts: the label must start with "${TEST_PREFIX}".`);
+if (!labelAllowed(label)) fail(TEST_ONLY_MESSAGE);
 if (label.length > 60) fail('Label: 60 characters at most.');
 
 const target = { local: flags.has('local') };

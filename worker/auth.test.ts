@@ -321,7 +321,7 @@ describe('sessions: expiry and renewal at most once a day', () => {
     const w = world();
     const { cookie, userId, deviceId } = await signIn(w);
     const response = await send(w, '/api/auth/me', { method: 'GET', cookie });
-    expect(await response.json()).toEqual({ userId, device: { id: deviceId, name: 'Windows · Edge' } });
+    expect(await response.json()).toEqual({ userId, device: { id: deviceId, name: 'Windows · Edge' }, formerUserIds: [] });
     expect((await send(w, '/api/auth/me', { method: 'HEAD', cookie })).status).toBe(200);
   });
 });
@@ -344,7 +344,7 @@ describe('pairing codes', () => {
     const dev = device('Phone');
     const response = await send(w, '/api/auth/pair', { body: { code: typed, device: dev } });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ userId: a.userId, device: dev });
+    expect(await response.json()).toEqual({ userId: a.userId, device: dev, formerUserIds: [] });
     expect(cookieOf(response)).toMatch(/^__Host-mana_s=/);
     expect(rows(w, 'SELECT used_device_id FROM pairing_codes')).toEqual([{ used_device_id: dev.id }]);
   });

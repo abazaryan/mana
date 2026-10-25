@@ -14,8 +14,9 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const wrapper = fileURLToPath(new URL('./wrangler.ts', import.meta.url));
 const wranglerBin = fileURLToPath(new URL('../../node_modules/wrangler/bin/wrangler.js', import.meta.url));
 
-/** Until stage 6a.5 only test accounts exist (rules of 6a): labels must start with this. */
-export const TEST_PREFIX = 'test-';
+import { labelAllowed, TEST_ONLY_MESSAGE, TEST_PREFIX } from './testOnly.ts';
+
+export { TEST_PREFIX };
 
 export interface Target {
   local: boolean;
@@ -119,10 +120,10 @@ export function handOverLink(target: Target, link: string, name: string, now: nu
   return `${toClipboard(link) ? 'Link copied to the clipboard and saved' : 'Clipboard not available; link saved'} to ${where}`;
 }
 
-/** The account's label, or a refusal: unknown account, or not a test account before 6a.5. */
+/** The account's label, or a refusal: unknown account, or not a test account while only those are allowed (testOnly.ts). */
 export function testAccountLabel(target: Target, userId: string): string {
   const [user] = query<{ label: string }>(target, `SELECT label FROM users WHERE id = ${sql(userId)}`);
   if (!user) fail(`No account ${userId}.`);
-  if (!user.label.startsWith(TEST_PREFIX)) fail(`Account ${userId} is not a test account (label without "${TEST_PREFIX}"): refused until stage 6a.5.`);
+  if (!labelAllowed(user.label)) fail(`Account ${userId} is not a test account. ${TEST_ONLY_MESSAGE}`);
   return user.label;
 }

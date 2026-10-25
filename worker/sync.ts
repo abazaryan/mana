@@ -8,7 +8,6 @@
  * statements. Both routes need the account's consent to the current notice (403 otherwise).
  */
 import { checkPushed, type RecordProblem, type StoredRecord } from '../src/core/journalRecord.ts';
-import { NOTICE_VERSION } from '../src/core/notice.ts';
 import {
   isSyncedSetting,
   PULL_MAX,
@@ -18,6 +17,7 @@ import {
   type ServerSettings,
   type SettingChange,
 } from '../src/core/syncProtocol.ts';
+import { hasConsent } from './aliases.ts';
 import type { Call } from './api.ts';
 import { withSession } from './auth.ts';
 import { PUSH_USES_RETURNING } from './config.ts';
@@ -28,24 +28,6 @@ import { sha256Hex } from './tokens.ts';
 type Json = Record<string, unknown>;
 
 const isObject = (value: unknown): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/**
- * The account agreed to the current notice (R39): a consent of version NOTICE_VERSION or later,
- * given by a parent or guardian when the account is under 16 (R37 item 9). Without it nothing
- * of the journal or the settings is stored or sent back — 403 consent_required. A query of its
- * own, not part of the session read: sign-in routes need no consent, and the session stays
- * one simple join.
- */
-async function hasConsent(db: D1Database, userId: string): Promise<boolean> {
-  const row = await db
-    .prepare(
-      `SELECT 1 AS ok FROM users u WHERE u.id = ?1 AND EXISTS (
-         SELECT 1 FROM consents c WHERE c.user_id = u.id AND c.notice_version >= ?2 AND (u.minor = 0 OR c.given_by = 'parent'))`,
-    )
-    .bind(userId, NOTICE_VERSION)
-    .first();
-  return row !== null;
-}
 
 const noConsent = () => error('consent_required', 403);
 

@@ -1,5 +1,5 @@
 import { PUSH_BODY_LIMIT } from '../src/core/syncProtocol.ts';
-import { devices, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
+import { addAlias, devices, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
 import { DEFAULT_BODY_LIMIT, SMALL_BODY_LIMIT } from './config.ts';
 import { isClientCurrent, isJson, isSafeMethod, isSameOrigin, readBody } from './guards.ts';
 import { health } from './health.ts';
@@ -40,6 +40,7 @@ export const ROUTES: Routes = {
   '/api/auth/pair': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: pair } },
   '/api/auth/pairing-code': { POST: { mutating: true, handle: issueCode } },
   '/api/auth/me': { GET: { handle: me } },
+  '/api/auth/alias': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: addAlias } },
   '/api/auth/devices': { GET: { handle: devices } },
   '/api/auth/device': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: renameDevice } },
   '/api/auth/devices/revoke': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: revokeDevice } },

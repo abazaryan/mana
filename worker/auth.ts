@@ -2,9 +2,15 @@
  * Sign-in routes (stage 6a.2, R33 items 4–5, R37; STAGE6_RESEARCH 3.1–3.4, 7.3). Passwordless:
  * an invitation link creates an account and its first device; a pairing code from a signed-in
  * device adds another one. One answer for a wrong, expired or used invitation or code.
+ *
+ * Stage 6a.4 (R40): a device with answers names its local user. An account invitation takes it as
+ * the new account's id (`localUserId`); a device invitation and a code add it as an earlier id of
+ * the account (`formerUserId`). Taken by another account — 409 user_taken, and the invitation or
+ * the code stays unused: the guard sits in the statement that marks it used.
  */
 import { NOTICE_VERSION } from '../src/core/notice.ts';
 import { normalizeCode } from '../src/core/pairingCode.ts';
+import { aliasesOf, aliasStatus, freeClause, freeForAccount, hasConsent, isKeyClash, isLocalUserId } from './aliases.ts';
 import type { Call } from './api.ts';
 import { ipBucket, recordFailure, waitBeforeAttempt } from './attempts.ts';
 import { CODE_TTL, SESSION_IDLE } from './config.ts';
@@ -53,6 +59,8 @@ function pepperOf(env: Env): string {
 }
 
 const invalid = () => error('invalid', 400);
+const userTaken = () => error('user_taken', 409);
+const noConsent = () => error('consent_required', 403);
 
 function unauthorized(headers: Headers): Response {
   const profile = profileFrom(headers);
@@ -103,8 +111,24 @@ function insertSession(db: D1Database, guard: string, guardArgs: unknown[], toke
     .bind(tokenHash, userId, deviceId, now, now, now + SESSION_IDLE, ...guardArgs, deviceId, userId);
 }
 
-function signedIn(profile: number, token: string, userId: string, device: DeviceInput): Response {
-  return json({ userId, device }, 200, { 'Set-Cookie': setCookie(profile, token) });
+/** The earlier id, only if `guard` holds; an id the account already has is left as it is. */
+function insertAlias(db: D1Database, guard: string, guardArgs: unknown[], userId: string, aliasId: string, now: number) {
+  return db
+    .prepare(`INSERT INTO user_aliases (user_id, alias_id, added_at) SELECT ?, ?, ? WHERE ${guard} ON CONFLICT (user_id, alias_id) DO NOTHING`)
+    .bind(userId, aliasId, now, ...guardArgs);
+}
+
+/** What to do with a device's earlier id for `account`: refuse, write it, or nothing to write. */
+async function formerIdPlan(db: D1Database, id: string, account: string): Promise<Response | 'add' | 'none'> {
+  const status = await aliasStatus(db, id, account);
+  if (status === 'taken') return userTaken();
+  if (status !== 'free') return 'none';
+  // A new earlier id is new data of the account: only with consent to the current notice (R40).
+  return (await hasConsent(db, account)) ? 'add' : noConsent();
+}
+
+async function signedIn(db: D1Database, profile: number, token: string, userId: string, device: DeviceInput): Promise<Response> {
+  return json({ userId, device, formerUserIds: await aliasesOf(db, userId) }, 200, { 'Set-Cookie': setCookie(profile, token) });
 }
 
 /** POST /api/auth/invite {token} — what the invitation is, without using it. */
@@ -127,7 +151,7 @@ interface ConsentInput {
 }
 
 /**
- * POST /api/auth/redeem {token, device, consent?} — uses the invitation. One batch: the
+ * POST /api/auth/redeem {token, device, consent?, localUserId? | formerUserId?} — uses the invitation. One batch: the
  * invitation is marked used only by the request whose redeem_id lands; every other statement
  * runs only for that request, so a second attempt with the same token creates nothing, and a
  * failure anywhere keeps nothing (the invitation stays unused).
@@ -138,6 +162,9 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
   if (!isObject(body) || profile === null) return error('bad_request', 400);
   const device = readDevice(body.device);
   if (!device || (body.consent !== undefined && !isObject(body.consent))) return error('bad_request', 400);
+  if ((body.localUserId !== undefined && !isLocalUserId(body.localUserId)) || (body.formerUserId !== undefined && !isLocalUserId(body.formerUserId))) {
+    return error('bad_request', 400);
+  }
   const consent: ConsentInput | null = isObject(body.consent)
     ? {
         version: body.consent.version,
@@ -156,6 +183,10 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
   if (!invite || !sameHash(invite.token_hash, tokenHash)) return invalid();
 
   const account = invite.kind === 'account';
+  // localUserId names a new account, formerUserId an earlier id of an existing one.
+  if (account ? body.formerUserId !== undefined : body.localUserId !== undefined) return error('bad_request', 400);
+  const local = account ? (body.localUserId as string | undefined) : undefined;
+  const former = account ? undefined : (body.formerUserId as string | undefined);
   let minor = 0;
   if (account) {
     const byParent = consent?.by === 'parent' && consent.parentName !== null && consent.parentAgreed === true;
@@ -165,7 +196,15 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
     // Under 16 by the invitation or by the answer "no" to the age question.
     minor = invite.minor === 1 || byParent ? 1 : 0;
   }
-  const userId = account ? crypto.randomUUID() : invite.user_id!;
+  const userId = account ? (local ?? crypto.randomUUID()) : invite.user_id!;
+  if (local !== undefined && !(await freeForAccount(db, local))) return userTaken();
+  let addAlias = false;
+  if (former !== undefined) {
+    const plan = await formerIdPlan(db, former, userId);
+    if (plan instanceof Response) return plan;
+    addAlias = plan === 'add';
+  }
+  // The user is checked first: a device that was in another account is told so (user_taken).
   const owner = await deviceOwner(db, device.id);
   if (owner !== null && owner !== userId) return error('device_taken', 409);
 
@@ -173,10 +212,13 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
   const mine = 'EXISTS (SELECT 1 FROM invites WHERE token_hash = ? AND redeem_id = ?)';
   const mineArgs = [tokenHash, redeemId];
   const session = await newSessionToken();
+  const free = local !== undefined ? freeClause(local, null) : former !== undefined ? freeClause(former, userId) : null;
   const statements = [
     db
-      .prepare('UPDATE invites SET used_at = ?, used_device_id = ?, redeem_id = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ? RETURNING kind')
-      .bind(now, device.id, redeemId, tokenHash, now),
+      .prepare(
+        `UPDATE invites SET used_at = ?, used_device_id = ?, redeem_id = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?${free ? ` AND ${free.sql}` : ''} RETURNING kind`,
+      )
+      .bind(now, device.id, redeemId, tokenHash, now, ...(free?.args ?? [])),
   ];
   if (account) {
     statements.push(
@@ -202,19 +244,32 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
         .bind(crypto.randomUUID(), userId, NOTICE_VERSION, byParent ? 'parent' : 'self', byParent ? consent!.parentName : null, device.id, now, ...mineArgs),
     );
   }
+  if (addAlias) statements.push(insertAlias(db, mine, mineArgs, userId, former!, now));
   statements.push(insertSession(db, mine, mineArgs, session.hash, userId, device.id, now));
-  const results = await db.batch(statements);
-  if (results[0]?.results.length !== 1) return invalid();
-  return signedIn(profile, session.token, userId, device);
+  let results: D1Result[];
+  try {
+    results = await db.batch(statements);
+  } catch (e) {
+    if (free && isKeyClash(e)) return userTaken();
+    throw e;
+  }
+  if (results[0]?.results.length !== 1) {
+    // Not marked used: gone meanwhile, or the id was taken meanwhile (the guard).
+    if (local !== undefined && !(await freeForAccount(db, local))) return userTaken();
+    if (former !== undefined && (await aliasStatus(db, former, userId)) === 'taken') return userTaken();
+    return invalid();
+  }
+  return signedIn(db, profile, session.token, userId, device);
 }
 
-/** POST /api/auth/pair {code, device} — a new device by a code from a signed-in one. */
+/** POST /api/auth/pair {code, device, formerUserId?} — a new device by a code from a signed-in one. */
 export async function pair({ request, env, body, now }: Call): Promise<Response> {
   const db = env.DB;
   const profile = profileFrom(request.headers);
   if (!isObject(body) || profile === null || typeof body.code !== 'string') return error('bad_request', 400);
   const device = readDevice(body.device);
-  if (!device) return error('bad_request', 400);
+  if (!device || (body.formerUserId !== undefined && !isLocalUserId(body.formerUserId))) return error('bad_request', 400);
+  const former = body.formerUserId as string | undefined;
   if (await getSession(db, request.headers, now)) return error('already_signed_in', 409);
   const pepper = pepperOf(env);
   const bucket = await ipBucket(pepper, request.headers);
@@ -234,21 +289,42 @@ export async function pair({ request, env, body, now }: Call): Promise<Response>
     await recordFailure(db, bucket, now);
     return invalid();
   }
+  // The code is right from here on: a refusal below is no failed attempt, and the code stays unused.
+  let addAlias = false;
+  if (former !== undefined) {
+    const plan = await formerIdPlan(db, former, row.user_id);
+    if (plan instanceof Response) return plan;
+    addAlias = plan === 'add';
+  }
   const owner = await deviceOwner(db, device.id);
   if (owner !== null && owner !== row.user_id) return error('device_taken', 409);
 
   const mine = 'EXISTS (SELECT 1 FROM pairing_codes WHERE code_hash = ? AND used_at = ? AND used_device_id = ?)';
   const mineArgs = [codeHash, now, device.id];
   const session = await newSessionToken();
-  const results = await db.batch([
+  const free = former !== undefined ? freeClause(former, row.user_id) : null;
+  const statements = [
     db
-      .prepare('UPDATE pairing_codes SET used_at = ?, used_device_id = ? WHERE code_hash = ? AND used_at IS NULL AND expires_at > ? RETURNING user_id')
-      .bind(now, device.id, codeHash, now),
+      .prepare(
+        `UPDATE pairing_codes SET used_at = ?, used_device_id = ? WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?${free ? ` AND ${free.sql}` : ''} RETURNING user_id`,
+      )
+      .bind(now, device.id, codeHash, now, ...(free?.args ?? [])),
     upsertDevice(db, mine, mineArgs, device, row.user_id, now, clientBuild(request.headers)),
-    insertSession(db, mine, mineArgs, session.hash, row.user_id, device.id, now),
-  ]);
-  if (results[0]?.results.length !== 1) return invalid();
-  return signedIn(profile, session.token, row.user_id, device);
+  ];
+  if (addAlias) statements.push(insertAlias(db, mine, mineArgs, row.user_id, former!, now));
+  statements.push(insertSession(db, mine, mineArgs, session.hash, row.user_id, device.id, now));
+  let results: D1Result[];
+  try {
+    results = await db.batch(statements);
+  } catch (e) {
+    if (free && isKeyClash(e)) return userTaken();
+    throw e;
+  }
+  if (results[0]?.results.length !== 1) {
+    if (former !== undefined && (await aliasStatus(db, former, row.user_id)) === 'taken') return userTaken();
+    return invalid();
+  }
+  return signedIn(db, profile, session.token, row.user_id, device);
 }
 
 /** POST /api/auth/pairing-code — a code for a new device; the account's earlier code is gone. */
@@ -268,8 +344,34 @@ export const issueCode = withSession(async ({ env, now }, session) => {
   return json({ code, expiresAt: now + CODE_TTL });
 });
 
-/** GET /api/auth/me — who this device is signed in as. */
-export const me = withSession(async (_call, session) => json({ userId: session.userId, device: { id: session.deviceId, name: session.deviceName } }));
+/** GET /api/auth/me — who this device is signed in as, and the account's earlier ids (R40). */
+export const me = withSession(async ({ env }, session) =>
+  json({ userId: session.userId, device: { id: session.deviceId, name: session.deviceName }, formerUserIds: await aliasesOf(env.DB, session.userId) }),
+);
+
+/**
+ * POST /api/auth/alias {aliasId} — a backup file of another installation joins the account
+ * (R40): its local userId becomes an earlier id of the account. The account itself or an id it
+ * already has — nothing to write; another account's — 409 user_taken; a new one needs consent.
+ */
+export const addAlias = withSession(async ({ env, body, now }, session) => {
+  if (!isObject(body) || !isLocalUserId(body.aliasId)) return error('bad_request', 400);
+  const db = env.DB;
+  const id = body.aliasId;
+  const plan = await formerIdPlan(db, id, session.userId);
+  if (plan instanceof Response) return plan;
+  if (plan === 'add') {
+    const free = freeClause(id, session.userId);
+    try {
+      await insertAlias(db, free.sql, free.args, session.userId, id, now).run();
+    } catch (e) {
+      if (isKeyClash(e)) return userTaken();
+      throw e;
+    }
+    if ((await aliasStatus(db, id, session.userId)) !== 'known') return userTaken();
+  }
+  return json({ formerUserIds: await aliasesOf(db, session.userId) });
+});
 
 /** GET /api/auth/devices — the account's devices that are not removed or signed out. */
 export const devices = withSession(async ({ env }, session) => {

@@ -29,7 +29,9 @@ export type ErrorCode =
   | 'too_many_requests'
   | 'unauthorized'
   | 'unsupported_media_type'
-  | 'upgrade_required';
+  | 'upgrade_required'
+  /** A local userId that is another account's id or earlier id (R40). */
+  | 'user_taken';
 
 export function json(body: unknown, status = 200, extra?: Record<string, string>): Response {
   const headers = new Headers(API_HEADERS);
