@@ -506,9 +506,9 @@ export const STRINGS = {
     ru: 'Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации.',
     en: 'The file belongs to another user, and this browser already has its own answers. Merging comes with sync.',
   },
-  // Restore from a file while signed in (stage 6a.4, R40) — tg draft for the terminology chat.
+  // Restore from a file while signed in (stage 6a.4, R40). tg approved 25.10.2026; ru/en alignment pending the owner.
   'restore.confirmOther': {
-    tg: 'Ин таърихчаи насби дигар аст. Ба ҳисоб илова шавад?',
+    tg: 'Ин таърихча аз дастгоҳи дигар, мурургари дигар ё аз пеш аз пок кардани додаҳо аст. Ба ҳисоб илова шавад?',
     ru: 'Этот журнал — с другой установки приложения. Добавить его в аккаунт?',
     en: 'This study log comes from another installation of the app. Add it to your account?',
   },
@@ -518,7 +518,7 @@ export const STRINGS = {
     en: 'Its answers will appear on all your devices and may change review dates.',
   },
   'restore.needsNetwork': {
-    tg: 'Барои илова кардани таърихчаи насби дигар интернет лозим аст. Баъдтар дубора талош кунед.',
+    tg: 'Барои илова кардани ин таърихча ба ҳисоб интернет лозим аст. Баъдтар дубора талош кунед.',
     ru: 'Чтобы добавить журнал другой установки, нужен интернет. Попробуйте позже.',
     en: 'Adding the study log of another installation needs an internet connection. Try again later.',
   },
@@ -655,19 +655,19 @@ export const STRINGS = {
     ru: 'Слишком много попыток. Попробуйте позже.',
     en: 'Too many attempts. Try again later.',
   },
-  // Transfer of answers (stage 6a.4, R40). transfer.question — tg approved 21.10.2026; the rest — tg draft for the terminology chat.
+  // Transfer of answers (stage 6a.4, R40). tg approved 25.10.2026 (transfer.question — 21.10.2026); ru/en alignment pending the owner.
   'transfer.question': {
     tg: 'Пешрафти ин дастгоҳ ба ҳисобатон илова шавад?',
     ru: 'Добавить прогресс с этого устройства в аккаунт?',
     en: "Add this device's progress to your account?",
   },
   'transfer.hint': {
-    tg: 'Ҷавобҳои ин дастгоҳ ба ҳисобатон фиристода мешаванд ва дар дастгоҳҳои дигаратон пайдо мешаванд. Беҳтар аст пеш аз ин таърихчаро дар файл захира кунед.',
+    tg: 'Пешрафти ин дастгоҳ ба ҳисобатон фиристода мешавад ва дар дастгоҳҳои дигаратон пайдо мешавад. Беҳтар аст пеш аз ин таърихчаро дар файл захира кунед.',
     ru: 'Ответы этого устройства уйдут в аккаунт и появятся на других ваших устройствах. Перед этим лучше сохранить журнал в файл.',
     en: "This device's answers will go to your account and appear on your other devices. It's best to save the study log to a file first.",
   },
   'transfer.declined': {
-    tg: 'Шумо ба ҳисоб ворид нашудед. Пешрафт танҳо дар ҳамин дастгоҳ мемонад. Баъдтар метавонед ворид шавед — бо ҳамин даъватнома, то мунқазӣ нашудааст, ё бо коди нав.',
+    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Ҳар вақт хостед, бо ҳамин даъватнома (агар ҳанӯз эътибор дорад) ё бо коди нав ворид шавед.',
     ru: 'Вы не вошли в аккаунт. Прогресс остаётся только на этом устройстве. Войти можно позже — по той же ссылке, пока она действует, или новым кодом.',
     en: 'You are not signed in. Your progress stays on this device only. You can sign in later with the same link while it is valid, or with a new code.',
   },
@@ -677,12 +677,12 @@ export const STRINGS = {
     en: 'Adding your progress to the account…',
   },
   'transfer.done': {
-    tg: 'Пешрафти ин дастгоҳ ба ҳисоб илова шуд. Ҷавобҳо фиристода мешаванд — ин метавонад чанд дақиқа вақт гирад.',
+    tg: 'Пешрафти ин дастгоҳ ба ҳисобатон илова шуд. Ирсоли ҷавобҳо мумкин аст чанд дақиқа тӯл кашад.',
     ru: 'Прогресс этого устройства добавлен в аккаунт. Ответы отправляются — это может занять несколько минут.',
     en: "This device's progress has been added to the account. The answers are being sent; this may take a few minutes.",
   },
   'transfer.userTaken': {
-    tg: 'Пешрафти ин дастгоҳ аз қабл ба ҳисоби дигаре тааллуқ дорад. Ба он ҳисоб ворид шавед — ё таърихчаро дар файл захира кунед ва додаҳоро аз ин дастгоҳ пок кунед.',
+    tg: 'Пешрафти ин дастгоҳ ба ҳисоби дигар тааллуқ дорад. Ё вориди он ҳисоб шавед, ё таърихчаро дар файл захира кунед ва додаҳои сайтро аз ин дастгоҳ пок кунед.',
     ru: 'Прогресс этого устройства уже принадлежит другому аккаунту. Войдите в тот аккаунт — или сохраните журнал в файл и очистите данные сайта на этом устройстве.',
     en: "This device's progress already belongs to another account. Sign in to that account, or save the study log to a file and clear this site's data on this device.",
   },
