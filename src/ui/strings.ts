@@ -17,6 +17,9 @@ export const STRINGS = {
   'common.close': { tg: 'Бастан', ru: 'Закрыть', en: 'Close' },
   'common.cancel': { tg: 'Лағв', ru: 'Отмена', en: 'Cancel' },
   'common.back': { tg: 'Бозгашт', ru: 'Назад', en: 'Back' },
+  // Yes / No of a question (age, transfer of progress, a file of another installation); the same texts as voice.yes / voice.no, approved earlier.
+  'common.yes': { tg: 'Бале', ru: 'Да', en: 'Yes' },
+  'common.no': { tg: 'Не', ru: 'Нет', en: 'No' },
   'common.dbError': {
     tg: 'Пойгоҳи додаҳо кушода нашуд: {error}',
     ru: 'Не удалось открыть базу данных: {error}',

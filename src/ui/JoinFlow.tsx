@@ -160,10 +160,10 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
         <p className="hint">{t('join.ageHint')}</p>
         <div className="two mt">
           <button className="primary" type="button" onClick={() => void submit({ version: NOTICE_VERSION, by: 'self' })}>
-            {t('voice.yes')}
+            {t('common.yes')}
           </button>
           <button className="secondary" type="button" onClick={() => setScreen({ name: 'step', step: 'parent', minor })}>
-            {t('voice.no')}
+            {t('common.no')}
           </button>
         </div>
       </section>

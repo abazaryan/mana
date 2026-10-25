@@ -40,10 +40,10 @@ export function TransferQuestion({ db, meta, onYes, onNo }: Props) {
       <p className="hint">{t('transfer.hint')}</p>
       <div className="two mt">
         <button className="primary" type="button" onClick={onYes}>
-          {t('voice.yes')}
+          {t('common.yes')}
         </button>
         <button className="secondary" type="button" onClick={onNo}>
-          {t('voice.no')}
+          {t('common.no')}
         </button>
       </div>
       <button className="secondary mt" type="button" onClick={() => void save()}>

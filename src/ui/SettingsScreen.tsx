@@ -258,10 +258,10 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
           <p className="hint">{t('restore.confirmOtherHint')}</p>
           <div className="two mt">
             <button className="primary" type="button" onClick={() => void addOther(other)}>
-              {t('voice.yes')}
+              {t('common.yes')}
             </button>
             <button className="secondary" type="button" onClick={() => setOther(null)}>
-              {t('voice.no')}
+              {t('common.no')}
             </button>
           </div>
         </div>

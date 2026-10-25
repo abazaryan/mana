@@ -15,6 +15,8 @@
 | `common.close` | Закрыть | Close | Бастан |
 | `common.cancel` | Отмена | Cancel | Лағв |
 | `common.back` | Назад | Back | Бозгашт |
+| `common.yes` | Да | Yes | Бале |
+| `common.no` | Нет | No | Не |
 | `common.dbError` | Не удалось открыть базу данных: {error} | Could not open the database: {error} | Пойгоҳи додаҳо кушода нашуд: {error} |
 | `nav.decks` | Колоды | Decks | Маҷмӯаҳо |
 | `nav.settings` | Настройки | Settings | Танзимот |
