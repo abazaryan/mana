@@ -259,17 +259,19 @@ describe('POST /api/auth/redeem', () => {
     expect(rows(w, 'SELECT used_at FROM invites WHERE used_at IS NULL')).toHaveLength(1);
   });
 
-  it('a device invitation (recovery): no notice needed, the same account; a signed-out device comes back', async () => {
+  it('a device invitation (recovery): no notice needed, the same account; a signed-out device comes back with its own name (R42 item 11)', async () => {
     const w = world();
     const first = await signIn(w);
     await send(w, '/api/auth/logout', { cookie: first.cookie });
     const token = await invite(w, { kind: 'device', userId: first.userId });
     const response = await send(w, '/api/auth/redeem', { body: { token, device: device('Laptop', first.deviceId) } });
     expect(response.status).toBe(200);
-    expect(((await response.json()) as { userId: string }).userId).toBe(first.userId);
+    const body = (await response.json()) as { userId: string; device: { name: string } };
+    expect(body.userId).toBe(first.userId);
+    expect(body.device.name).toBe('Windows · Edge');
     expect(count(w, 'users')).toBe(1);
     expect(count(w, 'consents')).toBe(1);
-    expect(rows(w, 'SELECT name, revoked_at FROM devices')).toEqual([{ name: 'Laptop', revoked_at: null }]);
+    expect(rows(w, 'SELECT name, revoked_at FROM devices')).toEqual([{ name: 'Windows · Edge', revoked_at: null }]);
   });
 
   it('400 bad_request for a malformed body or device', async () => {
@@ -321,7 +323,7 @@ describe('sessions: expiry and renewal at most once a day', () => {
     const w = world();
     const { cookie, userId, deviceId } = await signIn(w);
     const response = await send(w, '/api/auth/me', { method: 'GET', cookie });
-    expect(await response.json()).toEqual({ userId, device: { id: deviceId, name: 'Windows · Edge' }, formerUserIds: [] });
+    expect(await response.json()).toEqual({ userId, device: { id: deviceId, name: 'Windows · Edge' }, formerUserIds: [], minor: false, needsConsent: false });
     expect((await send(w, '/api/auth/me', { method: 'HEAD', cookie })).status).toBe(200);
   });
 });

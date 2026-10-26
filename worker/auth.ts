@@ -10,7 +10,7 @@
  */
 import { NOTICE_VERSION } from '../src/core/notice.ts';
 import { normalizeCode } from '../src/core/pairingCode.ts';
-import { aliasesOf, aliasStatus, freeClause, freeForAccount, hasConsent, isKeyClash, isLocalUserId } from './aliases.ts';
+import { aliasesOf, aliasesStatement, aliasStatus, CONSENT_OF_U, freeClause, freeForAccount, hasConsent, isKeyClash, isLocalUserId } from './aliases.ts';
 import type { Call } from './api.ts';
 import { ipBucket, recordFailure, waitBeforeAttempt } from './attempts.ts';
 import { CODE_TTL, SESSION_IDLE } from './config.ts';
@@ -87,19 +87,30 @@ async function deviceOwner(db: D1Database, id: string): Promise<string | null> {
 
 /**
  * The device row, only if `guard` holds (this request won the invitation or the code): a new
- * row, or the same account's earlier one renamed and back from revoked.
+ * row, or the same account's earlier one back from revoked — with the name it has (R42 item 11:
+ * a name the person gave is not replaced by the default one a sign-in sends).
  */
 function upsertDevice(db: D1Database, guard: string, guardArgs: unknown[], device: DeviceInput, userId: string, now: number, build: number | null) {
   return db
     .prepare(
       `INSERT INTO devices (id, user_id, name, created_at, last_seen_at, app_version, revoked_at)
        SELECT ?, ?, ?, ?, ?, ?, NULL WHERE ${guard}
-       ON CONFLICT (id) DO UPDATE SET name = excluded.name, last_seen_at = excluded.last_seen_at,
+       ON CONFLICT (id) DO UPDATE SET last_seen_at = excluded.last_seen_at,
          app_version = excluded.app_version, revoked_at = NULL
        WHERE devices.user_id = excluded.user_id`,
     )
     .bind(device.id, userId, device.name, now, now, build, ...guardArgs);
 }
+
+/** The device's name as stored, read last in the sign-in batch. */
+function storedName(db: D1Database, deviceId: string, userId: string) {
+  return db.prepare('SELECT name FROM devices WHERE id = ? AND user_id = ?').bind(deviceId, userId);
+}
+
+const nameFrom = (result: D1Result | undefined, fallback: string): string => {
+  const name = (result?.results[0] as { name?: unknown } | undefined)?.name;
+  return typeof name === 'string' ? name : fallback;
+};
 
 function insertSession(db: D1Database, guard: string, guardArgs: unknown[], tokenHash: string, userId: string, deviceId: string, now: number) {
   return db
@@ -245,7 +256,7 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
     );
   }
   if (addAlias) statements.push(insertAlias(db, mine, mineArgs, userId, former!, now));
-  statements.push(insertSession(db, mine, mineArgs, session.hash, userId, device.id, now));
+  statements.push(insertSession(db, mine, mineArgs, session.hash, userId, device.id, now), storedName(db, device.id, userId));
   let results: D1Result[];
   try {
     results = await db.batch(statements);
@@ -259,7 +270,7 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
     if (former !== undefined && (await aliasStatus(db, former, userId)) === 'taken') return userTaken();
     return invalid();
   }
-  return signedIn(db, profile, session.token, userId, device);
+  return signedIn(db, profile, session.token, userId, { id: device.id, name: nameFrom(results.at(-1), device.name) });
 }
 
 /** POST /api/auth/pair {code, device, formerUserId?} — a new device by a code from a signed-in one. */
@@ -312,7 +323,7 @@ export async function pair({ request, env, body, now }: Call): Promise<Response>
     upsertDevice(db, mine, mineArgs, device, row.user_id, now, clientBuild(request.headers)),
   ];
   if (addAlias) statements.push(insertAlias(db, mine, mineArgs, row.user_id, former!, now));
-  statements.push(insertSession(db, mine, mineArgs, session.hash, row.user_id, device.id, now));
+  statements.push(insertSession(db, mine, mineArgs, session.hash, row.user_id, device.id, now), storedName(db, device.id, row.user_id));
   let results: D1Result[];
   try {
     results = await db.batch(statements);
@@ -324,7 +335,7 @@ export async function pair({ request, env, body, now }: Call): Promise<Response>
     if (former !== undefined && (await aliasStatus(db, former, row.user_id)) === 'taken') return userTaken();
     return invalid();
   }
-  return signedIn(db, profile, session.token, row.user_id, device);
+  return signedIn(db, profile, session.token, row.user_id, { id: device.id, name: nameFrom(results.at(-1), device.name) });
 }
 
 /** POST /api/auth/pairing-code — a code for a new device; the account's earlier code is gone. */
@@ -344,10 +355,49 @@ export const issueCode = withSession(async ({ env, now }, session) => {
   return json({ code, expiresAt: now + CODE_TTL });
 });
 
-/** GET /api/auth/me — who this device is signed in as, and the account's earlier ids (R40). */
-export const me = withSession(async ({ env }, session) =>
-  json({ userId: session.userId, device: { id: session.deviceId, name: session.deviceName }, formerUserIds: await aliasesOf(env.DB, session.userId) }),
-);
+/**
+ * GET /api/auth/me — who this device is signed in as, the account's earlier ids (R40), whether it
+ * is under 16 and whether it still needs consent to the current notice (R42 item 6). One query.
+ */
+export const me = withSession(async ({ env }, session) => {
+  const db = env.DB;
+  const [aliases, account] = await db.batch<Record<string, unknown>>([
+    aliasesStatement(db, session.userId),
+    db.prepare(`SELECT u.minor AS minor, ${CONSENT_OF_U} AS consent FROM users u WHERE u.id = ?1`).bind(session.userId, NOTICE_VERSION),
+  ]);
+  const row = account!.results[0];
+  return json({
+    userId: session.userId,
+    device: { id: session.deviceId, name: session.deviceName },
+    formerUserIds: aliases!.results.map((r) => String(r.alias_id)),
+    minor: Number(row?.minor) === 1,
+    needsConsent: !Number(row?.consent),
+  });
+});
+
+/**
+ * POST /api/auth/consent {consent} — consent to the current notice again (R42 item 6): under 16 —
+ * only a parent's or guardian's with a name, otherwise only the person's own; the age question
+ * is not asked again. Rows are only added; an account that already has the consent it needs gets
+ * 200 and no new row.
+ */
+export const giveConsent = withSession(async ({ env, body, now }, session) => {
+  if (!isObject(body) || !isObject(body.consent) || (body.consent.by !== 'self' && body.consent.by !== 'parent')) return error('bad_request', 400);
+  const db = env.DB;
+  const given = body.consent;
+  const minor = Number(await db.prepare('SELECT minor FROM users WHERE id = ?').bind(session.userId).first('minor')) === 1;
+  const parentName = given.by === 'parent' ? cleanName(given.parentName, PARENT_NAME_MAX) : null;
+  const byParent = given.by === 'parent' && parentName !== null && given.parentAgreed === true;
+  if (given.version !== NOTICE_VERSION || (minor ? !byParent : given.by !== 'self')) return error('consent_required', 400);
+  await db
+    .prepare(
+      `INSERT INTO consents (id, user_id, notice_version, given_by, parent_name, device_id, given_at)
+       SELECT ?3, ?1, ?2, ?4, ?5, ?6, ?7 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = ?1 AND ${CONSENT_OF_U})`,
+    )
+    .bind(session.userId, NOTICE_VERSION, crypto.randomUUID(), byParent ? 'parent' : 'self', byParent ? parentName : null, session.deviceId, now)
+    .run();
+  return json({ ok: true });
+});
 
 /**
  * POST /api/auth/alias {aliasId} — a backup file of another installation joins the account

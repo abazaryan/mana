@@ -27,6 +27,6 @@ describe('test accounts only (tools/admin/testOnly.ts)', () => {
     const d1 = readFileSync(new URL('../tools/admin/d1.ts', import.meta.url), 'utf8');
     expect(invite).toMatch(/if \(!labelAllowed\(label\)\) fail/);
     expect(recover).toMatch(/testAccountLabel\(target, userId\)/);
-    expect(d1).toMatch(/if \(!labelAllowed\(user\.label\)\) fail/);
+    expect(d1).toMatch(/if \(!labelAllowed\(label\)\) fail\(`Account/);
   });
 });

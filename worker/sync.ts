@@ -161,7 +161,7 @@ export const makePush = (returning: boolean) => withSession(async ({ env, body, 
 export const push = makePush(PUSH_USES_RETURNING);
 
 /** A whole number from the query, `fallback` if absent; null if malformed or outside min…max. */
-function queryInt(params: URLSearchParams, name: string, fallback: number, min: number, max: number): number | null {
+export function queryInt(params: URLSearchParams, name: string, fallback: number, min: number, max: number): number | null {
   const raw = params.get(name);
   if (raw === null) return fallback;
   if (!/^\d{1,15}$/.test(raw)) return null;

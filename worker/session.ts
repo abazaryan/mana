@@ -36,8 +36,8 @@ export interface Session {
 }
 
 /**
- * The live session of the request's profile, or null (no cookie, unknown, expired; also a
- * malformed X-Mana-Profile). Once a day: last_used_at and expires_at are written and the cookie
+ * The live session of the request's profile, or null (no cookie, unknown, expired, an account
+ * being erased — R42; also a malformed X-Mana-Profile). Once a day: last_used_at and expires_at are written and the cookie
  * is renewed. The device's last_seen_at and app version — at most once an hour (6a.3: devices
  * sync often, the list of devices shows the last exchange).
  */
@@ -50,8 +50,8 @@ export async function getSession(db: D1Database, headers: Headers, now: number):
   const row = await db
     .prepare(
       `SELECT s.token_hash, s.user_id, s.device_id, s.last_used_at, d.name, d.last_seen_at
-       FROM sessions s JOIN devices d ON d.id = s.device_id
-       WHERE s.token_hash = ? AND s.expires_at > ?`,
+       FROM sessions s JOIN devices d ON d.id = s.device_id JOIN users u ON u.id = s.user_id
+       WHERE s.token_hash = ? AND s.expires_at > ? AND u.deleting_at IS NULL`,
     )
     .bind(tokenHash, now)
     .first<{ token_hash: string; user_id: string; device_id: string; last_used_at: number; name: string; last_seen_at: number }>();

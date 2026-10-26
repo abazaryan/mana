@@ -22,19 +22,21 @@ export function isLocalUserId(value: unknown): value is string {
  * journal, the settings and an earlier id (R40). A query of its own, not part of the session read.
  */
 export async function hasConsent(db: D1Database, userId: string): Promise<boolean> {
-  const row = await db
-    .prepare(
-      `SELECT 1 AS ok FROM users u WHERE u.id = ?1 AND EXISTS (
-         SELECT 1 FROM consents c WHERE c.user_id = u.id AND c.notice_version >= ?2 AND (u.minor = 0 OR c.given_by = 'parent'))`,
-    )
-    .bind(userId, NOTICE_VERSION)
-    .first();
+  const row = await db.prepare(`SELECT 1 AS ok FROM users u WHERE u.id = ?1 AND ${CONSENT_OF_U}`).bind(userId, NOTICE_VERSION).first();
   return row !== null;
 }
 
-/** The account's earlier ids, oldest first. */
+/** SQL: the account `u` has the consent it needs to notice version ?2 or later (see hasConsent). */
+export const CONSENT_OF_U = `EXISTS (
+  SELECT 1 FROM consents c WHERE c.user_id = u.id AND c.notice_version >= ?2 AND (u.minor = 0 OR c.given_by = 'parent'))`;
+
+/** The account's earlier ids, oldest first (`results` of one query, for a batch). */
+export function aliasesStatement(db: D1Database, userId: string): D1PreparedStatement {
+  return db.prepare('SELECT alias_id FROM user_aliases WHERE user_id = ? ORDER BY added_at, alias_id').bind(userId);
+}
+
 export async function aliasesOf(db: D1Database, userId: string): Promise<string[]> {
-  const { results } = await db.prepare('SELECT alias_id FROM user_aliases WHERE user_id = ? ORDER BY added_at, alias_id').bind(userId).all<{ alias_id: string }>();
+  const { results } = await aliasesStatement(db, userId).all<{ alias_id: string }>();
   return results.map((r) => r.alias_id);
 }
 

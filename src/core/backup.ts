@@ -7,7 +7,7 @@
  * journals of two installations that both have answers is refused. Signed in (stage 6a.4,
  * R40), a file of the account or of an earlier id of it joins the account's journal.
  */
-import { isoTime, reviveRecord as reviveJson } from './journalRecord';
+import { isoTime, reviveRecord as reviveJson } from './journalRecord.ts';
 import type { LogRecord } from './model';
 
 export const BACKUP_FORMAT = 'mana-journal';

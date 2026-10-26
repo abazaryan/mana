@@ -1,5 +1,6 @@
 import { PUSH_BODY_LIMIT } from '../src/core/syncProtocol.ts';
-import { addAlias, devices, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
+import { deleteAccount, exportHead, exportJournal } from './account.ts';
+import { addAlias, devices, giveConsent, inviteInfo, issueCode, logout, me, pair, redeem, renameDevice, revokeDevice } from './auth.ts';
 import { DEFAULT_BODY_LIMIT, SMALL_BODY_LIMIT } from './config.ts';
 import { isClientCurrent, isJson, isSafeMethod, isSameOrigin, readBody } from './guards.ts';
 import { health } from './health.ts';
@@ -31,7 +32,8 @@ export type Routes = Readonly<Record<string, Readonly<Partial<Record<string, Rou
 /**
  * Sign-in routes (6a.2): every one that changes data refuses an old client with 426 — except
  * logout, which must always work. Sync (6a.3): push and pull both refuse it — a device with an
- * empty queue only pulls, and must learn about a newer format too (R39).
+ * empty queue only pulls, and must learn about a newer format too (R39). The account (6a.5, R42):
+ * consent and erasure change data (426); the export only reads.
  */
 export const ROUTES: Routes = {
   '/api/health': { GET: { handle: ({ env }) => health(env) } },
@@ -45,6 +47,10 @@ export const ROUTES: Routes = {
   '/api/auth/device': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: renameDevice } },
   '/api/auth/devices/revoke': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: revokeDevice } },
   '/api/auth/logout': { POST: { handle: logout } },
+  '/api/auth/consent': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: giveConsent } },
+  '/api/account/export': { GET: { handle: exportHead } },
+  '/api/account/export/journal': { GET: { handle: exportJournal } },
+  '/api/account/delete': { POST: { mutating: true, body: SMALL_BODY_LIMIT, handle: deleteAccount } },
   '/api/sync/push': { POST: { mutating: true, body: PUSH_BODY_LIMIT, handle: push } },
   '/api/sync/pull': { GET: { current: true, handle: pull } },
 };

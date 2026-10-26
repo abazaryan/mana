@@ -31,6 +31,6 @@ run(target, [
   adminAction('recover', userId, { revokeAll, expiresAt, local: target.local }, now),
 ]);
 
-const where = handOverLink(target, `${siteOrigin(target, ORIGIN)}/#/join/${token}`, `recover-${label}`, now, INVITE_TTL);
+const where = handOverLink(target, `${siteOrigin(target, ORIGIN)}/#/join/${token}`, 'recover', now);
 console.log(`Sign-in link for ${label}${revokeAll ? '; all its devices signed out' : ''}${target.local ? ' (LOCAL database)' : ''}.`);
 console.log(`${where}. Valid until ${new Date(expiresAt).toISOString().replace('T', ' ').slice(0, 16)} UTC, once.`);

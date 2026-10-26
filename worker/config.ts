@@ -42,6 +42,18 @@ export const GLOBAL_MAX_FAILURES = 50;
 export const GLOBAL_LOCK = HOUR;
 
 /**
+ * Erasing an account (6a.5, R42 item 3). D1 counts queries per Worker invocation (Free: 50; a
+ * batch is one): journal rows per portion; portions and time of one delete request; portions of
+ * one Cron run, which also does the hourly cleanup.
+ */
+export const QUERIES_PER_INVOCATION = 50;
+export const ERASE_PORTION = 1000;
+export const ERASE_REQUEST_PORTIONS = 30;
+export const ERASE_REQUEST_TIME = 20_000;
+export const ERASE_CRON_PORTIONS = 40;
+export const ERASE_CRON_TIME = 5 * MINUTE;
+
+/**
  * Push (6a.3, R39): true — the insert tells which records it stored (RETURNING); false — the
  * same batch first reads which ids exist. Switch to false if D1 refuses RETURNING here.
  */
