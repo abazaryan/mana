@@ -557,6 +557,73 @@ export async function markSignedOut(db: ManaDb): Promise<MetaRow> {
   });
 }
 
+/** One read-modify-write of the device row. */
+function updateMeta(db: ManaDb, name: string, change: (meta: MetaRow) => MetaRow): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error(`${name}: no device row`);
+    const next = change(meta);
+    await db.meta.put(next);
+    return next;
+  });
+}
+
+/**
+ * What /api/auth/me says about the account (6a.5b, R42 item 6): under 16, and whether consent to
+ * the current notice is still needed (`version` — that notice's version, NOTICE_VERSION).
+ */
+export function setAccountState(db: ManaDb, state: { minor: boolean; needsConsent: boolean }, version: number, now = new Date()): Promise<MetaRow> {
+  return updateMeta(db, 'setAccountState', (meta) => {
+    if (!meta.account) return meta;
+    const next: MetaRow = { ...meta, account: { ...meta.account, minor: state.minor } };
+    if (state.needsConsent) {
+      next.sync = { ...(meta.sync ?? { cursor: 0, settingsRev: {}, dirty: [] }), needsConsent: meta.sync?.needsConsent ?? { version, at: now } };
+    } else if (meta.sync?.needsConsent) {
+      const { needsConsent: _given, ...sync } = meta.sync;
+      next.sync = sync;
+    }
+    return next;
+  });
+}
+
+/** Before the request that deletes the account (R42 item 8); a deletion that did not happen is forgotten. */
+export function markPendingDeletion(db: ManaDb, now = new Date()): Promise<MetaRow> {
+  return updateMeta(db, 'markPendingDeletion', (meta) => {
+    const { deleteNotDone: _old, ...rest } = meta;
+    return { ...rest, pendingDeletion: { userId: meta.userId, at: now } };
+  });
+}
+
+/** The request never reached the server (or failed): the mark goes; `notDone` — the Account section says so. */
+export function clearPendingDeletion(db: ManaDb, notDone: boolean, now = new Date()): Promise<MetaRow> {
+  return updateMeta(db, 'clearPendingDeletion', (meta) => {
+    const { pendingDeletion: _gone, ...rest } = meta;
+    return notDone ? { ...rest, deleteNotDone: now } : rest;
+  });
+}
+
+/** The Account section's "not deleted" line was closed. */
+export function forgetDeleteNotDone(db: ManaDb): Promise<MetaRow> {
+  return updateMeta(db, 'forgetDeleteNotDone', ({ deleteNotDone: _gone, ...rest }) => rest);
+}
+
+/**
+ * The account is deleted (R42): on this device only what tied it to the account goes — the mark,
+ * sync state, earlier ids, the send queue. The journal, decks and settings stay (under the same
+ * userId) until the person saves or clears them; a later sign-in asks to add them, as on any
+ * device with answers (R40).
+ */
+export async function finishAccountDeletion(db: ManaDb): Promise<MetaRow> {
+  return db.transaction('rw', db.meta, db.outbox, async () => {
+    const meta = await db.meta.get('device');
+    if (!meta) throw new Error('finishAccountDeletion: no device row');
+    const { account: _a, sync: _s, formerUserIds: _f, pendingDeletion: _p, pendingTransfer: _t, deleteNotDone: _n, ...rest } = meta;
+    await db.outbox.clear();
+    await db.meta.put(rest);
+    return rest;
+  });
+}
+
 /** The device's name as the server knows it. */
 export async function setAccountDeviceName(db: ManaDb, deviceName: string): Promise<MetaRow> {
   return db.transaction('rw', db.meta, async () => {

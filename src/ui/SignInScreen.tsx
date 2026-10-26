@@ -9,6 +9,7 @@ import { useI18n } from './i18n';
 import { setInviteToken } from './inviteToken';
 import { FAILURE_TEXT, signInWith, type SignInFailure } from './signIn';
 import { TransferDone, TransferQuestion } from './TransferQuestion';
+import { WipeSheet } from './WipeSheet';
 
 interface Props {
   db: ManaDb;
@@ -32,6 +33,7 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
   const [done, setDone] = useState<{ queued: number; transfer: boolean } | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
   const [declined, setDeclined] = useState(false);
+  const [wiping, setWiping] = useState(false);
 
   const [transferring, setTransferring] = useState(false);
 
@@ -105,7 +107,15 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
   return (
     <section>
       <h1>{t('signin.title')}</h1>
-      {signedOutBy && !meta.account && <p role="status">{t('account.signedOutBy')}</p>}
+      {signedOutBy && !meta.account && (
+        <>
+          <p role="status">{t('account.signedOutBy')}</p>
+          <button className="secondary danger mt" type="button" onClick={() => setWiping(true)}>
+            {t('device.wipe')}
+          </button>
+          {wiping && <WipeSheet db={db} signedIn={false} onClose={() => setWiping(false)} />}
+        </>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -138,7 +148,7 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
         )}
         {declined && (
           <p className="mt" role="status">
-            {t('transfer.declined')}
+            {t('transfer.declinedCode')}
           </p>
         )}
         <button className="primary big mt" type="submit" disabled={busy || value.trim() === '' || meta.account !== undefined}>

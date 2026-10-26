@@ -6,11 +6,24 @@
  * server says the id is another account's.
  */
 import type { FSRS } from 'ts-fsrs';
+import { pendingOutcome, type PendingOutcome } from '../core/accountDelete';
 import { defaultDeviceName } from '../core/auth';
 import type { MetaRow } from '../core/model';
+import { NOTICE_VERSION } from '../core/notice';
 import { whoAmI, type ApiResult, type DeviceRef, type SignedIn } from '../platform/api';
 import type { ManaDb } from '../platform/db';
-import { adoptAccount, beginTransfer, forgetTransfer, markSignedIn, renewDeviceId, setFormerUserIds, settleLeftovers } from '../platform/repo';
+import {
+  adoptAccount,
+  beginTransfer,
+  clearPendingDeletion,
+  finishAccountDeletion,
+  forgetTransfer,
+  markSignedIn,
+  renewDeviceId,
+  setAccountState,
+  setFormerUserIds,
+  settleLeftovers,
+} from '../platform/repo';
 import type { StringKey } from './strings';
 
 export type SignInFailure = 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'userTaken' | 'error';
@@ -101,11 +114,26 @@ export async function finishTransfer(db: ManaDb, scheduler: FSRS): Promise<boole
 
 /**
  * At start on a signed-in device: the account's earlier ids as the server lists them now, then
- * records still under one of them move to the account (another window, an older build). True —
- * records moved.
+ * records still under one of them move to the account (another window, an older build); whether
+ * the account is under 16 and still needs consent to the current notice (6a.5b, R42 item 6).
+ * `moved` — records moved; `needsConsent` — the server said so now.
  */
-export async function refreshAccount(db: ManaDb, scheduler: FSRS): Promise<boolean> {
+export async function refreshAccount(db: ManaDb, scheduler: FSRS): Promise<{ moved: boolean; needsConsent: boolean }> {
   const res = await whoAmI();
   if (res.ok && res.data.formerUserIds) await setFormerUserIds(db, res.data.formerUserIds);
-  return settleLeftovers(db, scheduler);
+  const needsConsent = res.ok && res.data.needsConsent === true;
+  if (res.ok && res.data.needsConsent !== undefined) await setAccountState(db, { minor: res.data.minor === true, needsConsent }, NOTICE_VERSION);
+  return { moved: await settleLeftovers(db, scheduler), needsConsent };
+}
+
+/**
+ * At start with a deletion sent and its answer lost (R42 item 8): the server tells. `deleted` — the
+ * device leaves the account; `notDone` — the mark goes and the Account section says so;
+ * `unknown` (no network) — asked again next start.
+ */
+export async function settlePendingDeletion(db: ManaDb): Promise<PendingOutcome> {
+  const outcome = pendingOutcome(await whoAmI(true));
+  if (outcome === 'deleted') await finishAccountDeletion(db);
+  else if (outcome === 'notDone') await clearPendingDeletion(db, true);
+  return outcome;
 }

@@ -58,6 +58,14 @@ export interface MetaRow {
    * the server took it, and the transfer is finished or forgotten. Device-only.
    */
   pendingTransfer?: { localUserId: string; at: Date };
+  /**
+   * The account's deletion was sent (stage 6a.5b, R42 item 8): written before the request, removed
+   * when the answer is known. Found at start — /api/auth/me tells: 401 — deleted, 200 — not.
+   * While it stands the device does not sync. Device-only.
+   */
+  pendingDeletion?: { userId: string; at: Date };
+  /** A deletion that never reached the server (R42 item 8): the Account section says so until closed. */
+  deleteNotDone?: Date;
 }
 
 /**
@@ -81,8 +89,9 @@ export interface SyncState {
   /** Records came with newer rules and the cards were not rebuilt: rebuild after the update. */
   needsRebuild?: boolean;
   /**
-   * The server wants the account's consent to this notice version first (R39); cleared by the
-   * next exchange that goes through. The screen for it — stage 6a.5.
+   * The server wants the account's consent to this notice version first (R39; 403 from sync, or
+   * /api/auth/me at start); cleared by the next exchange that goes through, by me without the
+   * need, or by the consent given (the screen — stage 6a.5b).
    */
   needsConsent?: { version: number; at: Date };
   /**
@@ -112,6 +121,8 @@ export interface AccountMark {
   userId: string;
   deviceName: string;
   since: Date;
+  /** Under 16, as /api/auth/me last said (6a.5b): consent again comes from a parent or guardian. */
+  minor?: boolean;
 }
 
 export type VoiceCheck = 'yes' | 'no';

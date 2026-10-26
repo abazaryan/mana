@@ -3,6 +3,7 @@
  * profile (X-Mana-Profile, R36 item 3); the session is an HttpOnly cookie the page never sees.
  * A 401 from any request goes to one handler (the app shows the sign-in screen, data stays).
  */
+import { EXPORT_PAGE, type ExportHead, type ExportJournalPage } from '../core/accountRows';
 import type { Consent } from '../core/auth';
 import { BUILD } from '../core/build';
 import type { PullResponse, PushResponse } from '../core/syncProtocol';
@@ -62,6 +63,9 @@ export interface SignedIn {
   device: DeviceRef;
   /** The account's earlier ids (R40); absent from a server before 6a.4. */
   formerUserIds?: string[];
+  /** /api/auth/me only (6a.5): under 16, and whether consent to the current notice is still needed. */
+  minor?: boolean;
+  needsConsent?: boolean;
 }
 
 /**
@@ -90,6 +94,14 @@ export const listDevices = () => request<{ devices: DeviceInfo[] }>('GET', 'auth
 export const renameDevice = (name: string) => request<{ ok: true; name: string }>('POST', 'auth/device', { name });
 export const revokeDevice = (deviceId: string) => request<{ ok: true }>('POST', 'auth/devices/revoke', { deviceId });
 export const signOut = () => request<{ ok: true }>('POST', 'auth/logout');
+
+/** Consent again to the current notice (6a.5, R42 item 6). */
+export const giveConsent = (consent: Consent) => request<{ ok: true }>('POST', 'auth/consent', { consent });
+/** A copy of the account's data (R42 item 5): everything but the journal, then the journal in pages. */
+export const exportHead = () => request<ExportHead>('GET', 'account/export');
+export const exportJournalPage = (after: number) => request<ExportJournalPage>('GET', `account/export/journal?after=${after}&limit=${EXPORT_PAGE}`);
+/** Deletes the account (R42 item 1). A 401 here is an answer (the erasure has begun), not "the session ended". */
+export const deleteAccountRequest = () => request<{ finished: boolean }>('POST', 'account/delete', { confirm: 'delete' }, { quiet401: true });
 
 /** The sync exchange (stage 6a.3): what the engine needs, so tests can give it a fake server. */
 export interface SyncTransport {

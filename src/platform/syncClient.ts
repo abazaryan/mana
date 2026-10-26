@@ -166,6 +166,19 @@ export async function syncOnce(env: SyncEnv): Promise<RunResult> {
 }
 
 /**
+ * Before the device leaves the account (deletion, clearing the device — R42): one run now, after
+ * the one in progress in this or another window (`busy` — tried again, at most `tries` times). The
+ * caller then counts what is still not on the server (syncStore.queueCounts).
+ */
+export async function flushQueue(env: SyncEnv, tries = 10, pause = 1000): Promise<RunResult> {
+  for (let i = 1; ; i++) {
+    const result = await syncOnce(env);
+    if (result !== 'busy' || i >= tries) return result;
+    await (env.sleep ?? wait)(pause);
+  }
+}
+
+/**
  * The part of the queue that fits a keepalive request, sent as the page goes to the background.
  * Its answer may never reach the page: the records then go again at the next start, as
  * duplicates. No lock (the page may be frozen any moment); a repeat is safe.

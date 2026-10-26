@@ -15,6 +15,7 @@ import { phrasesApiPresent } from './studyHooks';
 import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
 import { VoiceCheckSheet } from './VoiceCheck';
+import { WipeSheet } from './WipeSheet';
 
 /** The browser voice per learning language of the installed decks: its check and a button to (re)check (R33 item 14). */
 function VoiceChecks({ db }: { db: ManaDb }) {
@@ -92,6 +93,7 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
   const { t, lang, meaningLang } = useI18n();
   const [persist, setPersist] = useState<Persistence | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
+  const [wiping, setWiping] = useState(false);
   const file = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -292,6 +294,10 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
           {t('storage.request')}
         </button>
       )}
+      <button className="secondary danger mt" type="button" onClick={() => setWiping(true)}>
+        {t('device.wipe')}
+      </button>
+      {wiping && <WipeSheet db={db} signedIn={meta.account !== undefined && !meta.pendingDeletion} onClose={() => setWiping(false)} />}
     </section>
   );
 }

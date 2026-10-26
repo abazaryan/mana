@@ -596,11 +596,10 @@ export const STRINGS = {
   'account.codeExpired': { tg: 'Код мунқазӣ шуд.', ru: 'Срок кода истёк.', en: 'The code has expired.' },
   'account.newCode': { tg: 'Коди нав', ru: 'Новый код', en: 'New code' },
   'account.signOut': { tg: 'Хуруҷ', ru: 'Выйти', en: 'Sign out' },
-  'account.signOutConfirm': {
-    tg: 'Дар ин дастгоҳ аз ҳисоб хориҷ мешавед? Додаҳо дар ин дастгоҳ мемонанд.',
-    ru: 'Выйти из аккаунта на этом устройстве? Данные на устройстве останутся.',
-    en: 'Sign out on this device? The data on this device stays.',
-  },
+  // Sign-out with a choice (stage 6a.5b, R42 item 7; tg approved by the terminology chat 26.10.2026)
+  'account.signOutAsk': { tg: 'Дар ин дастгоҳ аз ҳисоб хориҷ мешавед?', ru: 'Выйти из аккаунта на этом устройстве?', en: 'Sign out on this device?' },
+  'account.signOutKeep': { tg: 'Хуруҷ, додаҳо мемонанд', ru: 'Выйти, данные останутся', en: 'Sign out, keep the data' },
+  'account.signOutWipe': { tg: 'Хуруҷ ва пок кардани додаҳо', ru: 'Выйти и стереть данные', en: 'Sign out and clear the data' },
   'account.signedOutBy': {
     tg: 'Ин дастгоҳ дигар ба ҳисоб ворид нест: онро бо дастгоҳи дигар аз ҳисоб ҳазф карданд ё муддати зиёд истифода нашуд. Додаҳо дар ин дастгоҳ мемонанд.',
     ru: 'Это устройство больше не в аккаунте: его убрали из аккаунта с другого устройства или им долго не пользовались. Данные на устройстве на месте.',
@@ -612,6 +611,98 @@ export const STRINGS = {
     en: "The server isn't responding. Try again later.",
   },
   'account.privacy': { tg: 'Додаҳо ва ҳарими хусусӣ', ru: 'Данные и конфиденциальность', en: 'Data and privacy' },
+
+  // Deleting the account and a copy of its data (stage 6a.5b, R42; tg approved by the terminology chat 26.10.2026)
+  'account.delete': { tg: 'Ҳазфи ҳисоб', ru: 'Удалить аккаунт', en: 'Delete account' },
+  'account.deleteTitle': { tg: 'Ҳазфи ҳисоби корбарӣ', ru: 'Удаление аккаунта', en: 'Deleting your account' },
+  'account.deleteText': {
+    tg: 'Ҳисоб ва ҳар чизе, ки дар бораи шумо дар сервер нигоҳ дошта мешавад, ҳазф мешавад: таърихчаи тамрин, танзимот, феҳристи дастгоҳҳо ва сабтҳои ризоят. Ҳамаи дастгоҳҳо фавран аз ҳисоб хориҷ мешаванд. Додаҳои ин дастгоҳ мемонанд ва онҳоро алоҳида пок карда метавонед. Ин кор бе бозгашт аст.',
+    ru: 'Будут удалены аккаунт и всё, что о вас хранится на сервере: журнал занятий, настройки, список устройств, записи о согласии. Вход на всех устройствах прекратится сразу. Данные на этом устройстве останутся — их можно стереть отдельно. Отменить удаление нельзя.',
+    en: "Your account and everything stored about you on the server will be deleted: study log, settings, list of devices, consent records. All devices will be signed out at once. The data on this device stays — you can clear it separately. This can't be undone.",
+  },
+  'account.exportAll': { tg: 'Захираи додаҳои ҳисоб дар файл', ru: 'Сохранить копию данных аккаунта', en: 'Save a copy of your account data' },
+  'account.exportProgress': { tg: 'Ҷамъоварии нусха: {n} сабт…', ru: 'Собираем копию: записей — {n}…', en: 'Collecting the copy: {n} records…' },
+  'account.exportDone': { tg: 'Нусха дар файл захира шуд.', ru: 'Копия сохранена в файл.', en: 'The copy has been saved to a file.' },
+  'account.exportFailed': {
+    tg: 'Нусха ҷамъоварӣ нашуд: сервер дар дастрас нест. Дубора талош кунед.',
+    ru: 'Копию собрать не удалось: сервер не отвечает. Попробуйте ещё раз.',
+    en: "Couldn't collect the copy: the server isn't responding. Try again.",
+  },
+  'account.deleteUnsent': {
+    tg: '{n} сабт ба сервер нарасидааст ва дар нусхаи ҳисоб нест — таърихчаи ин дастгоҳро дар файл захира кунед.',
+    ru: 'Не отправлено на сервер записей: {n}. Их нет в копии аккаунта — сохраните журнал этого устройства в файл.',
+    en: "{n} records haven't reached the server. They aren't in the account copy — save this device's study log to a file.",
+  },
+  'account.deleteConfirm': {
+    tg: 'Ҳисоб барои ҳамеша ҳазф шавад? Ин кор бе бозгашт аст.',
+    ru: 'Удалить аккаунт навсегда? Это нельзя отменить.',
+    en: "Delete your account for good? This can't be undone.",
+  },
+  'account.deleteYes': { tg: 'Бале, ҳисоб ҳазф шавад', ru: 'Да, удалить аккаунт', en: 'Yes, delete my account' },
+  'account.deleting': { tg: 'Ҳисоб ҳазф мешавад…', ru: 'Удаляем аккаунт…', en: 'Deleting your account…' },
+  'account.deleteFailed': {
+    tg: 'Сервер дар дастрас нест. Дубора талош кунед.',
+    ru: 'Не удалось связаться с сервером. Попробуйте ещё раз.',
+    en: "Couldn't reach the server. Try again.",
+  },
+  'account.deleteNotDone': {
+    tg: 'Ҳисоб ҳазф нашуд: дархост ба сервер нарасид. Агар мехоҳед онро ҳазф кунед, дубора талош кунед.',
+    ru: 'Аккаунт не удалён: запрос не дошёл до сервера. Если хотите удалить его, попробуйте ещё раз.',
+    en: "Your account wasn't deleted: the request didn't reach the server. If you want to delete it, try again.",
+  },
+  'account.deletedTitle': { tg: 'Ҳисоб ҳазф шуд', ru: 'Аккаунт удалён', en: 'Account deleted' },
+  'account.deletedText': {
+    tg: 'Ҳамаи дастгоҳҳо аз ҳисоб хориҷ шуданд. Додаҳои сервер дар зарфи як шабонарӯз ҳазф мешаванд. Додаҳои ин дастгоҳ мондаанд: онҳоро дар файл захира ё пок карда метавонед.',
+    ru: 'Вход на всех устройствах прекращён. Данные на сервере стираются в течение суток. На этом устройстве данные остались: их можно сохранить в файл или стереть.',
+    en: 'All devices have been signed out. The data on the server is erased within a day. The data on this device is still here: you can save it to a file or clear it.',
+  },
+  'common.retry': { tg: 'Талоши дубора', ru: 'Повторить', en: 'Try again' },
+
+  // Clearing the data on this device (stage 6a.5b, R42 item 7; device.wipe approved 21.10.2026, the rest 26.10.2026)
+  'device.wipe': { tg: 'Пок кардани додаҳо аз ин дастгоҳ', ru: 'Стереть данные на этом устройстве', en: 'Clear data on this device' },
+  'device.wipeConfirm': {
+    tg: 'Таърихчаи тамрин, танзимот ва маҷмӯаҳои «Моно» аз ин дастгоҳ пок шаванд? Бе файли таърихча пешрафти ин дастгоҳ барнамегардад ва маҷмӯаҳо, аз ҷумла маҷмӯаҳои шахсӣ, бояд дубора аз файлҳояшон насб шаванд.',
+    ru: 'Стереть с этого устройства журнал, настройки и колоды «Маны»? Без файла журнала прогресс на этом устройстве не вернуть, а колоды, в том числе личные, придётся установить заново из их файлов.',
+    en: "Clear Mana's study log, settings and decks from this device? Without a study log file, the progress on this device can't be brought back, and decks, including your own, will have to be installed again from their files.",
+  },
+  'device.wipeConfirmSignedIn': {
+    tg: 'Аввал ҷавобҳои фиристоданашуда фиристода мешаванд ва аз ҳисоб хориҷ мешавед, баъд додаҳои ин дастгоҳ пок мешаванд. Таърихча ва танзимот дар ҳисоб мемонанд; маҷмӯаҳо, аз ҷумла маҷмӯаҳои шахсӣ, бояд дубора аз файлҳояшон насб шаванд.',
+    ru: 'Сначала отправим неотправленные ответы и выйдем из аккаунта, затем сотрём данные на этом устройстве. Журнал и настройки останутся в аккаунте; колоды, в том числе личные, придётся установить заново из их файлов.',
+    en: "We'll send any unsent answers and sign out first, then clear the data on this device. Your study log and settings stay in your account; decks, including your own, will have to be installed again from their files.",
+  },
+  'device.wipeUnsent': {
+    tg: '{n} сабт фиристода нашуд. Таърихчаро дар файл захира кунед, вагарна аз даст мераванд.',
+    ru: 'Не удалось отправить записей: {n}. Сохраните журнал в файл, иначе они пропадут.',
+    en: "{n} records couldn't be sent. Save the study log to a file, or they'll be lost.",
+  },
+  'device.wipeAnyway': { tg: 'Пок кардан бе захира', ru: 'Всё равно стереть', en: 'Clear anyway' },
+  'device.wipeNeedsNetwork': {
+    tg: 'Пок кардани додаҳо ба хуруҷ аз ҳисоб ниёз дорад, ва хуруҷ бе интернет мумкин нест. Баъдтар дубора талош кунед.',
+    ru: 'Чтобы стереть данные, сначала нужно выйти из аккаунта, а для этого нужна связь с сервером. Попробуйте позже.',
+    en: 'To clear the data, you need to sign out first, and that needs a connection to the server. Try again later.',
+  },
+  'device.wiping': { tg: 'Додаҳо пок мешаванд…', ru: 'Стираем данные…', en: 'Clearing the data…' },
+  'device.wipeBlocked': {
+    tg: 'Равзанаҳои дигари «Моно»-ро дар ин дастгоҳ бандед — пок кардан пас аз баста шуданашон анҷом меёбад.',
+    ru: 'Закройте другие окна «Маны» на этом устройстве — стирание закончится, когда они закроются.',
+    en: "Close Mana's other windows on this device — clearing will finish once they're closed.",
+  },
+  'device.wipedElsewhere': {
+    tg: 'Додаҳои «Моно» дар ин дастгоҳ дар равзанаи дигар пок мешаванд. Пас аз анҷом саҳифа дубора кушода мешавад.',
+    ru: 'Данные «Маны» на этом устройстве стираются в другом окне. Когда это закончится, страница откроется заново.',
+    en: "Mana's data on this device is being cleared in another window. The page will reopen when it's done.",
+  },
+
+  // Consent again to a new version of the notice (stage 6a.5b, R42 item 6; tg approved by the terminology chat 26.10.2026)
+  'consent.needed': {
+    tg: 'Матни «Додаҳо ва ҳарими хусусӣ» тағйир кардааст. То бо матни нав мувофиқат накунед, ҳамгомсозӣ намешавад; дар ин дастгоҳ ҳама чиз кор мекунад.',
+    ru: 'Текст о данных изменился. Пока вы не согласитесь с новым текстом, синхронизация остановлена; на этом устройстве всё работает.',
+    en: 'The data notice has changed. Until you agree to the new text, syncing is paused; everything on this device still works.',
+  },
+  'consent.read': { tg: 'Хондан ва мувофиқат', ru: 'Прочитать и согласиться', en: 'Read and agree' },
+  'consent.changed': { tg: 'Матн пас аз ризояти шумо тағйир кардааст.', ru: 'Текст изменился с тех пор, как вы дали согласие.', en: 'The text has changed since you gave your consent.' },
+  'consent.later': { tg: 'Баъдтар', ru: 'Позже', en: 'Later' },
+  'consent.done': { tg: 'Сипос. Ҳамгомсозӣ идома меёбад.', ru: 'Спасибо. Синхронизация продолжается.', en: 'Thank you. Syncing continues.' },
 
   // Sync (stage 6a.3, R39; tg approved by the terminology chat 24.10.2026). account.lastSeen above
   // changed its meaning too: the last exchange with the server, not the last sign-in.
@@ -672,10 +763,16 @@ export const STRINGS = {
     ru: 'Прогресс этого устройства уйдёт в аккаунт и появится на других ваших устройствах. Перед этим лучше сохранить журнал в файл.',
     en: "This device's progress will go to your account and appear on your other devices. It's best to save the study log to a file first.",
   },
-  'transfer.declined': {
-    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Ҳар вақт хостед, бо ҳамин даъватнома (агар ҳанӯз эътибор дорад) ё бо коди нав ворид шавед.',
-    ru: 'Вы не вошли в аккаунт; прогресс остаётся на этом устройстве. Войти можно в любое время — по этой же ссылке, если она ещё действует, или новым кодом.',
-    en: "You're not signed in; your progress stays on this device. Sign in any time with the same link, if it's still valid, or with a new code.",
+  // transfer.declined split by the way in (owner's remarks 25.10.2026; tg approved by the terminology chat 26.10.2026)
+  'transfer.declinedLink': {
+    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Барои вуруд ҳамин даъватномаро то поёни эътибораш ба кор баред.',
+    ru: 'Вы не вошли в аккаунт; прогресс остаётся на этом устройстве. Чтобы войти, используйте эту же ссылку, пока она действует.',
+    en: "You're not signed in; your progress stays on this device. To sign in, use the same link while it's still valid.",
+  },
+  'transfer.declinedCode': {
+    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Барои вуруд ҳамин кодро то поёни эътибораш ба кор баред ё аз дастгоҳе, ки ба ҳисоб ворид аст, коди нав гиред.',
+    ru: 'Вы не вошли в аккаунт; прогресс остаётся на этом устройстве. Чтобы войти, используйте этот же код, пока он действует, или получите новый на устройстве, где вы вошли в аккаунт.',
+    en: "You're not signed in; your progress stays on this device. To sign in, use the same code while it's still valid, or get a new one on a device where you're signed in.",
   },
   'transfer.saving': {
     tg: 'Пешрафт ба ҳисоб илова мешавад…',
@@ -687,10 +784,11 @@ export const STRINGS = {
     ru: 'Прогресс этого устройства добавлен в аккаунт. Отправка ответов может занять несколько минут.',
     en: "This device's progress has been added to your account. Sending the answers may take a few minutes.",
   },
+  // New text 26.10.2026 (stage 6a.5b): points to the button that clears this device.
   'transfer.userTaken': {
-    tg: 'Пешрафти ин дастгоҳ ба ҳисоби дигар тааллуқ дорад. Ё вориди он ҳисоб шавед, ё таърихчаро дар файл захира кунед ва додаҳои сайтро аз ин дастгоҳ пок кунед.',
-    ru: 'Прогресс этого устройства принадлежит другому аккаунту. Войдите в тот аккаунт или сохраните журнал в файл и очистите данные сайта на этом устройстве.',
-    en: "This device's progress belongs to another account. Either sign in to that account, or save the study log to a file and clear this site's data on this device.",
+    tg: 'Пешрафти ин дастгоҳ ба ҳисоби дигар тааллуқ дорад. Ё вориди он ҳисоб шавед, ё таърихчаро дар файл захира кунед ва додаҳоро пок кунед: Танзимот → «Пок кардани додаҳо аз ин дастгоҳ».',
+    ru: 'Прогресс этого устройства принадлежит другому аккаунту. Войдите в тот аккаунт или сохраните журнал в файл и сотрите данные: Настройки → «Стереть данные на этом устройстве».',
+    en: "This device's progress belongs to another account. Sign in to that account, or save the study log to a file and clear the data: Settings → “Clear data on this device”.",
   },
   'signin.already': {
     tg: 'Шумо дар ин дастгоҳ аз қабл ба ҳисоб ворид шудаед.',

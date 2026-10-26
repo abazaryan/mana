@@ -4,13 +4,14 @@ import type { MetaRow } from '../core/model';
 import { formatCode } from '../core/pairingCode';
 import { issuePairingCode, listDevices, renameDevice, revokeDevice, signOut, type DeviceInfo } from '../platform/api';
 import type { ManaDb } from '../platform/db';
-import { markSignedOut, setAccountDeviceName } from '../platform/repo';
+import { forgetDeleteNotDone, markSignedOut, setAccountDeviceName } from '../platform/repo';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
 import { queueCounts } from '../platform/syncStore';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 import { FAILURE_TEXT, failureOf } from './signIn';
 import type { StringKey } from './strings';
+import { WipeSheet } from './WipeSheet';
 
 interface Props {
   db: ManaDb;
@@ -35,10 +36,10 @@ const dayTime = (ms: number) => `${day(ms)} ${two(new Date(ms).getHours())}:${tw
  */
 function SyncStatus({ db }: { db: ManaDb }) {
   const { t } = useI18n();
-  const [state, setState] = useState<{ pending: number; notAccepted: number; last: Date | null } | null>(null);
+  const [state, setState] = useState<{ pending: number; notAccepted: number; last: Date | null; needsConsent: boolean } | null>(null);
   const refresh = useCallback(async () => {
     const [counts, meta] = await Promise.all([queueCounts(db), db.meta.get('device')]);
-    setState({ ...counts, last: meta?.sync?.lastOkAt ?? null });
+    setState({ ...counts, last: meta?.sync?.lastOkAt ?? null, needsConsent: meta?.sync?.needsConsent !== undefined });
   }, [db]);
   useEffect(() => {
     void refresh();
@@ -54,6 +55,14 @@ function SyncStatus({ db }: { db: ManaDb }) {
   if (!state) return null;
   return (
     <div className="mt" role="status">
+      {state.needsConsent && (
+        <>
+          <p className="hint err">{t('consent.needed')}</p>
+          <a className="secondary center mt" href="#/consent">
+            {t('consent.read')}
+          </a>
+        </>
+      )}
       <p className="hint">{state.last ? t('sync.last', { date: dayTime(state.last.getTime()) }) : t('sync.never')}</p>
       {state.pending > 0 && <p className="hint">{t('sync.pending', { n: state.pending })}</p>}
       {state.notAccepted > 0 && (
@@ -69,14 +78,32 @@ function SyncStatus({ db }: { db: ManaDb }) {
 /**
  * Settings → Account (stage 6a.2, STAGE6_RESEARCH 3.2–3.3): signed out — the way to the sign-in
  * screen; signed in — this device's name, the account's devices (remove another one), a pairing
- * code for a new device, sign-out. Local data stays in every case.
+ * code for a new device, sign-out with a choice to clear the device, deleting the account
+ * (6a.5b, R42). A deletion that did not reach the server, or whose answer is unknown, is said here.
  */
 export function AccountSection({ db, meta, onMetaChange }: Props) {
   const { t } = useI18n();
   return (
     <>
       <h2 className="h2">{t('account.title')}</h2>
-      {meta.account ? (
+      {meta.deleteNotDone && (
+        <div className="mt">
+          <p className="hint err" role="alert">
+            {t('account.deleteNotDone')}
+          </p>
+          <button className="ghost" type="button" onClick={() => void forgetDeleteNotDone(db).then(onMetaChange)}>
+            {t('common.close')}
+          </button>
+        </div>
+      )}
+      {meta.pendingDeletion ? (
+        <>
+          <p className="hint err">{t('account.deleteFailed')}</p>
+          <a className="secondary danger center mt" href="#/account/delete">
+            {t('common.retry')}
+          </a>
+        </>
+      ) : meta.account ? (
         <SignedIn db={db} meta={meta} onMetaChange={onMetaChange} />
       ) : (
         <>
@@ -101,6 +128,7 @@ function SignedIn({ db, meta, onMetaChange }: Props) {
   const [message, setMessage] = useState<StringKey | null>(null);
   const [removing, setRemoving] = useState<DeviceInfo | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [wiping, setWiping] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await listDevices();
@@ -191,6 +219,9 @@ function SignedIn({ db, meta, onMetaChange }: Props) {
       <button className="secondary danger mt" type="button" onClick={() => setLeaving(true)}>
         {t('account.signOut')}
       </button>
+      <a className="secondary danger center mt" href="#/account/delete">
+        {t('account.delete')}
+      </a>
 
       {removing && (
         <Sheet title={t('account.remove')} onClose={() => setRemoving(null)} closeLabel={t('common.close')}>
@@ -207,17 +238,28 @@ function SignedIn({ db, meta, onMetaChange }: Props) {
       )}
       {leaving && (
         <Sheet title={t('account.signOut')} onClose={() => setLeaving(false)} closeLabel={t('common.close')}>
-          <p>{t('account.signOutConfirm')}</p>
-          <div className="two mt">
+          <p>{t('account.signOutAsk')}</p>
+          <div className="stack mt">
+            <button className="secondary" type="button" onClick={() => void leave()}>
+              {t('account.signOutKeep')}
+            </button>
+            <button
+              className="secondary danger"
+              type="button"
+              onClick={() => {
+                setLeaving(false);
+                setWiping(true);
+              }}
+            >
+              {t('account.signOutWipe')}
+            </button>
             <button className="secondary" type="button" onClick={() => setLeaving(false)}>
               {t('common.cancel')}
-            </button>
-            <button className="secondary danger" type="button" onClick={() => void leave()}>
-              {t('account.signOut')}
             </button>
           </div>
         </Sheet>
       )}
+      {wiping && <WipeSheet db={db} signedIn onClose={() => setWiping(false)} />}
     </>
   );
 }

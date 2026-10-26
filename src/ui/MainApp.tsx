@@ -5,10 +5,13 @@ import { createScheduler, RULES_VERSION } from '../core/scheduler';
 import { setUnauthorizedHandler, syncTransport } from '../platform/api';
 import { getDb } from '../platform/db';
 import { ensureDevice, getSettings, markSignedOut, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
+import { finishPendingWipe, onWipeSignal } from '../platform/wipe';
 import { SyncEngine } from '../platform/syncClient';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
 import { saveSettings as storeSettings, settleUpdate } from '../platform/syncStore';
+import { ConsentScreen } from './ConsentScreen';
 import { DeckScreen } from './DeckScreen';
+import { DeleteAccountScreen } from './DeleteAccountScreen';
 import { DecksScreen } from './DecksScreen';
 import { FirstRun } from './FirstRun';
 import { I18nProvider, useI18n } from './i18n';
@@ -21,7 +24,7 @@ import { NoticeView } from './NoticeView';
 import type { Route } from './Root';
 import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
-import { finishTransfer, refreshAccount } from './signIn';
+import { finishTransfer, refreshAccount, settlePendingDeletion } from './signIn';
 import { SignInScreen } from './SignInScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
@@ -33,19 +36,31 @@ type Boot =
   /**
    * `rulesUpdate`: the cards must be rebuilt with the new rules before any study (R29.7).
    * `needsUpdate`: this version is older than the account's data (sync, stage 6a.3).
+   * `deletedAtStart`: a deletion of the account sent before turned out done (R42 item 8).
    */
-  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean; needsUpdate: boolean };
+  | { phase: 'ready'; meta: MetaRow; settings: SettingsRow | null; rulesUpdate: boolean; needsUpdate: boolean; deletedAtStart?: boolean };
 
 const db = getDb();
 
+/** Another window cleared the data and no "done" came (no BroadcastChannel): open afresh after this. */
+const WIPE_RELOAD_FALLBACK_MS = 5000;
+
+/** Screens the consent screen does not interrupt at start: a portion, an invitation, the sign-in. */
+const CONSENT_NOT_OVER = /^#\/(study|join|signin)/;
+
 async function load(): Promise<Boot> {
+  // A clearing of the device whose page closed midway (R42 item 7): finished before the database opens.
+  await finishPendingWipe();
   let meta = await ensureDevice(db);
+  // A deletion of the account whose answer was lost (R42 item 8): the server tells.
+  const deletedAtStart = meta.pendingDeletion !== undefined && (await settlePendingDeletion(db).catch(() => 'unknown')) === 'deleted';
+  if (meta.pendingDeletion) meta = (await db.meta.get('device')) ?? meta;
   // A transfer of answers whose tab closed before the device side was done (R40): the server decides.
   if (meta.pendingTransfer && (await finishTransfer(db, createScheduler()).catch(() => false))) meta = (await db.meta.get('device')) ?? meta;
   const rulesUpdate = await needsRulesUpdate(db, meta);
   // After an update the "older version" mark of sync goes; cards left for it are rebuilt.
   const needsUpdate = await settleUpdate(db, createScheduler(), BUILD, RULES_VERSION);
-  return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate, needsUpdate };
+  return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate, needsUpdate, deletedAtStart };
 }
 
 export function MainApp({ route }: { route: Route }) {
@@ -73,12 +88,23 @@ export function MainApp({ route }: { route: Route }) {
   }, []);
 
   // Signed in: one quiet check at start (it also keeps the session alive) that refreshes the
-  // account's earlier ids; records left under one of them move to the account (R40). Without
-  // sign-in — no request at all.
-  const signedIn = boot.phase === 'ready' && boot.meta.account !== undefined;
+  // account's earlier ids; records left under one of them move to the account (R40). An account
+  // that still needs consent to the current notice gets its screen, once (R42 item 6). Without
+  // sign-in, or with a deletion of the account sent and not answered — no request and no sync.
+  const signedIn = boot.phase === 'ready' && boot.meta.account !== undefined && boot.meta.pendingDeletion === undefined;
   useEffect(() => {
-    if (signedIn) void refreshAccount(db, createScheduler()).then((moved) => moved && reload());
+    if (!signedIn) return;
+    void refreshAccount(db, createScheduler()).then(({ moved, needsConsent }) => {
+      if (needsConsent && !CONSENT_NOT_OVER.test(location.hash)) location.hash = '#/consent';
+      if (moved) reload();
+    });
   }, [signedIn, reload]);
+
+  // The account was found deleted at start: its screen, on this device only.
+  const deletedAtStart = boot.phase === 'ready' && boot.deletedAtStart === true;
+  useEffect(() => {
+    if (deletedAtStart) location.hash = '#/account/delete';
+  }, [deletedAtStart]);
 
   // "A newer version is needed" (stage 6a.3): from sync, or another window upgraded the database.
   // While a portion is open, the screen waits until the current card is saved (the next record).
@@ -96,23 +122,43 @@ export function MainApp({ route }: { route: Route }) {
     }
     return onQueued(() => setUpdateShown(true));
   }, [update, updateShown, studying]);
+  // Another window clears the data of this device (R42 item 7): let the database go, say so, and
+  // open afresh when it is done. Without the signal the delete itself tells (versionchange to no version).
+  const [wipedElsewhere, setWipedElsewhere] = useState(false);
   useEffect(() => {
-    const otherWindow = () => {
+    const otherWindow = (event: IDBVersionChangeEvent) => {
       db.close();
+      if (event.newVersion === null) {
+        setWipedElsewhere(true);
+        setTimeout(() => location.reload(), WIPE_RELOAD_FALLBACK_MS);
+        return;
+      }
       setUpdate('otherTab');
       setUpdateShown(true);
     };
     db.on('versionchange', otherWindow);
-    return () => db.on('versionchange').unsubscribe(otherWindow);
+    const off = onWipeSignal((message) => {
+      if (message === 'done') {
+        location.reload();
+        return;
+      }
+      db.close();
+      setWipedElsewhere(true);
+    });
+    return () => {
+      db.on('versionchange').unsubscribe(otherWindow);
+      off();
+    };
   }, []);
 
-  // Sync runs while signed in and this version is current.
+  // Sync runs while signed in and this version is current; a consent given starts it again.
+  const [syncEpoch, setSyncEpoch] = useState(0);
   useEffect(() => {
     if (!signedIn || update) return;
     const engine = new SyncEngine({ db, scheduler: createScheduler(), transport: syncTransport, build: BUILD, onNeedsUpdate: () => setUpdate('data') });
     engine.start();
     return () => engine.stop();
-  }, [signedIn, update]);
+  }, [signedIn, update, syncEpoch]);
 
   // Settings or records came from the server: screens count again; the settings apply at once,
   // except in an open portion — there when it is left (its plan must not be rebuilt, R39).
@@ -142,6 +188,13 @@ export function MainApp({ route }: { route: Route }) {
     if (lang) document.documentElement.lang = lang;
   }, [lang]);
 
+  if (wipedElsewhere) {
+    return (
+      <main id="app">
+        <p role="status">{translate(boot.phase === 'ready' ? (boot.settings?.uiLang ?? 'tg') : 'tg', 'device.wipedElsewhere')}</p>
+      </main>
+    );
+  }
   if (boot.phase === 'loading') return <main id="app" aria-busy="true" />;
   if (boot.phase === 'error') {
     return (
@@ -221,6 +274,25 @@ export function MainApp({ route }: { route: Route }) {
             <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />
           )}
           {!(update && updateShown) && route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
+          {!blocked && route.name === 'consent' && (
+            <ConsentScreen
+              db={db}
+              meta={meta}
+              onConsented={(m) => {
+                void accountChanged(m);
+                setSyncEpoch((n) => n + 1);
+              }}
+            />
+          )}
+          {!blocked && route.name === 'accountDelete' && (
+            <DeleteAccountScreen
+              db={db}
+              meta={meta}
+              deleted={boot.deletedAtStart === true}
+              onMetaChange={(m) => void accountChanged(m)}
+              onNeedsUpdate={() => setUpdate('data')}
+            />
+          )}
           {!(update && updateShown) && route.name === 'labCards' && <LabCards db={db} />}
         </Shell>
       </KeyboardModeProvider>

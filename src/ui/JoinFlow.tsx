@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { firstJoinStep, PARENT_NAME_MAX, cleanTypedName, stepAfterNotice, type Consent, type JoinStep } from '../core/auth';
+import { firstJoinStep, stepAfterNotice, type Consent, type JoinStep } from '../core/auth';
 import type { MetaRow } from '../core/model';
 import { NOTICE_VERSION } from '../core/notice';
 import { createScheduler } from '../core/scheduler';
@@ -9,7 +9,8 @@ import { hasLocalAnswers } from '../platform/repo';
 import { useI18n } from './i18n';
 import { forgetInviteToken } from './inviteToken';
 import { noticeText } from './noticeText';
-import { NoticeBlocks, NoticeView } from './NoticeView';
+import { NoticeView } from './NoticeView';
+import { ParentConsent } from './ParentConsent';
 import { FAILURE_TEXT, failureOf, signInWith, type SignInFailure } from './signIn';
 import { TransferDone, TransferQuestion } from './TransferQuestion';
 
@@ -41,9 +42,6 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
     meta.account ? { name: 'failed', reason: 'already' } : token ? { name: 'checking' } : { name: 'failed', reason: 'invalid' },
   );
   const [kind, setKind] = useState<'account' | 'device'>('account');
-  const [parentName, setParentName] = useState('');
-  const [parentAgreed, setParentAgreed] = useState(false);
-  const [missing, setMissing] = useState(false);
   const text = noticeText(lang);
 
   useEffect(() => {
@@ -86,15 +84,6 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
     onSignedIn(outcome.meta);
   };
 
-  const parentSubmit = () => {
-    const name = cleanTypedName(parentName, PARENT_NAME_MAX);
-    if (!name || !parentAgreed) {
-      setMissing(true);
-      return;
-    }
-    void submit({ version: NOTICE_VERSION, by: 'parent', parentName: name, parentAgreed: true });
-  };
-
   if (screen.name === 'checking' || (screen.name === 'sending' && !screen.transfer)) {
     return <section aria-busy="true">{t('common.loading')}</section>;
   }
@@ -121,7 +110,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
       <section>
         <h1>{t('join.title')}</h1>
         <p className={quiet ? '' : 'hint err'} role="alert">
-          {t(screen.name === 'declined' ? 'transfer.declined' : FAILURE_TEXT[screen.reason])}
+          {t(screen.name === 'declined' ? 'transfer.declinedLink' : FAILURE_TEXT[screen.reason])}
         </p>
         <p className="note">
           <a href="#/">{t('nav.decks')}</a>
@@ -169,49 +158,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
       </section>
     );
   }
-  if (step === 'parent') {
-    const field = text.parent.blocks.find((b) => b.kind === 'field');
-    const check = text.parent.blocks.find((b) => b.kind === 'check');
-    return (
-      <section className="notice">
-        <p className="hint">{t('join.parentHint')}</p>
-        <h1>{text.parent.title}</h1>
-        <NoticeBlocks blocks={text.parent.blocks} />
-        <label className="field">
-          <span>{field?.kind === 'field' ? field.label : ''}</span>
-          <input
-            type="text"
-            value={parentName}
-            maxLength={PARENT_NAME_MAX}
-            autoComplete="name"
-            onChange={(e) => {
-              setParentName(e.target.value);
-              setMissing(false);
-            }}
-          />
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={parentAgreed}
-            onChange={(e) => {
-              setParentAgreed(e.target.checked);
-              setMissing(false);
-            }}
-          />
-          <span>{check?.kind === 'check' ? check.label : ''}</span>
-        </label>
-        {missing && (
-          <p className="hint err" role="alert">
-            {t('join.parentMissing')}
-          </p>
-        )}
-        <button className="primary big mt" type="button" onClick={parentSubmit}>
-          {t('join.signIn')}
-        </button>
-      </section>
-    );
-  }
+  if (step === 'parent') return <ParentConsent section={text.parent} submitLabel="join.signIn" onSubmit={(consent) => void submit(consent)} />;
   return (
     <section>
       <h1>{t('join.title')}</h1>
