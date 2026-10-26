@@ -8,7 +8,7 @@ import { EXPORT_PAGE, headFromRows, serverRecordFromRow, type ExportJournalPage 
 import { ERASE_SQL, eraseDetail, EXPORT_SQL } from '../../worker/accountSql.ts';
 import { ERASE_PORTION } from '../../worker/config.ts';
 import { execute, inline, query, saveOut, type ExecuteMeta, type Target } from './d1.ts';
-import { traceSql } from './traces.ts';
+import { traceSql, tracesFrom } from './traces.ts';
 
 type Row = Record<string, unknown>;
 
@@ -55,7 +55,7 @@ export function idsOf(file: AccountExport): string[] {
 
 /** Where any of `ids` still occurs (read only, one query); empty — no traces. */
 export function tracesOf(target: Target, ids: readonly string[]): { place: string; n: number }[] {
-  return query<{ place: string; n: number }>(target, traceSql(ids));
+  return tracesFrom(query<Record<string, unknown>>(target, traceSql(ids)));
 }
 
 export interface StepReport {
@@ -85,6 +85,12 @@ export function startSql(userId: string, now: number, rowId: string = crypto.ran
 }
 
 /**
+ * A portion for the script: the Worker's statement with RETURNING, so the rows erased are counted
+ * from the answer — wrangler --local gives no `changes` in its meta (26.10.2026).
+ */
+export const portionSql = (userId: string): string => `${inline(ERASE_SQL.portion, [userId, ERASE_PORTION])} RETURNING seq`;
+
+/**
  * Steps 1–3 (R42 item 2), each through wrangler with D1's numbers; `onStep` hears each as it
  * ends. Step 1 again on a marked account changes nothing; the run goes on where the last one ended.
  */
@@ -96,9 +102,10 @@ export function eraseAccount(target: Target, userId: string, now: number, onStep
   };
   done(report('1: mark, sessions, codes, invitations, admin rows', execute(target, startSql(userId, now)).map((r) => r.meta)));
   for (let portion = 1; ; portion++) {
-    const r = report(`2: journal portion ${portion}`, execute(target, inline(ERASE_SQL.portion, [userId, ERASE_PORTION])).map((x) => x.meta));
-    done(r);
-    if (r.changes < ERASE_PORTION) break;
+    const [result] = execute<{ seq: number }>(target, portionSql(userId));
+    const erased = result?.results.length ?? 0;
+    done({ ...report(`2: journal portion ${portion}`, result ? [result.meta] : []), changes: erased });
+    if (erased < ERASE_PORTION) break;
   }
   done(report('3: the account (cascade)', execute(target, inline(ERASE_SQL.account, [userId])).map((r) => r.meta)));
   return steps;

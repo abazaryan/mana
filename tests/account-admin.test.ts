@@ -12,9 +12,9 @@ import { parseBackup, planAccountRestore, planRestore } from '../src/core/backup
 import { createScheduler } from '../src/core/scheduler';
 import { ManaDb } from '../src/platform/db';
 import { ensureDevice, restoreJournal, userLog } from '../src/platform/repo';
-import { exportFrom, idsOf, startSql } from '../tools/admin/accountAdmin';
+import { exportFrom, idsOf, portionSql, startSql } from '../tools/admin/accountAdmin';
 import { inline, outName } from '../tools/admin/d1';
-import { TEXT_COLUMNS, traceSql } from '../tools/admin/traces';
+import { TEXT_COLUMNS, traceSql, tracesFrom } from '../tools/admin/traces';
 import { ERASE_SQL } from '../worker/accountSql';
 import { ERASE_PORTION } from '../worker/config';
 import { DAY, HOUR, send, signedIn, T0, world, type SignedIn, type World } from '../worker/test/accounts';
@@ -42,6 +42,7 @@ function record(who: SignedIn): Record<string, unknown> {
 }
 
 const read = (w: World) => (text: string) => w.db.sqlite.prepare(text).all() as Record<string, unknown>[];
+const traces = (w: World, ids: string[]) => tracesFrom(read(w)(traceSql(ids)));
 
 /** An account with two devices, records, a setting, an earlier id and an admin row. */
 async function account(w: World, records = 3): Promise<{ a: SignedIn; b: SignedIn }> {
@@ -66,9 +67,9 @@ describe('the trace check (tools/admin/traces.ts)', () => {
   it('finds an id in any column, inside JSON too; takes UUIDs only', async () => {
     const w = world();
     const { a, b } = await account(w);
-    const places = (read(w)(traceSql([b.deviceId])) as { place: string }[]).map((p) => p.place);
+    const places = traces(w, [b.deviceId]).map((p) => p.place);
     expect(places).toEqual(expect.arrayContaining(['devices.id', 'sessions.device_id', 'admin_actions.detail']));
-    expect(read(w)(traceSql([a.userId.toUpperCase()])).length).toBeGreaterThan(3);
+    expect(traces(w, [a.userId.toUpperCase()]).length).toBeGreaterThan(3);
     expect(() => traceSql(["x') OR 1=1 --"])).toThrow();
     expect(() => traceSql([])).toThrow();
   });
@@ -84,14 +85,14 @@ describe('the admin erasure (delete-account.ts SQL)', () => {
     expect(ids).toHaveLength(4);
     w.db.sqlite.exec(startSql(a.userId, T0));
     w.db.sqlite.exec(startSql(a.userId, T0 + 1)); // again: changes nothing
-    for (;;) {
-      const { changes } = w.db.sqlite.prepare(inline(ERASE_SQL.portion, [a.userId, 2])).run();
-      if (Number(changes) < 2) break;
-    }
+    const { changes } = w.db.sqlite.prepare(inline(ERASE_SQL.portion, [a.userId, 2])).run();
+    expect(Number(changes)).toBe(2);
+    expect(read(w)(portionSql(a.userId))).toHaveLength(3); // the rest, counted from RETURNING
+    expect(read(w)(portionSql(a.userId))).toHaveLength(0);
     w.db.sqlite.exec(inline(ERASE_SQL.account, [a.userId]));
-    expect(read(w)(traceSql(ids))).toEqual([]);
+    expect(traces(w, ids)).toEqual([]);
     expect(read(w)("SELECT user_id, detail FROM admin_actions WHERE action = 'delete'")).toEqual([{ user_id: null, detail: '{"via":"admin"}' }]);
-    expect(read(w)(traceSql([other.userId, other.deviceId])).length).toBeGreaterThan(0);
+    expect(traces(w, [other.userId, other.deviceId]).length).toBeGreaterThan(0);
     expect(ERASE_PORTION).toBe(1000);
   });
 

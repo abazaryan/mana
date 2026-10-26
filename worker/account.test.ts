@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { ExportHead, ExportJournalPage } from '../src/core/accountRows.ts';
 import { canonicalJson } from '../src/core/journalRecord.ts';
 import { NOTICE_VERSION } from '../src/core/notice.ts';
-import { traceSql } from '../tools/admin/traces.ts';
+import { traceSql, tracesFrom } from '../tools/admin/traces.ts';
 import { continueErasure, cronBudget, startErasure, type EraseBudget } from './account.ts';
 import { cleanup } from './cleanup.ts';
 import { ERASE_PORTION, QUERIES_PER_INVOCATION } from './config.ts';
@@ -15,7 +15,7 @@ import { sha256Hex } from './tokens.ts';
 
 const count = (w: World, sql: string, ...params: string[]) => (w.db.sqlite.prepare(sql).get(...params) as { n: number }).n;
 const rows = (w: World, sql: string, ...params: string[]) => w.db.sqlite.prepare(sql).all(...params) as Record<string, unknown>[];
-const traces = (w: World, ids: string[]) => rows(w, traceSql(ids));
+const traces = (w: World, ids: string[]) => tracesFrom(rows(w, traceSql(ids)));
 
 let n = 0;
 function record(who: SignedIn, extra: Record<string, unknown> = {}): Record<string, unknown> {

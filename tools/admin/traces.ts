@@ -56,15 +56,23 @@ export const TEXT_COLUMNS: readonly (readonly [string, string])[] = [
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * One read-only query: the places (table.column) where any of `ids` still occurs, with counts;
- * no rows — no traces. `ids` must be UUIDs (they go into the SQL as literals); instr, not LIKE
- * (D1 caps LIKE patterns at 50 bytes).
+ * One read-only query, one row: a count for each place (column "table.column") where any of `ids`
+ * occurs. `ids` must be UUIDs (they go into the SQL as literals); instr, not LIKE (D1 caps LIKE
+ * patterns at 50 bytes); subqueries, not UNION ALL (D1 refuses a compound SELECT of this many
+ * terms: "too many terms in compound SELECT", wrangler --local 26.10.2026).
  */
 export function traceSql(ids: readonly string[]): string {
   if (ids.length === 0 || !ids.every((id) => UUID.test(id))) throw new Error('traceSql: UUIDs only');
   const parts = TEXT_COLUMNS.map(([table, column]) => {
     const any = ids.map((id) => `instr(lower(${column}), '${id.toLowerCase()}') > 0`).join(' OR ');
-    return `SELECT '${table}.${column}' AS place, count(*) AS n FROM ${table} WHERE ${any}`;
+    return `(SELECT count(*) FROM ${table} WHERE ${any}) AS "${table}.${column}"`;
   });
-  return `SELECT place, n FROM (${parts.join(' UNION ALL ')}) WHERE n > 0`;
+  return `SELECT ${parts.join(', ')}`;
+}
+
+/** The places of traceSql's row with a count above 0; empty — no traces. */
+export function tracesFrom(rows: readonly Record<string, unknown>[]): { place: string; n: number }[] {
+  return Object.entries(rows[0] ?? {})
+    .map(([place, n]) => ({ place, n: Number(n) }))
+    .filter((t) => t.n > 0);
 }
