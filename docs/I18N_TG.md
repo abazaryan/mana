@@ -35,10 +35,10 @@
 | `deck.contents` | Записи ({n}) | Entries ({n}) | Омӯзбаргҳо ({n}) |
 | `deck.audioError` | Не удалось воспроизвести аудио. | Could not play the audio. | Садо пахш нашуд. |
 | `deck.notFound` | Колода не найдена. | Deck not found. | Маҷмӯа ёфт нашуд. |
-| `deck.delete` | Удалить колоду | Delete deck | Пок кардани маҷмӯа |
-| `deck.deleteTitle` | Удалить колоду? | Delete this deck? | Маҷмӯа пок шавад? |
-| `deck.deleteText` | Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал занятий остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды. | “{name}” will be deleted from this device with its entries and audio. The study log is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text. | «{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст. |
-| `deck.deleteConfirm` | Удалить | Delete | Пок кардан |
+| `deck.delete` | Удалить колоду | Delete deck | Ҳазфи маҷмӯа |
+| `deck.deleteTitle` | Удалить колоду? | Delete this deck? | Маҷмӯа ҳазф шавад? |
+| `deck.deleteText` | Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал занятий остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды. | “{name}” will be deleted from this device with its entries and audio. The study log is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text. | «{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ ҳазф мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст. |
+| `deck.deleteConfirm` | Удалить | Delete | Ҳазф |
 | `skill.listen` | слушать | listen | гӯш додан |
 | `skill.speak` | говорить | speak | гуфтан |
 | `skill.write` | писать | write | навиштан |
@@ -204,8 +204,8 @@
 | `backup.error.version` | Файл из более новой версии приложения. Обновите приложение. | The file comes from a newer version of the app. Update the app. | Файл аз нусхаи навтари барнома аст. Барномаро барӯзрасонӣ кунед. |
 | `backup.error.records` | Файл повреждён: часть записей не читается. Ничего не добавлено. | The file is damaged: some records cannot be read. Nothing was added. | Файл осеб дидааст: баъзе сабтҳо хонда намешаванд. Ҳеҷ чиз илова нашуд. |
 | `backup.error.otherUser` | Файл другого пользователя, а здесь уже есть свои ответы. Объединение появится на этапе синхронизации. | The file belongs to another user, and this browser already has its own answers. Merging comes with sync. | Файл ба корбари дигар тааллуқ дорад, вале дар ин ҷо аз қабл ҷавобҳои худатон ҳаст. Якҷоя кардан дар марҳилаи ҳамгомсозӣ илова мешавад. |
-| `restore.confirmOther` | Этот журнал — с другого устройства, из другого браузера или сделан до очистки данных. Добавить его в аккаунт? | This study log comes from another device, another browser, or from before the data was cleared. Add it to your account? | Ин таърихча аз дастгоҳи дигар, мурургари дигар ё аз пеш аз пок кардани додаҳо аст. Ба ҳисоб илова шавад? |
-| `restore.confirmOtherHint` | Его ответы появятся на всех ваших устройствах и могут изменить сроки повторений. | Its answers will appear on all your devices and may change review dates. | Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд. |
+| `restore.confirmOther` | Этот журнал — с другого устройства, из другого браузера или сделан до очистки данных. Если это не ваш журнал — не добавляйте. Добавить его в аккаунт? | This study log comes from another device, another browser, or from before the data was cleared. If it isn't your own log, don't add it. Add it to your account? | Ин таърихча аз дастгоҳ ё мурургари дигар аст ё пеш аз пок шудани додаҳо захира шудааст. Агар аз шумо набошад, илова накунед. Ба ҳисоб илова шавад? |
+| `restore.confirmOtherHint` | Его ответы появятся на всех ваших устройствах и могут изменить сроки повторений. Убрать их отдельно потом нельзя. | Its answers will appear on all your devices and may change review dates. They can't be removed separately later. | Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд; баъдтар алоҳида ҳазф намешаванд. |
 | `restore.needsNetwork` | Чтобы добавить этот журнал в аккаунт, нужен интернет. Попробуйте позже. | Adding this study log to your account needs an internet connection. Try again later. | Барои илова кардани ин таърихча ба ҳисоб интернет лозим аст. Баъдтар дубора талош кунед. |
 | `restore.otherAccount` | Этот журнал принадлежит другому аккаунту — в этот аккаунт его добавить нельзя. | This study log belongs to another account and can't be added to this one. | Ин таърихча ба ҳисоби дигар тааллуқ дорад ва ба ин ҳисоб илова намешавад. |
 | `backup.error.failed` | Ошибка: {error} | Error: {error} | Хато: {error} |

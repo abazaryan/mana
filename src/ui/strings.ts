@@ -70,14 +70,14 @@ export const STRINGS = {
   },
   'deck.notFound': { tg: 'Маҷмӯа ёфт нашуд.', ru: 'Колода не найдена.', en: 'Deck not found.' },
   // Deleting a deck (Р34)
-  'deck.delete': { tg: 'Пок кардани маҷмӯа', ru: 'Удалить колоду', en: 'Delete deck' },
-  'deck.deleteTitle': { tg: 'Маҷмӯа пок шавад?', ru: 'Удалить колоду?', en: 'Delete this deck?' },
+  'deck.delete': { tg: 'Ҳазфи маҷмӯа', ru: 'Удалить колоду', en: 'Delete deck' },
+  'deck.deleteTitle': { tg: 'Маҷмӯа ҳазф шавад?', ru: 'Удалить колоду?', en: 'Delete this deck?' },
   'deck.deleteText': {
-    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ пок мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
+    tg: '«{name}» бо омӯзбаргҳо ва файлҳои садо аз ин дастгоҳ ҳазф мешавад. Таърихчаи тамрин мемонад: агар ҳамин маҷмӯаро дубора насб кунед, пешрафт бармегардад. Барои насби дубора файл ё матни маҷмӯа лозим аст.',
     ru: 'Колода «{name}» с записями и звуком будет удалена с этого устройства. Журнал занятий остаётся: если установить эту колоду снова, прогресс вернётся. Для повторной установки нужен файл или текст колоды.',
     en: '“{name}” will be deleted from this device with its entries and audio. The study log is kept: if you install this deck again, your progress comes back. To install it again you need the deck file or text.',
   },
-  'deck.deleteConfirm': { tg: 'Пок кардан', ru: 'Удалить', en: 'Delete' },
+  'deck.deleteConfirm': { tg: 'Ҳазф', ru: 'Удалить', en: 'Delete' },
 
   // Skills (Р3)
   'skill.listen': { tg: 'гӯш додан', ru: 'слушать', en: 'listen' },
@@ -514,14 +514,14 @@ export const STRINGS = {
   },
   // Restore from a file while signed in (stage 6a.4, R40). tg approved 25.10.2026; ru/en aligned by the owner 25.10.2026.
   'restore.confirmOther': {
-    tg: 'Ин таърихча аз дастгоҳи дигар, мурургари дигар ё аз пеш аз пок кардани додаҳо аст. Ба ҳисоб илова шавад?',
-    ru: 'Этот журнал — с другого устройства, из другого браузера или сделан до очистки данных. Добавить его в аккаунт?',
-    en: 'This study log comes from another device, another browser, or from before the data was cleared. Add it to your account?',
+    tg: 'Ин таърихча аз дастгоҳ ё мурургари дигар аст ё пеш аз пок шудани додаҳо захира шудааст. Агар аз шумо набошад, илова накунед. Ба ҳисоб илова шавад?',
+    ru: 'Этот журнал — с другого устройства, из другого браузера или сделан до очистки данных. Если это не ваш журнал — не добавляйте. Добавить его в аккаунт?',
+    en: "This study log comes from another device, another browser, or from before the data was cleared. If it isn't your own log, don't add it. Add it to your account?",
   },
   'restore.confirmOtherHint': {
-    tg: 'Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд.',
-    ru: 'Его ответы появятся на всех ваших устройствах и могут изменить сроки повторений.',
-    en: 'Its answers will appear on all your devices and may change review dates.',
+    tg: 'Ҷавобҳои он дар ҳамаи дастгоҳҳоятон пайдо мешаванд ва метавонанд вақти такрорҳоро тағйир диҳанд; баъдтар алоҳида ҳазф намешаванд.',
+    ru: 'Его ответы появятся на всех ваших устройствах и могут изменить сроки повторений. Убрать их отдельно потом нельзя.',
+    en: "Its answers will appear on all your devices and may change review dates. They can't be removed separately later.",
   },
   'restore.needsNetwork': {
     tg: 'Барои илова кардани ин таърихча ба ҳисоб интернет лозим аст. Баъдтар дубора талош кунед.',
