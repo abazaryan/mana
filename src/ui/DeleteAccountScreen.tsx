@@ -32,8 +32,9 @@ interface Props {
  */
 export function DeleteAccountScreen({ db, meta, deleted, onMetaChange, onNeedsUpdate }: Props) {
   const { t } = useI18n();
-  // A deletion sent before whose answer is still unknown (no network at start): straight to the retry.
-  const [phase, setPhase] = useState<Phase>(deleted ? 'deleted' : meta.pendingDeletion ? 'failed' : 'intro');
+  // Deleted here before (a reload, `accountLost`): the end again. A deletion sent before whose answer
+  // is still unknown (no network at start): straight to the retry.
+  const [phase, setPhase] = useState<Phase>(deleted || meta.accountLost?.reason === 'deleted' ? 'deleted' : meta.pendingDeletion ? 'failed' : 'intro');
   const [unsent, setUnsent] = useState<number | null>(null);
   const [note, setNote] = useState<{ text: string; err: boolean } | null>(null);
   const [copying, setCopying] = useState<number | null>(null);

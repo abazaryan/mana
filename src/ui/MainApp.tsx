@@ -4,7 +4,7 @@ import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { createScheduler, RULES_VERSION } from '../core/scheduler';
 import { setUnauthorizedHandler, syncTransport } from '../platform/api';
 import { getDb } from '../platform/db';
-import { ensureDevice, getSettings, markSignedOut, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
+import { ensureDevice, getSettings, markAccountLost, needsRulesUpdate, putSettings, setPhrasesUnsupported, setSystemKeyboard } from '../platform/repo';
 import { finishPendingWipe, onWipeSignal } from '../platform/wipe';
 import { SyncEngine } from '../platform/syncClient';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
@@ -73,15 +73,14 @@ export function MainApp({ route }: { route: Route }) {
   }, []);
   useEffect(reload, [reload]);
 
-  // The session ended elsewhere (401 on any request): only the account mark goes, the data stays,
-  // and the sign-in screen says why (STAGE6_RESEARCH 3.3).
-  const [signedOutBy, setSignedOutBy] = useState(false);
+  // The session ended elsewhere (401 on any request): the account mark goes, the data stays, and
+  // `accountLost` keeps the sign-in screen's explanation and the way to clear the device — after a
+  // reload too (STAGE6_RESEARCH 3.3, R33 item 13). A device that was not signed in is left alone.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      void markSignedOut(db).then((meta) => {
+      void markAccountLost(db).then((meta) => {
         setBoot((b) => (b.phase === 'ready' ? { ...b, meta } : b));
-        setSignedOutBy(true);
-        location.hash = '#/signin';
+        if (meta.accountLost) location.hash = '#/signin';
       });
     });
     return () => setUnauthorizedHandler(null);
@@ -232,7 +231,6 @@ export function MainApp({ route }: { route: Route }) {
 
   // Sign-in moves the settings to the account's id (repo.markSignedIn): read them again.
   const accountChanged = async (freshMeta: MetaRow) => {
-    if (freshMeta.account) setSignedOutBy(false);
     const s = (await getSettings(db, freshMeta.userId)) ?? settings;
     setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate, needsUpdate });
   };
@@ -271,7 +269,7 @@ export function MainApp({ route }: { route: Route }) {
             <JoinFlow key={inviteOpened()} db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
           )}
           {!blocked && route.name === 'signin' && (
-            <SignInScreen db={db} meta={meta} signedOutBy={signedOutBy} onSignedIn={(m) => void accountChanged(m)} />
+            <SignInScreen db={db} meta={meta} onSignedIn={(m) => void accountChanged(m)} />
           )}
           {!(update && updateShown) && route.name === 'privacy' && <NoticeView section={noticeText(settings.uiLang).notice} />}
           {!blocked && route.name === 'consent' && (

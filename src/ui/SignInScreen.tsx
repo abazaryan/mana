@@ -9,13 +9,11 @@ import { useI18n } from './i18n';
 import { setInviteToken } from './inviteToken';
 import { FAILURE_TEXT, signInWith, type SignInFailure } from './signIn';
 import { TransferDone, TransferQuestion } from './TransferQuestion';
-import { WipeSheet } from './WipeSheet';
+import { AccountLost } from './AccountLost';
 
 interface Props {
   db: ManaDb;
   meta: MetaRow;
-  /** The session was ended elsewhere (401): say so above the field. */
-  signedOutBy: boolean;
   onSignedIn(meta: MetaRow): void;
 }
 
@@ -25,7 +23,7 @@ interface Props {
  * (Gboard on the phone), not the app's own. A device with answers is asked whether to add them
  * to the account (R40) before the code is sent: "no" spends nothing.
  */
-export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
+export function SignInScreen({ db, meta, onSignedIn }: Props) {
   const { t } = useI18n();
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
@@ -33,7 +31,6 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
   const [done, setDone] = useState<{ queued: number; transfer: boolean } | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
   const [declined, setDeclined] = useState(false);
-  const [wiping, setWiping] = useState(false);
 
   const [transferring, setTransferring] = useState(false);
 
@@ -107,15 +104,7 @@ export function SignInScreen({ db, meta, signedOutBy, onSignedIn }: Props) {
   return (
     <section>
       <h1>{t('signin.title')}</h1>
-      {signedOutBy && !meta.account && (
-        <>
-          <p role="status">{t('account.signedOutBy')}</p>
-          <button className="secondary danger mt" type="button" onClick={() => setWiping(true)}>
-            {t('device.wipe')}
-          </button>
-          {wiping && <WipeSheet db={db} signedIn={false} onClose={() => setWiping(false)} />}
-        </>
-      )}
+      <AccountLost db={db} meta={meta} />
       <form
         onSubmit={(e) => {
           e.preventDefault();

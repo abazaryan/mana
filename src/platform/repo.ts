@@ -539,14 +539,27 @@ export async function markSignedIn(db: ManaDb, userId: string, deviceName: strin
       }
     }
     // A new account: its sync starts from nothing (cursor 0, settings first taken from the server).
-    const { sync: _old, pendingTransfer: _none, formerUserIds: _earlier, ...rest } = meta;
+    const { sync: _old, pendingTransfer: _none, formerUserIds: _earlier, accountLost: _lost, ...rest } = meta;
     const next: MetaRow = { ...rest, userId, account: { userId, deviceName, since: now }, ...(formerUserIds.length > 0 ? { formerUserIds: [...formerUserIds] } : {}) };
     await db.meta.put(next);
     return next;
   });
 }
 
-/** Signed out (or the session is gone): only the mark goes; journal, decks and settings stay. */
+/**
+ * The session is gone (a 401: removed on another device, long unused, the account deleted
+ * elsewhere): the account mark goes and `accountLost` stays, so the explanation and the way to
+ * clear the device survive a reload (R33 item 13). A device that was not signed in is left as it is.
+ */
+export function markAccountLost(db: ManaDb, now = new Date()): Promise<MetaRow> {
+  return updateMeta(db, 'markAccountLost', (meta) => {
+    if (!meta.account) return meta;
+    const { account: _gone, ...rest } = meta;
+    return { ...rest, accountLost: { reason: 'session', at: now } };
+  });
+}
+
+/** Signed out by the person ("sign out, keep the data"): only the mark goes; journal, decks and settings stay. */
 export async function markSignedOut(db: ManaDb): Promise<MetaRow> {
   return db.transaction('rw', db.meta, async () => {
     const meta = await db.meta.get('device');
@@ -613,14 +626,16 @@ export function forgetDeleteNotDone(db: ManaDb): Promise<MetaRow> {
  * userId) until the person saves or clears them; a later sign-in asks to add them, as on any
  * device with answers (R40).
  */
-export async function finishAccountDeletion(db: ManaDb): Promise<MetaRow> {
+export async function finishAccountDeletion(db: ManaDb, now = new Date()): Promise<MetaRow> {
   return db.transaction('rw', db.meta, db.outbox, async () => {
     const meta = await db.meta.get('device');
     if (!meta) throw new Error('finishAccountDeletion: no device row');
     const { account: _a, sync: _s, formerUserIds: _f, pendingDeletion: _p, pendingTransfer: _t, deleteNotDone: _n, ...rest } = meta;
+    // "Account deleted" stays on this device (after a reload too) until a new sign-in or clearing.
+    const next: MetaRow = { ...rest, accountLost: { reason: 'deleted', at: now } };
     await db.outbox.clear();
-    await db.meta.put(rest);
-    return rest;
+    await db.meta.put(next);
+    return next;
   });
 }
 
@@ -742,7 +757,7 @@ export async function adoptAccount(
     earlier.delete(accountId);
     for (const id of earlier) await moveUser(db, scheduler, id, accountId);
     const queued = await queueRecords(db, await userLog(db, accountId));
-    const { sync: _old, pendingTransfer: _done, ...rest } = meta;
+    const { sync: _old, pendingTransfer: _done, accountLost: _lost, ...rest } = meta;
     const since = meta.account?.userId === accountId ? meta.account.since : now;
     const next: MetaRow = {
       ...rest,

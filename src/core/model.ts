@@ -66,6 +66,14 @@ export interface MetaRow {
   pendingDeletion?: { userId: string; at: Date };
   /** A deletion that never reached the server (R42 item 8): the Account section says so until closed. */
   deleteNotDone?: Date;
+  /**
+   * This device was in an account and is no longer (R33 item 13, R42 item 7): `session` — a 401
+   * (removed on another device, long unused, or the account deleted elsewhere); `deleted` — the
+   * account was deleted here. The sign-in screen and the Account section explain it and offer to
+   * clear the device, after a reload too. Gone with a new sign-in or with the data (clearing).
+   * Never set on a device that was not signed in. Device-only.
+   */
+  accountLost?: { reason: 'session' | 'deleted'; at: Date };
 }
 
 /**

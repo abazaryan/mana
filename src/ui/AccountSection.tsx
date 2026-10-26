@@ -7,6 +7,7 @@ import type { ManaDb } from '../platform/db';
 import { forgetDeleteNotDone, markSignedOut, setAccountDeviceName } from '../platform/repo';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
 import { queueCounts } from '../platform/syncStore';
+import { AccountLost } from './AccountLost';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
 import { FAILURE_TEXT, failureOf } from './signIn';
@@ -107,7 +108,7 @@ export function AccountSection({ db, meta, onMetaChange }: Props) {
         <SignedIn db={db} meta={meta} onMetaChange={onMetaChange} />
       ) : (
         <>
-          <p className="hint">{t('account.signedOut')}</p>
+          {meta.accountLost ? <AccountLost db={db} meta={meta} /> : <p className="hint">{t('account.signedOut')}</p>}
           <a className="secondary center mt" href="#/signin">
             {t('account.haveCode')}
           </a>
