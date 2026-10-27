@@ -47,7 +47,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
   useEffect(() => {
     if (screen.name !== 'checking' || !token) return;
     let live = true;
-    void inviteInfo(token).then((result) => {
+    void inviteInfo(token, meta.deviceId).then((result) => {
       if (!live) return;
       if (result.ok) {
         setKind(result.data.kind);
@@ -57,7 +57,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
     return () => {
       live = false;
     };
-  }, [screen.name, token]);
+  }, [screen.name, token, meta.deviceId]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

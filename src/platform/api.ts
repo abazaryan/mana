@@ -82,7 +82,8 @@ export interface DeviceInfo {
   current: boolean;
 }
 
-export const inviteInfo = (token: string) => request<{ kind: 'account' | 'device'; minor: boolean }>('POST', 'auth/invite', { token });
+/** With this device's id: the invitation it used a few minutes ago answers too (the retry window, worker/auth.ts). */
+export const inviteInfo = (token: string, deviceId: string) => request<{ kind: 'account' | 'device'; minor: boolean }>('POST', 'auth/invite', { token, deviceId });
 export const redeemInvite = (token: string, device: DeviceRef, consent: Consent | null, transfer: TransferIds = null) =>
   request<SignedIn>('POST', 'auth/redeem', { token, device, ...(consent ? { consent } : {}), ...transfer });
 export const pairDevice = (code: string, device: DeviceRef, formerUserId: string | null = null) =>

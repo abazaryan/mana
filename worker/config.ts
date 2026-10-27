@@ -24,6 +24,12 @@ const DAY = 24 * HOUR;
 /** Sign-in (R33 items 4–5, R37), milliseconds. */
 export const INVITE_TTL = 48 * HOUR;
 export const CODE_TTL = 10 * MINUTE;
+/**
+ * The same device may use its invitation or code once more for this long after it did (step "CPU of
+ * sign-in routes", 27.10.2026): an answer lost after the batch was written (a 1102 or a 503) must
+ * not leave the person outside. Used rows are kept at least this long (cleanup.ts).
+ */
+export const RETRY_WINDOW = 10 * MINUTE;
 /** A session ends after this long without requests… */
 export const SESSION_IDLE = 180 * DAY;
 /** …and a request moves that end (and the cookie) at most once per this. */

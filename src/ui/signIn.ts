@@ -3,7 +3,9 @@
  * 6a.4, R40). A device with answers is asked first (the screens): "no" sends nothing. "Yes": the
  * device remembers the transfer, sends its local userId with the request, and after the server's
  * yes moves its records to the account in one transaction. Retry once with a new device id if the
- * server says the id is another account's.
+ * server says the id is another account's; and once, after a pause, the same request when no answer
+ * came or a 5xx did — the server may have written it and lost the answer (a 1102), and gives the same
+ * device a new session for its used invitation or code (the retry window, worker/auth.ts).
  */
 import type { FSRS } from 'ts-fsrs';
 import { pendingOutcome, type PendingOutcome } from '../core/accountDelete';
@@ -28,6 +30,11 @@ import type { StringKey } from './strings';
 
 export type SignInFailure = 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'userTaken' | 'error';
 export type SignInOutcome = { ok: true; meta: MetaRow; queued: number } | { ok: false; reason: SignInFailure };
+
+/** The pause before the one automatic retry of a sign-in request. */
+export const SIGN_IN_RETRY_MS = 2000;
+
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const FAILURE_TEXT: Record<SignInFailure, StringKey> = {
   invalid: 'signin.invalid',
@@ -61,13 +68,15 @@ export function failureOf(result: { status: number; error: string }): SignInFail
 /**
  * `send` gets the device and, on a transfer, the local userId (null otherwise); the caller puts
  * it into the request as the invitation's kind wants it. `transfer` — the user said "yes" to
- * adding this device's answers (without answers the question is not asked: false).
+ * adding this device's answers (without answers the question is not asked: false). `wait` — the
+ * pause before the automatic retry (tests pass none).
  */
 export async function signInWith(
   db: ManaDb,
   scheduler: FSRS,
   transfer: boolean,
   send: (device: DeviceRef, localUserId: string | null) => Promise<ApiResult<SignedIn>>,
+  wait: (ms: number) => Promise<void> = pause,
 ): Promise<SignInOutcome> {
   let meta = transfer ? await beginTransfer(db) : await db.meta.get('device');
   if (!meta) return { ok: false, reason: 'error' };
@@ -76,6 +85,10 @@ export async function signInWith(
   let result = await send({ id: meta.deviceId, name }, local);
   if (!result.ok && result.error === 'device_taken') {
     meta = await renewDeviceId(db, undefined, transfer);
+    result = await send({ id: meta.deviceId, name }, local);
+  }
+  if (!result.ok && (result.status === 0 || result.status >= 500)) {
+    await wait(SIGN_IN_RETRY_MS);
     result = await send({ id: meta.deviceId, name }, local);
   }
   if (!result.ok) {

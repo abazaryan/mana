@@ -3,6 +3,12 @@
  * an invitation link creates an account and its first device; a pairing code from a signed-in
  * device adds another one. One answer for a wrong, expired or used invitation or code.
  *
+ * The retry window (step "CPU of sign-in routes", 27.10.2026): an answer lost after the batch was
+ * written (a 1102 or a 503) leaves the invitation or the code used and the device without a session.
+ * The same device may use them again for RETRY_WINDOW: a new session replaces its earlier one,
+ * nothing else is written, and it is no failed attempt — only if the retry matches what the first
+ * attempt wrote (the same local id or a known earlier id, the same consent); otherwise invalid.
+ *
  * Stage 6a.4 (R40): a device with answers names its local user. An account invitation takes it as
  * the new account's id (`localUserId`); a device invitation and a code add it as an earlier id of
  * the account (`formerUserId`). Taken by another account — 409 user_taken, and the invitation or
@@ -13,7 +19,7 @@ import { normalizeCode } from '../src/core/pairingCode.ts';
 import { aliasesOf, aliasesStatement, aliasStatus, CONSENT_OF_U, freeClause, freeForAccount, hasConsent, isKeyClash, isLocalUserId } from './aliases.ts';
 import type { Call } from './api.ts';
 import { ipBucket, recordFailure, waitBeforeAttempt } from './attempts.ts';
-import { CODE_TTL, SESSION_IDLE } from './config.ts';
+import { CODE_TTL, RETRY_WINDOW, SESSION_IDLE } from './config.ts';
 import { clientBuild } from './guards.ts';
 import { error, json } from './http.ts';
 import { profileFrom } from './profile.ts';
@@ -142,13 +148,24 @@ async function signedIn(db: D1Database, profile: number, token: string, userId: 
   return json({ userId, device, formerUserIds: await aliasesOf(db, userId) }, 200, { 'Set-Cookie': setCookie(profile, token) });
 }
 
-/** POST /api/auth/invite {token} — what the invitation is, without using it. */
+/**
+ * SQL: the row (invitation or code) can be used now — unused and not expired — or this device used it
+ * within the retry window. Parameters: now, the device id (null — none), now − RETRY_WINDOW.
+ */
+const USABLE = '((used_at IS NULL AND expires_at > ?) OR (used_device_id = ? AND used_at >= ?))';
+
+/** SQL guard of a retry batch: this device used the row (by its hash) within the window. */
+const usedByDevice = (table: 'invites' | 'pairing_codes', key: 'token_hash' | 'code_hash') =>
+  `EXISTS (SELECT 1 FROM ${table} WHERE ${key} = ? AND used_device_id = ? AND used_at >= ?)`;
+
+/** POST /api/auth/invite {token, deviceId?} — what the invitation is, without using it (also to the device that used it, within the window). */
 export async function inviteInfo({ env, body, now }: Call): Promise<Response> {
-  if (!isObject(body)) return error('bad_request', 400);
+  if (!isObject(body) || (body.deviceId !== undefined && !isUuid(body.deviceId))) return error('bad_request', 400);
   if (!isToken(body.token)) return invalid();
   const hash = await sha256Hex(body.token);
-  const row = await env.DB.prepare('SELECT token_hash, kind, minor FROM invites WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?')
-    .bind(hash, now)
+  const deviceId = typeof body.deviceId === 'string' ? body.deviceId.toLowerCase() : null;
+  const row = await env.DB.prepare(`SELECT token_hash, kind, minor FROM invites WHERE token_hash = ? AND ${USABLE}`)
+    .bind(hash, now, deviceId, now - RETRY_WINDOW)
     .first<{ token_hash: string; kind: 'account' | 'device'; minor: number }>();
   if (!row || !sameHash(row.token_hash, hash)) return invalid();
   return json({ kind: row.kind, minor: row.minor === 1 });
@@ -159,6 +176,75 @@ interface ConsentInput {
   by: unknown;
   parentName: string | null;
   parentAgreed: unknown;
+}
+
+/** Who agreed to the current notice in this input: the person, a parent or guardian with a name, or nobody. */
+function consentBy(consent: ConsentInput | null): 'self' | 'parent' | null {
+  if (!consent || consent.version !== NOTICE_VERSION) return null;
+  if (consent.by === 'self') return 'self';
+  return consent.by === 'parent' && consent.parentName !== null && consent.parentAgreed === true ? 'parent' : null;
+}
+
+/** The device's earlier id is the account itself or already one of its earlier ids (nothing to write). */
+async function formerIdKnown(db: D1Database, id: string, account: string): Promise<boolean> {
+  const status = await aliasStatus(db, id, account);
+  return status === 'same' || status === 'known';
+}
+
+/**
+ * The retry batch: this device's sessions go and a new one comes — only while `guard` holds (the
+ * device used the row within the window), the device is the account's and not signed out, and the
+ * account is not being erased. Nothing else is written.
+ */
+async function signInAgain(db: D1Database, headers: Headers, profile: number, userId: string, device: DeviceInput, guard: string, guardArgs: unknown[], now: number): Promise<Response> {
+  const ok = `${guard} AND EXISTS (SELECT 1 FROM devices WHERE id = ? AND user_id = ? AND revoked_at IS NULL) AND EXISTS (SELECT 1 FROM users WHERE id = ? AND deleting_at IS NULL)`;
+  const okArgs = [...guardArgs, device.id, userId, userId];
+  const session = await newSessionToken();
+  const results = await db.batch([
+    db.prepare(`DELETE FROM sessions WHERE device_id = ? AND ${ok}`).bind(device.id, ...okArgs),
+    db
+      .prepare(`INSERT INTO sessions (token_hash, user_id, device_id, created_at, last_used_at, expires_at) SELECT ?, ?, ?, ?, ?, ? WHERE ${ok} RETURNING token_hash`)
+      .bind(session.hash, userId, device.id, now, now, now + SESSION_IDLE, ...okArgs),
+    db.prepare(`UPDATE devices SET last_seen_at = ?, app_version = ? WHERE id = ? AND ${ok}`).bind(now, clientBuild(headers), device.id, ...okArgs),
+    storedName(db, device.id, userId),
+  ]);
+  if (results[1]?.results.length !== 1) return invalid();
+  return signedIn(db, profile, session.token, userId, { id: device.id, name: nameFrom(results.at(-1), device.name) });
+}
+
+interface UsedInvite {
+  kind: 'account' | 'device';
+  user_id: string | null;
+}
+
+/**
+ * A retry of redeem by the device that used the invitation (within the window). It passes only if
+ * it matches the first attempt: account — no localUserId or the account's id (which a localUserId
+ * became), and the consent given by the same person as then; device — no formerUserId, or the
+ * account itself, or already its earlier id. Anything else: invalid, nothing written.
+ */
+async function redeemAgain(db: D1Database, headers: Headers, profile: number, tokenHash: string, invite: UsedInvite, body: Json, consent: ConsentInput | null, device: DeviceInput, now: number): Promise<Response> {
+  const userId = invite.user_id;
+  if (!userId) return invalid();
+  if (invite.kind === 'account') {
+    if (body.formerUserId !== undefined) return error('bad_request', 400);
+    if (body.localUserId !== undefined && body.localUserId !== userId) return invalid();
+    const first = await db.prepare('SELECT given_by FROM consents WHERE user_id = ? AND device_id = ? ORDER BY given_at LIMIT 1').bind(userId, device.id).first<string>('given_by');
+    const by = consentBy(consent);
+    if (by === null || by !== first) return invalid();
+  } else {
+    if (body.localUserId !== undefined) return error('bad_request', 400);
+    if (body.formerUserId !== undefined && !(await formerIdKnown(db, body.formerUserId as string, userId))) return invalid();
+  }
+  return signInAgain(db, headers, profile, userId, device, usedByDevice('invites', 'token_hash'), [tokenHash, device.id, now - RETRY_WINDOW], now);
+}
+
+/** The invitation as this device used it within the window, or null. */
+function usedInvite(db: D1Database, tokenHash: string, deviceId: string, now: number) {
+  return db
+    .prepare('SELECT kind, user_id FROM invites WHERE token_hash = ? AND used_device_id = ? AND used_at >= ?')
+    .bind(tokenHash, deviceId, now - RETRY_WINDOW)
+    .first<UsedInvite>();
 }
 
 /**
@@ -188,10 +274,11 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
   if (!isToken(body.token)) return invalid();
   const tokenHash = await sha256Hex(body.token);
   const invite = await db
-    .prepare('SELECT token_hash, kind, user_id, minor FROM invites WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?')
-    .bind(tokenHash, now)
-    .first<{ token_hash: string; kind: 'account' | 'device'; user_id: string | null; minor: number }>();
+    .prepare(`SELECT token_hash, kind, user_id, minor, used_at FROM invites WHERE token_hash = ? AND ${USABLE}`)
+    .bind(tokenHash, now, device.id, now - RETRY_WINDOW)
+    .first<{ token_hash: string; kind: 'account' | 'device'; user_id: string | null; minor: number; used_at: number | null }>();
   if (!invite || !sameHash(invite.token_hash, tokenHash)) return invalid();
+  if (invite.used_at !== null) return redeemAgain(db, request.headers, profile, tokenHash, invite, body, consent, device, now);
 
   const account = invite.kind === 'account';
   // localUserId names a new account, formerUserId an earlier id of an existing one.
@@ -265,7 +352,9 @@ export async function redeem({ request, env, body, now }: Call): Promise<Respons
     throw e;
   }
   if (results[0]?.results.length !== 1) {
-    // Not marked used: gone meanwhile, or the id was taken meanwhile (the guard).
+    // Not marked used: this device used it meanwhile (another tab — a retry), gone, or the id was taken meanwhile (the guard).
+    const again = await usedInvite(db, tokenHash, device.id, now);
+    if (again) return redeemAgain(db, request.headers, profile, tokenHash, again, body, consent, device, now);
     if (local !== undefined && !(await freeForAccount(db, local))) return userTaken();
     if (former !== undefined && (await aliasStatus(db, former, userId)) === 'taken') return userTaken();
     return invalid();
@@ -293,13 +382,15 @@ export async function pair({ request, env, body, now }: Call): Promise<Response>
     codeHash === null
       ? null
       : await db
-          .prepare('SELECT code_hash, user_id FROM pairing_codes WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?')
-          .bind(codeHash, now)
-          .first<{ code_hash: string; user_id: string }>();
+          .prepare(`SELECT code_hash, user_id, used_at FROM pairing_codes WHERE code_hash = ? AND ${USABLE}`)
+          .bind(codeHash, now, device.id, now - RETRY_WINDOW)
+          .first<{ code_hash: string; user_id: string; used_at: number | null }>();
   if (!row || codeHash === null || !sameHash(row.code_hash, codeHash)) {
     await recordFailure(db, bucket, now);
     return invalid();
   }
+  // The device that used this code, within the window: a retry, no failed attempt either way.
+  if (row.used_at !== null) return pairAgain(db, request.headers, profile, codeHash, row.user_id, former, device, now);
   // The code is right from here on: a refusal below is no failed attempt, and the code stays unused.
   let addAlias = false;
   if (former !== undefined) {
@@ -332,10 +423,23 @@ export async function pair({ request, env, body, now }: Call): Promise<Response>
     throw e;
   }
   if (results[0]?.results.length !== 1) {
+    // Not marked used: this device used it meanwhile (another tab — a retry), or the earlier id was taken meanwhile.
+    if (await pairingCodeUsedBy(db, codeHash, device.id, now)) return pairAgain(db, request.headers, profile, codeHash, row.user_id, former, device, now);
     if (former !== undefined && (await aliasStatus(db, former, row.user_id)) === 'taken') return userTaken();
     return invalid();
   }
   return signedIn(db, profile, session.token, row.user_id, { id: device.id, name: nameFrom(results.at(-1), device.name) });
+}
+
+/** A retry of pair by the device that used the code (within the window): as redeemAgain for a device invitation. */
+async function pairAgain(db: D1Database, headers: Headers, profile: number, codeHash: string, userId: string, former: string | undefined, device: DeviceInput, now: number): Promise<Response> {
+  if (former !== undefined && !(await formerIdKnown(db, former, userId))) return invalid();
+  return signInAgain(db, headers, profile, userId, device, usedByDevice('pairing_codes', 'code_hash'), [codeHash, device.id, now - RETRY_WINDOW], now);
+}
+
+async function pairingCodeUsedBy(db: D1Database, codeHash: string, deviceId: string, now: number): Promise<boolean> {
+  const row = await db.prepare('SELECT 1 AS one FROM pairing_codes WHERE code_hash = ? AND used_device_id = ? AND used_at >= ?').bind(codeHash, deviceId, now - RETRY_WINDOW).first();
+  return row !== null;
 }
 
 /** POST /api/auth/pairing-code — a code for a new device; the account's earlier code is gone. */

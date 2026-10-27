@@ -31,7 +31,7 @@ import { sendBeforeLeaving, syncOnce, type SyncEnv } from '../src/platform/syncC
 import { applyPull, queueCounts } from '../src/platform/syncStore';
 import { finishTransfer, signInWith, type SignInOutcome } from '../src/ui/signIn';
 import { handleApi, ROUTES } from '../worker/api';
-import { INVITE_TTL, ORIGIN } from '../worker/config';
+import { INVITE_TTL, MIN_CLIENT, ORIGIN } from '../worker/config';
 import { send, signedIn, world, type World } from '../worker/test/accounts';
 import { newToken, sha256Hex } from '../worker/tokens';
 
@@ -393,6 +393,55 @@ describe('signing in again: take everything first, send only what the server lac
 });
 
 describe('interruptions', () => {
+  it('the answer lost after the server wrote the batch (503): one automatic retry with the same body gets a session (retry window)', async () => {
+    const w = world();
+    const phone = await localDevice(w);
+    await study(phone, ['a', 'b'], T);
+    const token = await accountInvite(w);
+    const bodies: string[] = [];
+    const outcome = await signInWith(
+      phone.db,
+      scheduler,
+      true,
+      async (device, local) => {
+        const body = JSON.stringify({ token, device, consent: { version: NOTICE_VERSION, by: 'self' }, localUserId: local });
+        bodies.push(body);
+        const res = await handleApi(
+          new Request(`${ORIGIN}/api/auth/redeem`, { method: 'POST', headers: { 'Sec-Fetch-Site': 'same-origin', 'X-Mana-Version': String(MIN_CLIENT), 'Content-Type': 'application/json' }, body }),
+          w.env,
+          ROUTES,
+          clock.now,
+        );
+        // The first answer is lost on the way back, after the batch was written.
+        return bodies.length === 1 ? { ok: false, status: 503, error: 'http' } : toResult(res);
+      },
+      async () => {},
+    );
+    expect(outcome.ok).toBe(true);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toBe(bodies[0]);
+    const meta = (await phone.db.meta.get('device'))!;
+    expect(meta.account?.userId).toBe(JSON.parse(bodies[0]!).localUserId);
+    expect(w.db.sqlite.prepare('SELECT count(*) AS n FROM users').get()).toEqual({ n: 1 });
+  });
+
+  it('the automatic retry: once, only for no answer or a 5xx — not for 400 or 409', async () => {
+    const w = world();
+    const phone = await localDevice(w);
+    for (const [status, error, calls] of [
+      [400, 'invalid', 1],
+      [409, 'device_taken', 2],
+      [0, 'offline', 2],
+      [503, 'http', 2],
+    ] as const) {
+      let n = 0;
+      const outcome = await signInWith(phone.db, scheduler, false, async () => (n++, { ok: false, status, error }), async () => {});
+      expect(outcome.ok, `${status}`).toBe(false);
+      // 409 device_taken: the device takes a new id and asks again once — that step is older than the retry window.
+      expect(n, `${status}`).toBe(calls);
+    }
+  });
+
   it('tab closed between the server yes and the device transaction: finished at start by /api/auth/me', async () => {
     const w = world();
     const phone = await localDevice(w);
