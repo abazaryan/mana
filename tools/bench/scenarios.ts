@@ -23,18 +23,33 @@ export interface Scenario {
   crons?: number;
   /** Before each call, outside the measurement (Node): SQL to run. */
   before?: string[];
+  /** Before the i-th call, outside the measurement: requests (the first sign-in of a retry). */
+  setup?(fx: Fixtures, i: number): Call[];
 }
 
 const wrongCode = () => Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(32)]).join('');
+
+/** One device per row of a pool, the same for the first sign-in and its retry (the retry window). */
+const sameDevice = new Map<string, { id: string; name: string }>();
+const deviceFor = (key: string) => {
+  const d = sameDevice.get(key) ?? { id: crypto.randomUUID(), name: 'Windows · Edge' };
+  sameDevice.set(key, d);
+  return d;
+};
+const redeemSame = (fx: Fixtures, i: number) => F.redeem(fx.accountInvites[i]!, { consent: F.consentBody.self, device: deviceFor(fx.accountInvites[i]!) });
+const pairSame = (fx: Fixtures, i: number) => F.pair(fx.codes[i]!, { device: deviceFor(fx.codes[i]!) });
 
 export const SCENARIOS: Scenario[] = [
   { name: 'invite', status: 200, make: (fx, i) => F.invite(fx.accountInvites[i]!) },
   { name: 'redeem-account', status: 200, make: (fx, i) => F.redeem(fx.accountInvites[i]!, { consent: F.consentBody.self }) },
   { name: 'redeem-minor', status: 200, make: (fx, i) => F.redeem(fx.minorInvites[i]!, { consent: F.consentBody.parent }) },
   { name: 'redeem-local', status: 200, make: (fx, i) => F.redeem(fx.localInvites[i]!.token, { consent: F.consentBody.self, localUserId: fx.localInvites[i]!.localUserId }) },
+  // The retry window: the same device again after its answer was lost (the first sign-in is not measured).
+  { name: 'redeem-retry', status: 200, setup: (fx, i) => [redeemSame(fx, i)], make: redeemSame },
   { name: 'redeem-device', status: 200, make: (fx, i) => F.redeem(fx.deviceInvites[i]!) },
   { name: 'redeem-former', status: 200, make: (fx, i) => F.redeem(fx.formerInvites[i]!.token, { formerUserId: fx.formerInvites[i]!.former }) },
   { name: 'pair', status: 200, make: (fx, i) => F.pair(fx.codes[i]!) },
+  { name: 'pair-retry', status: 200, setup: (fx, i) => [pairSame(fx, i)], make: pairSame },
   { name: 'pair-former', status: 200, make: (fx, i) => F.pair(fx.formerCodes[i]!.code, { formerUserId: fx.formerCodes[i]!.former }) },
   {
     name: 'pair-wrong',
@@ -50,7 +65,7 @@ export const SCENARIOS: Scenario[] = [
   { name: 'consent-self', status: 200, make: (fx, i) => F.consent(fx.consentSelf[i]!.cookie, false) },
   { name: 'consent-parent', status: 200, make: (fx, i) => F.consent(fx.consentParent[i]!.cookie, true) },
   { name: 'push-settings', status: 200, make: (fx) => F.push(fx.main.cookie, [], true) },
-  ...[8, 50, 100].map((n): Scenario => ({
+  ...[8, 25, 50, 100].map((n): Scenario => ({
     name: `push-${n}`,
     status: 200,
     make: (fx, i) => F.push(fx.main.cookie, F.freshRecords(i, n, fx.main.userId, fx.main.deviceId), false),

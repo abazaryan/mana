@@ -177,6 +177,7 @@ async function child(a: ChildArgs): Promise<unknown> {
   /** Wall time of the bench's own SQL between calls (taken out of the loop's CPU total). */
   let seedMicros = 0;
   const run = async (i: number, step: Request | 'scheduled') => {
+    await setup(i);
     const s0 = performance.now();
     if (scenario.before) db.seed(scenario.before);
     // Cron: one marked account at a time — the i-th; the others wait unmarked.
@@ -186,7 +187,16 @@ async function child(a: ChildArgs): Promise<unknown> {
     if (m.status !== scenario.status) throw new Error(`${scenario.name}: status ${m.status} ${text}`);
     return m;
   };
+  /** The setup requests of the i-th call (a retry's first sign-in), not measured. */
+  const setup = async (i: number) => {
+    for (const c of scenario.setup?.(world.fx, i) ?? []) {
+      const res = await worker.fetch(toRequest(c), env, CTX);
+      await res.arrayBuffer();
+      if (!res.ok) throw new Error(`${scenario.name}: setup status ${res.status}`);
+    }
+  };
   if (a.mode === 'record') {
+    await setup(0);
     if (scenario.crons) db.seed([`UPDATE users SET deleting_at = 1 WHERE id = '${world.fx.crons[0]}'`]);
     const call = scenario.make(world.fx, 0);
     const { m, text } = await measureStep(scenario.name, call);
