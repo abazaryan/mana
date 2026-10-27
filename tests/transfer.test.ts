@@ -351,14 +351,16 @@ describe('signing in again: take everything first, send only what the server lac
 
     phone.pageSize = 5;
     phone.pushes = [];
-    // First page through, the second cut: 5 left the queue, the mark stands, nothing was sent.
+    // First page through, then the network is gone for the rest of the run (the smaller pages fail
+    // too): 5 left the queue, the mark stands, nothing was sent.
     let pages = 0;
+    let cut = true;
     const pull = phone.env.transport.pull;
     phone.env = {
       ...phone.env,
       transport: {
         ...phone.env.transport,
-        pull: async (after, limit) => (++pages === 2 ? { ok: false, status: 0, error: 'offline' } : pull(after, limit)),
+        pull: async (after, limit) => (++pages >= 2 && cut ? { ok: false, status: 0, error: 'offline' } : pull(after, limit)),
       },
     };
     expect(await syncOnce(phone.env)).toBe('failed');
@@ -366,6 +368,7 @@ describe('signing in again: take everything first, send only what the server lac
     expect((await phone.db.meta.get('device'))!.sync?.pullFirst).toBe(true);
     expect(phone.pushes).toEqual([]);
 
+    cut = false;
     expect(await syncOnce(phone.env)).toBe('ok');
     expect((await queueCounts(phone.db)).pending).toBe(0);
     expect(phone.pushes).toEqual([]);

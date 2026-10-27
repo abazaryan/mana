@@ -6,10 +6,11 @@
  * When: SEND_DELAY_MS after an answer (at least every SEND_MAX_WAIT_MS, at once at
  * SEND_NOW_QUEUE records), at start, when the network comes back, back on the screen; when the
  * page goes to the background, a part of the queue goes with fetch keepalive. Failures back off
- * 5 s → 30 s → 2 min → 10 min; a 5xx or a network error first halves the batch (down to 10).
+ * 5 s → 30 s → 2 min → 10 min; a 5xx or a network error first halves the batch (down to 10)
+ * or the pull page (down to 50; the next page asks the full size again).
  */
 import type { FSRS } from 'ts-fsrs';
-import { BATCH_GAP_MS, KEEPALIVE_BYTES, PULL_AGAIN_MS, PUSH_BATCH, PUSH_BATCH_BYTES, SendTimer, backoffDelay, smallerBatch } from '../core/sync';
+import { BATCH_GAP_MS, KEEPALIVE_BYTES, PULL_AGAIN_MS, PUSH_BATCH, PUSH_BATCH_BYTES, SendTimer, backoffDelay, smallerBatch, smallerPage } from '../core/sync';
 import { NOTICE_VERSION } from '../core/notice';
 import { PULL_MAX } from '../core/syncProtocol';
 import type { ApiResult, SyncTransport } from './api';
@@ -112,12 +113,18 @@ async function run(env: SyncEnv): Promise<RunResult> {
   }
 
   // Take everything after the cursor.
+  let page = PULL_MAX;
   for (;;) {
     const now = await db.meta.get('device');
     if (!now?.account) return 'signedOut';
-    const res = await transport.pull(syncOf(now).cursor, PULL_MAX);
+    const res = await transport.pull(syncOf(now).cursor, page);
     if (!res.ok) {
       const what = failure(res, online());
+      const smaller = what === 'retry' ? smallerPage(page) : null;
+      if (smaller !== null) {
+        page = smaller;
+        continue;
+      }
       if (what === 'update') {
         await markNeedsUpdate(db, 'client', env.build);
         env.onNeedsUpdate?.();
@@ -127,6 +134,7 @@ async function run(env: SyncEnv): Promise<RunResult> {
       if (changed) notifySyncChanged();
       return what === 'retry' ? 'failed' : what;
     }
+    page = PULL_MAX;
     const out = await applyPull(db, env.scheduler, res.data, env.build);
     if (out.added > 0 || out.settingsChanged) changed = true;
     if (out.newerRules) {

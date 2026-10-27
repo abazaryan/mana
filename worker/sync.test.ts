@@ -148,6 +148,13 @@ describe('push — checks', () => {
     expect(calls[0]).toBeLessThanOrEqual(6);
   });
 
+  it('at most 100 records in a push (step "CPU of sign-in routes", 27.10.2026): 101 is 400', async () => {
+    const w = world();
+    const a = await signedIn(w);
+    expect((await pushTo(w, a, { records: Array.from({ length: 101 }, () => record(a)) })).status).toBe(400);
+    expect((await pushed(w, a, { records: Array.from({ length: 100 }, () => record(a)) })).stored).toHaveLength(100);
+  });
+
   it(`at most ${PUSH_MAX_RECORDS} records; a body over 1 MiB is 413; JSON only; old app 426; no session 401`, async () => {
     const w = world();
     const a = await signedIn(w);
@@ -199,10 +206,24 @@ describe('pull', () => {
     expect((await pulled(w, other)).body.records).toHaveLength(1);
   });
 
-  it(`bad cursor or limit 400; limit up to ${PULL_MAX}; old app 426 (R39); no session 401`, async () => {
+  it('a page holds at most 200 records: a larger limit (an older app asks 500) is cut, not refused', async () => {
     const w = world();
     const a = await signedIn(w);
-    for (const q of ['?after=-1', '?after=x', `?limit=${PULL_MAX + 1}`, '?limit=0']) {
+    const recs = Array.from({ length: 250 }, () => record(a));
+    for (let i = 0; i < recs.length; i += 50) await pushed(w, a, { records: recs.slice(i, i + 50) });
+    const first = await pulled(w, a, '?after=0&limit=500');
+    expect(first.body.records).toHaveLength(200);
+    expect(first.body.more).toBe(true);
+    const rest = await pulled(w, a, `?after=${first.body.next}&limit=500`);
+    expect(rest.body.records).toHaveLength(50);
+    expect(rest.body.more).toBe(false);
+    expect((await pulled(w, a, `?limit=${PULL_MAX + 1}`)).body.records).toHaveLength(PULL_MAX);
+  });
+
+  it('bad cursor or limit 400; old app 426 (R39); no session 401', async () => {
+    const w = world();
+    const a = await signedIn(w);
+    for (const q of ['?after=-1', '?after=x', '?limit=x', '?limit=0']) {
       expect((await send(w, `/api/sync/pull${q}`, { method: 'GET', cookie: a.cookie })).status, q).toBe(400);
     }
     expect((await send(w, '/api/sync/pull', { method: 'GET', cookie: a.cookie, headers: { 'X-Mana-Version': '202610210000' } })).status).toBe(426);

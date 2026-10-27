@@ -6,12 +6,19 @@
 import type { RecordProblem } from './journalRecord.ts';
 import { UI_LANGS } from './kinds.ts';
 
-/** Records in one push that the server takes; the device sends at most PUSH_BATCH. */
-export const PUSH_MAX_RECORDS = 200;
+/**
+ * Records in one push that the server takes; the device sends at most PUSH_BATCH. 100 from
+ * 27.10.2026 (step "CPU of sign-in routes": a warm push of 100 took ≈ 16 ms of CPU in workerd).
+ */
+export const PUSH_MAX_RECORDS = 100;
 /** Body of a push, bytes (STAGE6_RESEARCH 7.4). */
 export const PUSH_BODY_LIMIT = 1024 * 1024;
-/** Records in one pull, at most and by default. */
-export const PULL_MAX = 500;
+/**
+ * Records in one pull, at most and by default; a larger limit is cut to this (an older app asks
+ * 500 and follows `more`). 200 from 27.10.2026 (step "CPU of sign-in routes": a page of 500 took
+ * ≈ 8 ms of CPU in workerd, of 200 ≈ 5 ms).
+ */
+export const PULL_MAX = 200;
 
 /** The settings every device of an account shares (R33 item 10); everything else stays on the device. */
 export const SYNCED_SETTINGS = ['uiLang', 'meaningLang', 'newPerDay'] as const;

@@ -57,12 +57,18 @@ interface Device {
   offline: boolean;
   /** The next n pushes answer 503. */
   failPushes: number;
+  /** The next n pulls answer 503. */
+  failPulls: number;
+  /** Records in each push, and the limit of each pull, in order. */
+  pushSizes: number[];
+  pullLimits: number[];
 }
 
 function transportOf(w: World, d: () => Device): SyncTransport {
   return {
     async push(body, keepalive) {
       d().calls.push(['push', new TextEncoder().encode(body).byteLength, keepalive]);
+      d().pushSizes.push((JSON.parse(body) as { records: unknown[] }).records.length);
       if (d().offline) return { ok: false, status: 0, error: 'offline' };
       if (d().failPushes > 0) {
         d().failPushes--;
@@ -72,7 +78,12 @@ function transportOf(w: World, d: () => Device): SyncTransport {
     },
     async pull(after, limit) {
       d().calls.push(['pull', 0, false]);
+      d().pullLimits.push(limit);
       if (d().offline) return { ok: false, status: 0, error: 'offline' };
+      if (d().failPulls > 0) {
+        d().failPulls--;
+        return { ok: false, status: 503, error: 'http' };
+      }
       return toResult(await send(w, `/api/sync/pull?after=${after}&limit=${limit}`, { method: 'GET', cookie: d().who.cookie, now: clock.now }));
     },
   };
@@ -88,7 +99,7 @@ async function device(w: World, userId?: string, opts?: Parameters<typeof signed
   await markSignedIn(db, who.userId, 'test');
   const meta = (await db.meta.get('device'))!;
   await db.settings.put({ ...(await db.settings.get(meta.userId))!, userId: who.userId });
-  const d: Device = { db, who, calls: [], offline: false, failPushes: 0, env: undefined as unknown as SyncEnv };
+  const d: Device = { db, who, calls: [], offline: false, failPushes: 0, failPulls: 0, pushSizes: [], pullLimits: [], env: undefined as unknown as SyncEnv };
   d.env = { db, scheduler, transport: transportOf(w, () => d), build: 202610230000, locks: null, sleep: async () => {}, online: () => !d.offline };
   return d;
 }
@@ -307,22 +318,62 @@ describe('the queue', () => {
     expect((await queueCounts(a.db)).pending).toBe(1);
   });
 
-  it('5xx: the batch is halved down to 10, then the run fails and the queue waits', async () => {
+  it('batches of 25 (step "CPU of sign-in routes", 27.10.2026): 60 records go as 25, 25, 10', async () => {
     const w = world();
     const a = await device(w);
     const act = await actorOf(a);
-    for (let i = 0; i < 100; i++) await recordReview(a.db, scheduler, act, answer(`e${i}`, T + i * 1000, Rating.Good));
+    for (let i = 0; i < 60; i++) await recordReview(a.db, scheduler, act, answer(`e${i}`, T + i * 1000, Rating.Good));
+    await sync(a);
+    expect(a.pushSizes).toEqual([25, 25, 10]);
+    expect((await queueCounts(a.db)).pending).toBe(0);
+  });
+
+  it('5xx: the batch of 25 is halved 25 → 13 → 10, then the run fails and the queue waits', async () => {
+    const w = world();
+    const a = await device(w);
+    const act = await actorOf(a);
+    for (let i = 0; i < 30; i++) await recordReview(a.db, scheduler, act, answer(`e${i}`, T + i * 1000, Rating.Good));
     a.failPushes = 1;
     await sync(a);
-    expect(a.calls.filter(([k]) => k === 'push').map(([, bytes]) => bytes > 0)).toHaveLength(3);
+    expect(a.pushSizes).toEqual([25, 13, 13, 4]);
     expect((await queueCounts(a.db)).pending).toBe(0);
-    a.calls = [];
+    a.pushSizes = [];
     for (let i = 0; i < 30; i++) await recordReview(a.db, scheduler, act, answer(`f${i}`, T + i * 1000, Rating.Good));
     a.failPushes = 10;
     await sync(a, 'failed');
-    const sizes = a.calls.filter(([k]) => k === 'push').length;
-    expect(sizes).toBe(3);
+    expect(a.pushSizes).toEqual([25, 13, 10]);
     expect((await queueCounts(a.db)).pending).toBe(30);
+  });
+
+  it('pull pages of 200; a 5xx halves the page 200 → 100 and the next page is 200 again', async () => {
+    const w = world();
+    const b = await device(w);
+    const act = await actorOf(b);
+    for (let i = 0; i < 250; i++) await recordReview(b.db, scheduler, act, answer(`e${i}`, T + i * 1000, Rating.Good));
+    await sync(b);
+    const a = await device(w, b.who.userId);
+    a.failPulls = 1;
+    await sync(a);
+    expect(a.pullLimits).toEqual([200, 100, 200]);
+    expect(await a.db.log.count()).toBe(250);
+  });
+
+  it('pull failing down to a page of 50: the run fails, the cursor stays, the next run starts at 200', async () => {
+    const w = world();
+    const b = await device(w);
+    const act = await actorOf(b);
+    for (let i = 0; i < 5; i++) await recordReview(b.db, scheduler, act, answer(`e${i}`, T + i * 1000, Rating.Good));
+    await sync(b);
+    const a = await device(w, b.who.userId);
+    a.failPulls = 10;
+    await sync(a, 'failed');
+    expect(a.pullLimits).toEqual([200, 100, 50]);
+    expect(await a.db.log.count()).toBe(0);
+    a.failPulls = 0;
+    a.pullLimits = [];
+    await sync(a);
+    expect(a.pullLimits).toEqual([200]);
+    expect(await a.db.log.count()).toBe(5);
   });
 
   it('the push while the page goes away: keepalive, at most 60 KiB, only records', async () => {

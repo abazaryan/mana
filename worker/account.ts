@@ -17,7 +17,7 @@ import { withSession } from './auth.ts';
 import { ERASE_CRON_PORTIONS, ERASE_CRON_TIME, ERASE_PORTION, ERASE_REQUEST_PORTIONS, ERASE_REQUEST_TIME, QUERIES_PER_INVOCATION } from './config.ts';
 import { API_HEADERS, error, json } from './http.ts';
 import { clearCookie } from './session.ts';
-import { queryInt } from './sync.ts';
+import { queryInt, queryLimit } from './sync.ts';
 
 type Json = Record<string, unknown>;
 
@@ -140,7 +140,7 @@ export const exportHead = withSession(async ({ env }: Call, session) => {
 export const exportJournal = withSession(async ({ request, env }: Call, session) => {
   const params = new URL(request.url).searchParams;
   const after = queryInt(params, 'after', 0, 0, Number.MAX_SAFE_INTEGER);
-  const limit = queryInt(params, 'limit', EXPORT_PAGE, 1, EXPORT_PAGE);
+  const limit = queryLimit(params, EXPORT_PAGE);
   if (after === null || limit === null) return error('bad_request', 400);
   const { results } = await env.DB.prepare(EXPORT_SQL.journalPage).bind(session.userId, after, limit + 1).all<Json>();
   const page = results.slice(0, limit);

@@ -5,8 +5,11 @@
  * bundles this file. Times are milliseconds UTC here; the file has ISO strings (accountExport.ts).
  */
 
-/** Records in one page of the journal export, at most and by default (like the sync pull). */
-export const EXPORT_PAGE = 500;
+/**
+ * Records in one page of the journal export from the app, at most and by default (like the sync
+ * pull: a larger limit is cut). 200 from 27.10.2026 (step "CPU of sign-in routes").
+ */
+export const EXPORT_PAGE = 200;
 
 export interface ExportHead {
   account: { id: string; createdAt: number; label: string; minor: boolean };

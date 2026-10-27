@@ -4,13 +4,16 @@
  * export-account.ts, delete-account.ts and check-erased.ts.
  */
 import { buildAccountExport, ADMIN_EXPORT_DEVICE, serializeAccountExport, type AccountExport } from '../../src/core/accountExport.ts';
-import { EXPORT_PAGE, headFromRows, serverRecordFromRow, type ExportJournalPage } from '../../src/core/accountRows.ts';
+import { headFromRows, serverRecordFromRow, type ExportJournalPage } from '../../src/core/accountRows.ts';
 import { ERASE_SQL, eraseDetail, EXPORT_SQL } from '../../worker/accountSql.ts';
 import { ERASE_PORTION } from '../../worker/config.ts';
 import { execute, inline, query, saveOut, type ExecuteMeta, type Target } from './d1.ts';
 import { traceSql, tracesFrom } from './traces.ts';
 
 type Row = Record<string, unknown>;
+
+/** Journal rows per query of the script: wrangler, not the Worker, so no Worker CPU limit (the app's page is EXPORT_PAGE). */
+const SCRIPT_PAGE = 500;
 
 /** The account's copy, as the app's "save a copy" makes it (deviceId "admin"). */
 export function readAccountExport(target: Target, userId: string, now: number): AccountExport {
@@ -34,10 +37,10 @@ export function exportFrom(read: (text: string) => Row[], userId: string, now: n
   const pages: ExportJournalPage[] = [];
   let after = 0;
   for (;;) {
-    const got = rows(EXPORT_SQL.journalPage, after, EXPORT_PAGE + 1);
-    const page = got.slice(0, EXPORT_PAGE);
+    const got = rows(EXPORT_SQL.journalPage, after, SCRIPT_PAGE + 1);
+    const page = got.slice(0, SCRIPT_PAGE);
     pages.push({ records: page.map((r) => JSON.parse(String(r.body)) as unknown), server: page.map(serverRecordFromRow), next: 0, more: false });
-    if (got.length <= EXPORT_PAGE) break;
+    if (got.length <= SCRIPT_PAGE) break;
     after = Number(page[page.length - 1]!.seq);
   }
   return buildAccountExport(head, pages, new Date(now), ADMIN_EXPORT_DEVICE);

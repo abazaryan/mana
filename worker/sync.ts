@@ -170,6 +170,15 @@ export function queryInt(params: URLSearchParams, name: string, fallback: number
 }
 
 /**
+ * A page size from the query: `max` when absent or larger (an older app asks more and follows
+ * `more`); null if malformed or below 1.
+ */
+export function queryLimit(params: URLSearchParams, max: number): number | null {
+  const n = queryInt(params, 'limit', max, 1, Number.MAX_SAFE_INTEGER);
+  return n === null ? null : Math.min(n, max);
+}
+
+/**
  * GET /api/sync/pull?after=<seq>&limit=<n> — the account's records after the cursor, in seq
  * order, and every synced setting. Bodies go out as stored, without being parsed (CPU).
  */
@@ -177,7 +186,7 @@ export const pull = withSession(async ({ request, env, now }: Call, session) => 
   if (!(await hasConsent(env.DB, session.userId))) return noConsent();
   const params = new URL(request.url).searchParams;
   const after = queryInt(params, 'after', 0, 0, Number.MAX_SAFE_INTEGER);
-  const limit = queryInt(params, 'limit', PULL_MAX, 1, PULL_MAX);
+  const limit = queryLimit(params, PULL_MAX);
   if (after === null || limit === null) return error('bad_request', 400);
   const [records, settings] = await env.DB.batch<Json>([
     env.DB.prepare('SELECT seq, body FROM journal WHERE user_id = ? AND seq > ? ORDER BY seq LIMIT ?').bind(session.userId, after, limit + 1),

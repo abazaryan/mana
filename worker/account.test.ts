@@ -249,6 +249,24 @@ describe('GET /api/account/export and /api/account/export/journal (R42 item 5)',
     expect(server[0]!.bodyHash).toBe(await sha256Hex(canonicalJson(recs[0])));
   });
 
+  it('a journal page holds at most 200 records: a larger limit (an older app asks 500) is cut, the pages follow "more"', async () => {
+    const w = world();
+    const a = await signedIn(w);
+    const recs = Array.from({ length: 250 }, () => record(a));
+    for (let i = 0; i < recs.length; i += 50) {
+      expect((await send(w, '/api/sync/push', { cookie: a.cookie, body: { records: recs.slice(i, i + 50) }, now: T0 + 5 })).status).toBe(200);
+    }
+    const sizes: number[] = [];
+    let after = 0;
+    for (;;) {
+      const page = (await (await send(w, `/api/account/export/journal?after=${after}&limit=500`, { method: 'GET', cookie: a.cookie })).json()) as ExportJournalPage;
+      sizes.push(page.records.length);
+      after = page.next;
+      if (!page.more) break;
+    }
+    expect(sizes).toEqual([200, 50]);
+  });
+
   it('works without consent; 401 without a session; 400 for a bad cursor', async () => {
     const w = world();
     const a = await signedIn(w, undefined, T0, { consent: null });
@@ -256,7 +274,8 @@ describe('GET /api/account/export and /api/account/export/journal (R42 item 5)',
     expect((await send(w, '/api/account/export/journal', { method: 'GET', cookie: a.cookie })).status).toBe(200);
     expect((await send(w, '/api/account/export', { method: 'GET' })).status).toBe(401);
     expect((await send(w, '/api/account/export/journal?after=-1', { method: 'GET', cookie: a.cookie })).status).toBe(400);
-    expect((await send(w, '/api/account/export/journal?limit=501', { method: 'GET', cookie: a.cookie })).status).toBe(400);
+    expect((await send(w, '/api/account/export/journal?limit=0', { method: 'GET', cookie: a.cookie })).status).toBe(400);
+    expect((await send(w, '/api/account/export/journal?limit=x', { method: 'GET', cookie: a.cookie })).status).toBe(400);
   });
 });
 

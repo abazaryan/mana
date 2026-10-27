@@ -7,11 +7,16 @@ import type { Skill } from './kinds.ts';
 import { RULES_VERSION } from './scheduler';
 import { SYNCED_SETTINGS, validSetting, type ServerSettings, type SettingChange, type SyncedSetting } from './syncProtocol.ts';
 
-/** Records in one push, and its body at most (the server takes more: PUSH_MAX_RECORDS, 1 MiB). */
-export const PUSH_BATCH = 100;
+/**
+ * Records in one push, and its body at most (the server takes more: PUSH_MAX_RECORDS, 1 MiB).
+ * 25 from 27.10.2026 (step "CPU of sign-in routes": ≈ 1 ms + 0.15 ms per record of CPU).
+ */
+export const PUSH_BATCH = 25;
 export const PUSH_BATCH_BYTES = 512 * 1024;
 /** A failing push is halved down to this many records, then the engine waits. */
 export const MIN_BATCH = 10;
+/** A failing pull page is halved down to this many records, then the engine waits. */
+export const MIN_PULL = 50;
 /**
  * The body of a push sent while the page goes to the background (fetch keepalive): the Fetch
  * standard allows 64 KiB for all keepalive requests in flight together; leave room.
@@ -37,6 +42,11 @@ export const backoffDelay = (failures: number): number => BACKOFF_MS[Math.min(Ma
 /** After a 5xx, a network error or 413: half the batch, down to MIN_BATCH; null — already there, wait. */
 export function smallerBatch(size: number): number | null {
   return size <= MIN_BATCH ? null : Math.max(MIN_BATCH, Math.ceil(size / 2));
+}
+
+/** The same for a pull page: half, down to MIN_PULL; null — already there, wait. */
+export function smallerPage(size: number): number | null {
+  return size <= MIN_PULL ? null : Math.max(MIN_PULL, Math.ceil(size / 2));
 }
 
 /**
