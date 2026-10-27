@@ -122,7 +122,9 @@ for (const minor of [true, false]) {
         const w = world();
         browser(w);
         const { db, userId } = await signInBy(w, way, minor);
-        // The screen opens on the copy the sign-in left (no start of the session in between).
+        // The screen opens on the copy the sign-in left (no start of the session in between):
+        // the device row has no "under 16" at all — only the server knows it.
+        expect((await db.meta.get('device'))?.account?.minor).toBeUndefined();
         const state = await readConsentState(db);
         expect(state).toMatchObject({ ok: true, variant: minor ? 'parent' : 'self', needsConsent: true });
         expect(state.ok && state.meta.account?.minor).toBe(minor);
@@ -134,6 +136,34 @@ for (const minor of [true, false]) {
     }
   });
 }
+
+describe('the start of the app (a reload, F5): the screen opens by itself and asks the server', () => {
+  for (const minor of [true, false]) {
+    it(`${minor ? 'under 16' : 'adult'}: the device row read afresh, "under 16" removed from it — the start says consent is needed, the screen still gets ${minor ? 'parent' : 'self'}`, async () => {
+      const w = world();
+      browser(w);
+      const { db } = await signInBy(w, 'device invitation (recover.ts)', minor);
+      const name = db.name;
+      // Whatever the device row holds — here nothing about "under 16" — must not matter.
+      await db.meta.update('device', (row) => {
+        if (row.account) delete row.account.minor;
+      });
+      db.close();
+
+      // F5: a new page opens the same database and reads the row (MainApp's load), then starts the session.
+      const page = new ManaDb(name);
+      open.push(page);
+      const loaded = (await page.meta.get('device'))!;
+      expect(loaded.account?.minor).toBeUndefined();
+      const start = await startSignedIn(page, createScheduler(), loaded);
+      // MainApp opens #/consent by itself on this (needsConsent).
+      expect(start.needsConsent).toBe(true);
+      expect(start.meta.account?.minor).toBe(minor);
+      // The screen asks the server when it opens.
+      expect(await readConsentState(page)).toMatchObject({ ok: true, variant: minor ? 'parent' : 'self', needsConsent: true });
+    });
+  }
+});
 
 describe('a consent the server refuses (400 consent_required)', () => {
   it("under 16, the person's own consent sent: me is asked again and the parent's screen follows; then it is taken", async () => {
