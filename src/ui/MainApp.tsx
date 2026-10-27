@@ -10,6 +10,7 @@ import { SyncEngine } from '../platform/syncClient';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
 import { saveSettings as storeSettings, settleUpdate } from '../platform/syncStore';
 import { ConsentScreen } from './ConsentScreen';
+import { startSignedIn } from './consentFlow';
 import { DeckScreen } from './DeckScreen';
 import { DeleteAccountScreen } from './DeleteAccountScreen';
 import { DecksScreen } from './DecksScreen';
@@ -24,7 +25,7 @@ import { NoticeView } from './NoticeView';
 import type { Route } from './Root';
 import { RulesUpdate } from './RulesUpdate';
 import { SettingsScreen } from './SettingsScreen';
-import { finishTransfer, refreshAccount, settlePendingDeletion } from './signIn';
+import { finishTransfer, settlePendingDeletion } from './signIn';
 import { SignInScreen } from './SignInScreen';
 import { StudyScreen } from './StudyScreen';
 import { translate, type Lang } from './strings';
@@ -93,10 +94,14 @@ export function MainApp({ route }: { route: Route }) {
   const signedIn = boot.phase === 'ready' && boot.meta.account !== undefined && boot.meta.pendingDeletion === undefined;
   useEffect(() => {
     if (!signedIn) return;
-    void refreshAccount(db, createScheduler()).then(({ moved, needsConsent }) => {
+    const held = boot.phase === 'ready' ? boot.meta : null;
+    if (!held) return;
+    void startSignedIn(db, createScheduler(), held).then(({ meta, moved, needsConsent }) => {
+      setBoot((b) => (b.phase === 'ready' ? { ...b, meta } : b));
       if (needsConsent && !CONSENT_NOT_OVER.test(location.hash)) location.hash = '#/consent';
       if (moved) reload();
     });
+    // Once per sign-in (signedIn), not on every change of the device row.
   }, [signedIn, reload]);
 
   // The account was found deleted at start: its screen, on this device only.
@@ -276,6 +281,7 @@ export function MainApp({ route }: { route: Route }) {
             <ConsentScreen
               db={db}
               meta={meta}
+              onMetaChange={(m) => void accountChanged(m)}
               onConsented={(m) => {
                 void accountChanged(m);
                 setSyncEpoch((n) => n + 1);

@@ -11,7 +11,8 @@ import type { PullResponse, PushResponse } from '../core/syncProtocol';
 /** One account per device for now (R33 item 11): the first profile. */
 export const PROFILE = 1;
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
+/** A failure carries the parsed body as it came (null if none), for the debug notes of #/lab/cards. */
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string; body?: unknown };
 
 let onUnauthorized: (() => void) | null = null;
 
@@ -50,7 +51,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
   if (response.ok) return { ok: true, data: data as T };
   if (response.status === 401 && options.quiet401 !== true) onUnauthorized?.();
   const code = data !== null && typeof data === 'object' && 'error' in data ? String((data as { error: unknown }).error) : 'http';
-  return { ok: false, status: response.status, error: code };
+  return { ok: false, status: response.status, error: code, body: data };
 }
 
 export interface DeviceRef {

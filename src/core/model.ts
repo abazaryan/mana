@@ -74,6 +74,12 @@ export interface MetaRow {
    * Never set on a device that was not signed in. Device-only.
    */
   accountLost?: { reason: 'session' | 'deleted'; at: Date };
+  /**
+   * Debug note (owner's condition 3, 27.10.2026): the server refused a consent (400) and
+   * /api/auth/me could not tell why — the refusal's status and body, me's status. Shown on
+   * #/lab/cards only; the person sees the usual error line. Device-only.
+   */
+  consentProblem?: { at: Date; status: number; body: string; meStatus: number };
 }
 
 /**

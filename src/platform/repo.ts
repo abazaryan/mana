@@ -599,6 +599,11 @@ export function setAccountState(db: ManaDb, state: { minor: boolean; needsConsen
   });
 }
 
+/** A consent the server refused for a reason the device could not learn: kept for #/lab/cards (debug). */
+export function noteConsentProblem(db: ManaDb, problem: { status: number; body: string; meStatus: number }, now = new Date()): Promise<MetaRow> {
+  return updateMeta(db, 'noteConsentProblem', (meta) => ({ ...meta, consentProblem: { at: now, ...problem } }));
+}
+
 /** Before the request that deletes the account (R42 item 8); a deletion that did not happen is forgotten. */
 export function markPendingDeletion(db: ManaDb, now = new Date()): Promise<MetaRow> {
   return updateMeta(db, 'markPendingDeletion', (meta) => {

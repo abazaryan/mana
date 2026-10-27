@@ -19,16 +19,21 @@ export function LabCards({ db }: { db: ManaDb }) {
       const cards = await db.cards.where('[userId+deckId]').between([meta.userId, Dexie.minKey], [meta.userId, Dexie.maxKey]).toArray();
       const outbox = await db.outbox.toArray();
       const count = (status: string) => outbox.filter((r) => r.status === status).length;
+      const report = await cardsReport({
+        build: BUILD,
+        userId: meta.userId,
+        formerUserIds: meta.formerUserIds?.length ?? 0,
+        records: (await userLog(db, meta.userId)).length,
+        cards,
+        outbox: { pending: count('pending'), rejected: count('rejected'), conflict: count('conflict') },
+        lastSynced: meta.sync?.lastOkAt ?? null,
+      });
+      // A consent the server refused for a reason the device could not learn (6a.5c): only when there is one.
+      const problem = meta.consentProblem;
       setReport(
-        await cardsReport({
-          build: BUILD,
-          userId: meta.userId,
-          formerUserIds: meta.formerUserIds?.length ?? 0,
-          records: (await userLog(db, meta.userId)).length,
-          cards,
-          outbox: { pending: count('pending'), rejected: count('rejected'), conflict: count('conflict') },
-          lastSynced: meta.sync?.lastOkAt ?? null,
-        }),
+        problem
+          ? `${report}\nconsentProblem: ${problem.at.toISOString()} status ${problem.status} body ${problem.body} me ${problem.meStatus}`
+          : report,
       );
     })();
   }, [db]);
