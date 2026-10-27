@@ -9,7 +9,7 @@
  * server accepts no other. A new text in docs/NOTICE.md means a new version and new consent
  * (STAGE6_RESEARCH 8.5): change both together (a test checks the version line of the text).
  */
-export const NOTICE_VERSION = 2;
+export const NOTICE_VERSION = 3;
 
 export type NoticeLang = 'tg' | 'ru' | 'en';
 
@@ -23,8 +23,8 @@ export interface Inline {
 export type NoticeBlock =
   | { kind: 'p'; inline: Inline[] }
   /**
-   * "– item" lines; "· sub-item" lines under an item (version 2: what is stored, in detail) go
-   * to `sub` at the same index (absent or empty — none).
+   * "– item" lines; "· sub-item" lines under an item (from version 2: the journal in "what is
+   * stored", in detail) go to `sub` at the same index (absent or empty — none).
    */
   | { kind: 'list'; items: Inline[][]; sub?: Inline[][][] }
   /** "Your name: [field]" — a text field with this label. */

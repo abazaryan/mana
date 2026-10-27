@@ -21,6 +21,12 @@ describe('test accounts only (tools/admin/testOnly.ts)', () => {
     if (NOTICE_VERSION < 3) expect(labelAllowed('Mama')).toBe(false);
   });
 
+  it('notice version 3 is on (6a.5c): invite.ts and recover.ts take a label without test- — no code of their own changed', () => {
+    expect(NOTICE_VERSION).toBe(3);
+    expect(realAccountsAllowed()).toBe(true);
+    expect(labelAllowed('Mama')).toBe(true);
+  });
+
   it('invite.ts and recover.ts (through testAccountLabel) both apply the rule', () => {
     const invite = readFileSync(new URL('../tools/admin/invite.ts', import.meta.url), 'utf8');
     const recover = readFileSync(new URL('../tools/admin/recover.ts', import.meta.url), 'utf8');

@@ -7,8 +7,10 @@ export const ORIGIN = 'https://mana.amisipehr.workers.dev';
  * RULES_VERSION, of the record format or of the notice version (R39); never into the future (a
  * test checks), or every client is refused. 24.10.2026: notice version 2 and sync (6a.3) — an
  * open tab of a 6a.2 build gets 426 ("out of date"), not a consent screen with the text of v1.
+ * 27.10.2026: notice version 3 (6a.5c, R42 item 12) — above the build of 6a.5b on the site
+ * (202610270709), whose consent screen would send version 2: its open tab gets 426 and reloads.
  */
-export const MIN_CLIENT = 202610241450;
+export const MIN_CLIENT = 202610270740;
 
 /** Request body limit when a route sets none, bytes (7.4: sign-in 4 KB). */
 export const DEFAULT_BODY_LIMIT = 4 * 1024;

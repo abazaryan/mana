@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { rebuildCards } from '../src/core/cards';
 import { canonicalJson } from '../src/core/journalRecord';
 import type { CardRow, LogRecord } from '../src/core/model';
+import { NOTICE_VERSION } from '../src/core/notice';
 import { createScheduler, RULES_VERSION } from '../src/core/scheduler';
 import { introsToday } from '../src/core/session';
 import { SEND_DELAY_MS, SEND_MAX_WAIT_MS, SEND_NOW_QUEUE, SendTimer } from '../src/core/sync';
@@ -411,13 +412,13 @@ describe('consent to the current notice (R39)', () => {
     await sync(a, 'consent');
     expect(a.calls).toHaveLength(1);
     expect((await queueCounts(a.db)).pending).toBe(2);
-    expect((await a.db.meta.get('device'))!.sync!.needsConsent).toMatchObject({ version: 2 });
+    expect((await a.db.meta.get('device'))!.sync!.needsConsent).toMatchObject({ version: NOTICE_VERSION });
     expect(w.db.sqlite.prepare('SELECT count(*) AS n FROM journal').get()).toEqual({ n: 0 });
 
-    // The consent is given (stage 6a.5 will do it on a screen): the queue goes, the mark goes.
+    // The consent is given (the screen of 6a.5b does it through /api/auth/consent): the queue goes, the mark goes.
     w.db.sqlite
-      .prepare("INSERT INTO consents (id, user_id, notice_version, given_by, parent_name, device_id, given_at) VALUES ('c', ?, 2, 'self', NULL, 'd', 1)")
-      .run(a.who.userId);
+      .prepare("INSERT INTO consents (id, user_id, notice_version, given_by, parent_name, device_id, given_at) VALUES ('c', ?, ?, 'self', NULL, 'd', 1)")
+      .run(a.who.userId, NOTICE_VERSION);
     await sync(a);
     expect((await queueCounts(a.db)).pending).toBe(0);
     expect((await a.db.meta.get('device'))!.sync!.needsConsent).toBeUndefined();

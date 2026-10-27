@@ -36,12 +36,14 @@ describe('docs/NOTICE.md — the approved notice, read at build time', () => {
     for (const lang of LANGS) expect(text(parseNotice(markdown, lang).notice.blocks)).not.toContain('auth_attempts');
   });
 
-  it.each(LANGS)('%s: "what we store" is one list whose first item has its sub-items (version 2), no stray bullets', (lang) => {
+  it.each(LANGS)('%s: "what we store" is one list, exactly one item (the journal) has its sub-items (from version 2), no stray bullets', (lang) => {
     const { notice } = parseNotice(markdown, lang);
     const lists = notice.blocks.filter((b) => b.kind === 'list');
     const stored = lists[0]!;
     expect(stored.kind === 'list' && stored.items.length).toBeGreaterThanOrEqual(6);
-    expect(stored.kind === 'list' && stored.sub?.[0]?.length).toBe(6);
+    // Version 3 put "the account" first: the journal with its six sub-items is no longer item 0.
+    const withSub = stored.kind === 'list' ? (stored.sub ?? []).map((s) => s.length).filter((n) => n > 0) : [];
+    expect(withSub).toEqual([6]);
     const paragraphs = notice.blocks.filter((b) => b.kind === 'p').map((b) => (b.kind === 'p' ? b.inline.map((r) => r.text).join('') : ''));
     expect(paragraphs.filter((t) => /^[–·-]\s/.test(t))).toEqual([]);
   });
