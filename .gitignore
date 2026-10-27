@@ -29,6 +29,8 @@ tools/.env.*
 !tools/.env.example
 # Invitation and recovery links from the admin scripts (stage 6a.2)
 tools/.out/
+# Bench of the Worker CPU (step "CPU of sign-in routes"): bundle, local state, profiles, numbers
+tools/bench/.out/
 mana-lab/
 *.key.json
 
