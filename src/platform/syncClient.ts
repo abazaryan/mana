@@ -10,7 +10,7 @@
  * or the pull page (down to 50; the next page asks the full size again).
  */
 import type { FSRS } from 'ts-fsrs';
-import { BATCH_GAP_MS, KEEPALIVE_BYTES, PULL_AGAIN_MS, PUSH_BATCH, PUSH_BATCH_BYTES, SendTimer, backoffDelay, smallerBatch, smallerPage } from '../core/sync';
+import { BATCH_GAP_MS, KEEPALIVE_BYTES, PULL_AGAIN_MS, PUSH_BATCH, PUSH_BATCH_BYTES, SendTimer, askPage, backoffDelay, smallerBatch, worthSplitting } from '../core/sync';
 import { NOTICE_VERSION } from '../core/notice';
 import { PULL_MAX } from '../core/syncProtocol';
 import type { ApiResult, SyncTransport } from './api';
@@ -45,7 +45,7 @@ function failure(res: Extract<ApiResult<unknown>, { ok: false }>, online: boolea
   // No consent to the current notice (R39): wait for it — no retries, the queue stays.
   if (res.status === 403 && res.error === 'consent_required') return 'consent';
   if (res.status === 0 && !online) return 'offline';
-  if (res.status === 0 || res.status >= 500 || res.status === 413) return 'retry';
+  if (worthSplitting(res.status)) return 'retry';
   return 'failed';
 }
 
@@ -113,18 +113,13 @@ async function run(env: SyncEnv): Promise<RunResult> {
   }
 
   // Take everything after the cursor.
-  let page = PULL_MAX;
   for (;;) {
     const now = await db.meta.get('device');
     if (!now?.account) return 'signedOut';
-    const res = await transport.pull(syncOf(now).cursor, page);
+    const cursor = syncOf(now).cursor;
+    const res = await askPage(PULL_MAX, (limit) => transport.pull(cursor, limit), (r) => !r.ok && failure(r, online()) === 'retry');
     if (!res.ok) {
       const what = failure(res, online());
-      const smaller = what === 'retry' ? smallerPage(page) : null;
-      if (smaller !== null) {
-        page = smaller;
-        continue;
-      }
       if (what === 'update') {
         await markNeedsUpdate(db, 'client', env.build);
         env.onNeedsUpdate?.();
@@ -134,7 +129,6 @@ async function run(env: SyncEnv): Promise<RunResult> {
       if (changed) notifySyncChanged();
       return what === 'retry' ? 'failed' : what;
     }
-    page = PULL_MAX;
     const out = await applyPull(db, env.scheduler, res.data, env.build);
     if (out.added > 0 || out.settingsChanged) changed = true;
     if (out.newerRules) {

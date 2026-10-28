@@ -1,15 +1,18 @@
 /**
  * "Save a copy of the account data" (stage 6a.5b, R42 item 5): the head and the journal pages from
  * the server, kept between tries — a page that failed is asked again from its cursor, the pages
- * already here stay. The file is built only when everything is here (src/core/accountExport.ts).
+ * already here stay. A page failing with a 5xx, no answer or 413 is halved first, like a pull page
+ * (200 → 100 → 50, R43 item 3). The file is built only when everything is here
+ * (src/core/accountExport.ts).
  */
 import { buildAccountExport, type AccountExport } from '../core/accountExport';
-import type { ExportHead, ExportJournalPage } from '../core/accountRows';
+import { EXPORT_PAGE, type ExportHead, type ExportJournalPage } from '../core/accountRows';
+import { askPage, worthSplitting } from '../core/sync';
 import type { ApiResult } from './api';
 
 export interface CopySource {
   head(): Promise<ApiResult<ExportHead>>;
-  page(after: number): Promise<ApiResult<ExportJournalPage>>;
+  page(after: number, limit: number): Promise<ApiResult<ExportJournalPage>>;
 }
 
 export type CopyStep = { ok: true; file: AccountExport } | { ok: false; status: number };
@@ -38,7 +41,8 @@ export async function collectCopy(source: CopySource, progress: CopyProgress, de
     progress.head = head.data;
   }
   while (!progress.done) {
-    const page = await source.page(progress.after);
+    const after = progress.after;
+    const page = await askPage(EXPORT_PAGE, (limit) => source.page(after, limit), (r) => !r.ok && worthSplitting(r.status));
     if (!page.ok) return { ok: false, status: page.status };
     progress.pages.push(page.data);
     progress.after = page.data.next;

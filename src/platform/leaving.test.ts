@@ -182,30 +182,71 @@ describe("the account's copy across failures (platform/accountCopy.ts)", () => {
     2: { records: [rec(3)], server: [{ id: rec(3).id, seq: 3, receivedAt: 1, bodyHash: 'c' }], next: 3, more: false },
   };
 
-  it('a failed page is asked again from its cursor, the pages already here stay; the file restores', async () => {
-    let failNext = true;
-    const asked: number[] = [];
+  /**
+   * A source whose answers for a cursor come from `fail` while it has some: one failure status
+   * per request, then the page. `asked` — [cursor, limit] of every request.
+   */
+  function failingSource(fail: Record<number, number[]>) {
+    const asked: [number, number][] = [];
     const source = {
       head: async (): Promise<ApiResult<ExportHead>> => ({ ok: true, data: head }),
-      page: async (after: number): Promise<ApiResult<ExportJournalPage>> => {
-        asked.push(after);
-        if (after === 2 && failNext) {
-          failNext = false;
-          return { ok: false, status: 0, error: 'offline' };
-        }
+      page: async (after: number, limit: number): Promise<ApiResult<ExportJournalPage>> => {
+        asked.push([after, limit]);
+        const status = fail[after]?.shift();
+        if (status !== undefined) return { ok: false, status, error: status === 0 ? 'offline' : 'http' };
         return { ok: true, data: pages[after]! };
       },
     };
+    return { source, asked };
+  }
+
+  it('a page failing down to 50 ends with the failure; the pages already here stay, a retry goes on from its cursor at 200; the file restores', async () => {
+    const { source, asked } = failingSource({ 2: [503, 503, 503] });
     const progress = emptyCopy();
     const seen: number[] = [];
-    expect(await collectCopy(source, progress, 'device-1', () => NOW, (k) => seen.push(k))).toEqual({ ok: false, status: 0 });
+    expect(await collectCopy(source, progress, 'device-1', () => NOW, (k) => seen.push(k))).toEqual({ ok: false, status: 503 });
+    expect(asked).toEqual([
+      [0, 200],
+      [2, 200],
+      [2, 100],
+      [2, 50],
+    ]);
     const step = await collectCopy(source, progress, 'device-1', () => NOW, (k) => seen.push(k));
-    expect(asked).toEqual([0, 2, 2]);
+    expect(asked.slice(4)).toEqual([[2, 200]]);
     expect(seen).toEqual([2, 3]);
     expect(step.ok).toBe(true);
     if (!step.ok) return;
     expect(step.file.records).toHaveLength(3);
     const parsed = parseBackup(serializeAccountExport(step.file));
     expect(parsed.ok && parsed.backup.records.length).toBe(3);
+  });
+
+  it('a 5xx (a 1102) halves the page 200 → 100 and the next page asks 200 again (R43 item 3)', async () => {
+    const { source, asked } = failingSource({ 0: [503] });
+    const step = await collectCopy(source, emptyCopy(), 'device-1', () => NOW, () => {});
+    expect(step.ok).toBe(true);
+    expect(asked).toEqual([
+      [0, 200],
+      [0, 100],
+      [2, 200],
+    ]);
+  });
+
+  it('413 and a network error halve the page too: 200 → 100 → 50', async () => {
+    const { source, asked } = failingSource({ 0: [413, 0] });
+    const step = await collectCopy(source, emptyCopy(), 'device-1', () => NOW, () => {});
+    expect(step.ok).toBe(true);
+    expect(asked).toEqual([
+      [0, 200],
+      [0, 100],
+      [0, 50],
+      [2, 200],
+    ]);
+  });
+
+  it('other refusals end at once, without a smaller page', async () => {
+    const { source, asked } = failingSource({ 0: [401] });
+    expect(await collectCopy(source, emptyCopy(), 'device-1', () => NOW, () => {})).toEqual({ ok: false, status: 401 });
+    expect(asked).toEqual([[0, 200]]);
   });
 });

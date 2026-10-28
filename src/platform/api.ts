@@ -101,7 +101,7 @@ export const signOut = () => request<{ ok: true }>('POST', 'auth/logout');
 export const giveConsent = (consent: Consent) => request<{ ok: true }>('POST', 'auth/consent', { consent });
 /** A copy of the account's data (R42 item 5): everything but the journal, then the journal in pages. */
 export const exportHead = () => request<ExportHead>('GET', 'account/export');
-export const exportJournalPage = (after: number) => request<ExportJournalPage>('GET', `account/export/journal?after=${after}&limit=${EXPORT_PAGE}`);
+export const exportJournalPage = (after: number, limit = EXPORT_PAGE) => request<ExportJournalPage>('GET', `account/export/journal?after=${after}&limit=${limit}`);
 /** Deletes the account (R42 item 1). A 401 here is an answer (the erasure has begun), not "the session ended". */
 export const deleteAccountRequest = () => request<{ finished: boolean }>('POST', 'account/delete', { confirm: 'delete' }, { quiet401: true });
 

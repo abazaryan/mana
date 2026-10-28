@@ -49,6 +49,24 @@ export function smallerPage(size: number): number | null {
   return size <= MIN_PULL ? null : Math.max(MIN_PULL, Math.ceil(size / 2));
 }
 
+/** A failure a smaller request may get past: no answer, a 5xx (a 1102 too) or 413. */
+export const worthSplitting = (status: number): boolean => status === 0 || status >= 500 || status === 413;
+
+/**
+ * One page of a paged read — the pull and the account's copy (R43 item 3): asked at `full`, halved
+ * down to MIN_PULL while `splits` says a failure is worth it. The answer that ended it comes back:
+ * the page, or the failure at the smallest size.
+ */
+export async function askPage<R extends { ok: boolean }>(full: number, ask: (limit: number) => Promise<R>, splits: (failed: R) => boolean): Promise<R> {
+  let limit = full;
+  for (;;) {
+    const answer = await ask(limit);
+    const smaller = !answer.ok && splits(answer) ? smallerPage(limit) : null;
+    if (smaller === null) return answer;
+    limit = smaller;
+  }
+}
+
 /**
  * How many of the records (each already as JSON text) go into one push body
  * `{"records":[…]}` of at most `maxBytes` (UTF-8) and `maxCount` records.
