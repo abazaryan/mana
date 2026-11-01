@@ -11,6 +11,7 @@ import { requestPersistence, storagePersistence, type Persistence } from '../pla
 import { exportJournal, listDecks, restoreForAccount, restoreJournal, setFormerUserIds } from '../platform/repo';
 import { installSpeechPack, speechPackState } from '../platform/speechPack';
 import { AccountSection } from './AccountSection';
+import { ConfirmOther } from './ConfirmOther';
 import { phrasesApiPresent } from './studyHooks';
 import { useI18n } from './i18n';
 import { LANG_NAMES, type Lang, type StringKey } from './strings';
@@ -254,20 +255,7 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
           {t('backup.restore')}
         </button>
       </div>
-      {other && (
-        <div className="mt">
-          <p className="prompt">{t('restore.confirmOther')}</p>
-          <p className="hint">{t('restore.confirmOtherHint')}</p>
-          <div className="two mt">
-            <button className="primary" type="button" onClick={() => void addOther(other)}>
-              {t('common.yes')}
-            </button>
-            <button className="secondary" type="button" onClick={() => setOther(null)}>
-              {t('common.no')}
-            </button>
-          </div>
-        </div>
-      )}
+      {other && <ConfirmOther onYes={() => void addOther(other)} onNo={() => setOther(null)} />}
       <input
         ref={file}
         type="file"

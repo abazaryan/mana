@@ -7,6 +7,7 @@ import type { ManaDb } from '../platform/db';
 import { forgetDeleteNotDone, markSignedOut, setAccountDeviceName } from '../platform/repo';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
 import { queueCounts } from '../platform/syncStore';
+import { AccountCopy } from './AccountCopy';
 import { AccountLost } from './AccountLost';
 import { useI18n } from './i18n';
 import { Sheet } from './Sheet';
@@ -79,8 +80,8 @@ function SyncStatus({ db }: { db: ManaDb }) {
 /**
  * Settings → Account (stage 6a.2, STAGE6_RESEARCH 3.2–3.3): signed out — the way to the sign-in
  * screen; signed in — this device's name, the account's devices (remove another one), a pairing
- * code for a new device, sign-out with a choice to clear the device, deleting the account
- * (6a.5b, R42). A deletion that did not reach the server, or whose answer is unknown, is said here.
+ * code for a new device, a copy of the account's data (R45; also without consent to the current
+ * notice), sign-out with a choice to clear the device, deleting the account (6a.5b, R42). A deletion that did not reach the server, or whose answer is unknown, is said here.
  */
 export function AccountSection({ db, meta, onMetaChange }: Props) {
   const { t } = useI18n();
@@ -216,6 +217,9 @@ function SignedIn({ db, meta, onMetaChange }: Props) {
           {t(message)}
         </p>
       )}
+
+      {/* A copy of the account's data without the way through deletion (R45): above the two red buttons. */}
+      <AccountCopy db={db} meta={meta} sendFirst />
 
       <button className="secondary danger mt" type="button" onClick={() => setLeaving(true)}>
         {t('account.signOut')}

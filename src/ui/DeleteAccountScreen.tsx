@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteOutcome } from '../core/accountDelete';
-import { accountExportFileName, serializeAccountExport } from '../core/accountExport';
 import type { MetaRow } from '../core/model';
-import { collectCopy, emptyCopy, recordsIn } from '../platform/accountCopy';
-import { deleteAccountRequest, exportHead, exportJournalPage } from '../platform/api';
+import { deleteAccountRequest } from '../platform/api';
 import type { ManaDb } from '../platform/db';
-import { downloadText } from '../platform/files';
 import { clearPendingDeletion, finishAccountDeletion, markPendingDeletion } from '../platform/repo';
+import { AccountCopy } from './AccountCopy';
 import { useI18n } from './i18n';
 import { saveJournalFile, sendQueue } from './leaving';
 import type { StringKey } from './strings';
@@ -26,7 +24,7 @@ interface Props {
 
 /**
  * Deleting the account (stage 6a.5b, R42 items 1, 8): screen 1 — what goes, the queue sent first,
- * a copy of the account's data; screen 2 — "for good?"; then the request (with the mark
+ * a copy of the account's data (the same part as in Settings → Account, R45); screen 2 — "for good?"; then the request (with the mark
  * `pendingDeletion` before it, sync stopped) and "Account deleted" — on this device only, with
  * the journal file and clearing the device.
  */
@@ -37,10 +35,8 @@ export function DeleteAccountScreen({ db, meta, deleted, onMetaChange, onNeedsUp
   const [phase, setPhase] = useState<Phase>(deleted || meta.accountLost?.reason === 'deleted' ? 'deleted' : meta.pendingDeletion ? 'failed' : 'intro');
   const [unsent, setUnsent] = useState<number | null>(null);
   const [note, setNote] = useState<{ text: string; err: boolean } | null>(null);
-  const [copying, setCopying] = useState<number | null>(null);
-  const [copyFailed, setCopyFailed] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [wiping, setWiping] = useState(false);
-  const copy = useRef(emptyCopy());
 
   // Screen 1: the queue goes first, so the copy has this device's answers too.
   useEffect(() => {
@@ -53,24 +49,6 @@ export function DeleteAccountScreen({ db, meta, deleted, onMetaChange, onNeedsUp
   }, [phase]);
 
   const say = (key: StringKey, err: boolean, vars?: Record<string, string | number>) => setNote({ text: t(key, vars), err });
-
-  const saveCopy = async () => {
-    setNote(null);
-    setCopyFailed(false);
-    setCopying(recordsIn(copy.current));
-    const step = await collectCopy({ head: exportHead, page: exportJournalPage }, copy.current, meta.deviceId, () => new Date(), setCopying);
-    setCopying(null);
-    if (!step.ok) {
-      if (step.status !== 401) {
-        say('account.exportFailed', true);
-        setCopyFailed(true);
-      }
-      return;
-    }
-    downloadText(serializeAccountExport(step.file), accountExportFileName(new Date()));
-    copy.current = emptyCopy();
-    say('account.exportDone', false);
-  };
 
   const saveJournal = async () => {
     try {
@@ -177,21 +155,13 @@ export function DeleteAccountScreen({ db, meta, deleted, onMetaChange, onNeedsUp
           </button>
         </>
       )}
-      <button className="secondary mt" type="button" disabled={copying !== null || unsent === null} onClick={() => void saveCopy()}>
-        {t('account.exportAll')}
-      </button>
-      {copying !== null && <p className="hint" role="status">{t('account.exportProgress', { n: copying })}</p>}
+      <AccountCopy db={db} meta={meta} disabled={unsent === null} onBusy={setCopying} />
       {note && <p className={'hint' + (note.err ? ' err' : '')} role="status">{note.text}</p>}
-      {copyFailed && copying === null && (
-        <button className="secondary mt" type="button" onClick={() => void saveCopy()}>
-          {t('common.retry')}
-        </button>
-      )}
       <div className="two mt">
         <a className="secondary center" href="#/settings">
           {t('common.cancel')}
         </a>
-        <button className="secondary danger" type="button" disabled={unsent === null || copying !== null} onClick={() => setPhase('confirm')}>
+        <button className="secondary danger" type="button" disabled={unsent === null || copying} onClick={() => setPhase('confirm')}>
           {t('common.next')}
         </button>
       </div>
