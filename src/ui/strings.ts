@@ -770,7 +770,7 @@ export const STRINGS = {
     en: "You're not signed in; your progress stays on this device. To sign in, use the same link while it's still valid.",
   },
   'transfer.declinedCode': {
-    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Барои вуруд ҳамин кодро то поёни эътибораш ба кор баред ё аз дастгоҳе, ки ба ҳисоб ворид аст, коди нав гиред.',
+    tg: 'Вориди ҳисоб нашудед; пешрафт дар ҳамин дастгоҳ мемонад. Барои вуруд ҳамин кодро то поёни эътибораш ба кор баред ё аз дастгоҳе, ки вориди ҳисоб аст, коди нав гиред.',
     ru: 'Вы не вошли в аккаунт; прогресс остаётся на этом устройстве. Чтобы войти, используйте этот же код, пока он действует, или получите новый на устройстве, где вы вошли в аккаунт.',
     en: "You're not signed in; your progress stays on this device. To sign in, use the same code while it's still valid, or get a new one on a device where you're signed in.",
   },
@@ -805,6 +805,17 @@ export const STRINGS = {
     tg: 'Хатое рух дод. Баъдтар дубора талош кунед.',
     ru: 'Что-то пошло не так. Попробуйте позже.',
     en: 'Something went wrong. Try again later.',
+  },
+  // The sign-in request got no answer even after the retry (R45; tg approved by the terminology chat 28.10.2026).
+  'signin.errorLink': {
+    tg: 'Вуруд комил нашуд: сервер ҷавоб надод. Фавран ҳамин даъватномаро дубора кушоед. Агар нашуд, аз фиристандааш даъватномаи нав дархост кунед.',
+    ru: 'Вход не завершён: сервер не ответил. Сразу откройте ту же ссылку ещё раз. Если не получится — попросите новую ссылку у того, кто её прислал.',
+    en: "Sign-in didn't finish: the server didn't answer. Open the same link again right away. If that doesn't work, ask whoever sent it for a new link.",
+  },
+  'signin.errorCode': {
+    tg: 'Вуруд комил нашуд: сервер ҷавоб надод. Фавран «Вуруд»-ро дубора фишор диҳед. Агар нашуд, аз дастгоҳе, ки вориди ҳисоб аст, коди нав гиред.',
+    ru: 'Вход не завершён: сервер не ответил. Сразу нажмите «Войти» ещё раз. Если не получится — возьмите новый код на устройстве, где вход уже есть.',
+    en: "Sign-in didn't finish: the server didn't answer. Tap “Sign in” again right away. If that doesn't work, get a new code on a device that's already signed in.",
   },
   'join.title': { tg: 'Даъватнома', ru: 'Приглашение', en: 'Invitation' },
   'join.agree': { tg: 'Мувофиқам', ru: 'Согласен(на)', en: 'I agree' },

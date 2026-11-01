@@ -11,7 +11,7 @@ import { forgetInviteToken } from './inviteToken';
 import { noticeText } from './noticeText';
 import { NoticeView } from './NoticeView';
 import { ParentConsent } from './ParentConsent';
-import { FAILURE_TEXT, failureOf, signInWith, type SignInFailure } from './signIn';
+import { failureOf, failureText, signInWith, type SignInFailure } from './signIn';
 import { TransferDone, TransferQuestion } from './TransferQuestion';
 
 type Screen =
@@ -110,7 +110,7 @@ export function JoinFlow({ db, meta, token, onSignedIn }: Props) {
       <section>
         <h1>{t('join.title')}</h1>
         <p className={quiet ? '' : 'hint err'} role="alert">
-          {t(screen.name === 'declined' ? 'transfer.declinedLink' : FAILURE_TEXT[screen.reason])}
+          {t(screen.name === 'declined' ? 'transfer.declinedLink' : failureText(screen.reason, 'link'))}
         </p>
         <p className="note">
           <a href="#/">{t('nav.decks')}</a>

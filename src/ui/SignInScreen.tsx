@@ -7,7 +7,7 @@ import type { ManaDb } from '../platform/db';
 import { hasLocalAnswers } from '../platform/repo';
 import { useI18n } from './i18n';
 import { setInviteToken } from './inviteToken';
-import { FAILURE_TEXT, signInWith, type SignInFailure } from './signIn';
+import { failureText, signInWith, type SignInFailure } from './signIn';
 import { TransferDone, TransferQuestion } from './TransferQuestion';
 import { AccountLost } from './AccountLost';
 
@@ -132,7 +132,7 @@ export function SignInScreen({ db, meta, onSignedIn }: Props) {
         <p className="hint">{t('signin.hint')}</p>
         {failure && (
           <p className={failure === 'already' ? 'mt' : 'hint err'} role="alert">
-            {t(FAILURE_TEXT[failure])}
+            {t(failureText(failure, 'code'))}
           </p>
         )}
         {declined && (

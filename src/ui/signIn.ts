@@ -5,7 +5,9 @@
  * yes moves its records to the account in one transaction. Retry once with a new device id if the
  * server says the id is another account's; and once, after a pause, the same request when no answer
  * came or a 5xx did — the server may have written it and lost the answer (a 1102), and gives the same
- * device a new session for its used invitation or code (the retry window, worker/auth.ts).
+ * device a new session for its used invitation or code (the retry window, worker/auth.ts). Still no
+ * answer after the retry: the text names the way in (R45) — open the same link again, or tap "Sign
+ * in" again — unless the browser says it is offline (the request never left: nothing was spent).
  */
 import type { FSRS } from 'ts-fsrs';
 import { pendingOutcome, type PendingOutcome } from '../core/accountDelete';
@@ -28,7 +30,9 @@ import {
 } from '../platform/repo';
 import type { StringKey } from './strings';
 
-export type SignInFailure = 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'userTaken' | 'error';
+export type SignInFailure = 'invalid' | 'tooMany' | 'already' | 'outdated' | 'offline' | 'userTaken' | 'error' | 'noAnswer';
+/** How the device signs in: an opened link (invitation, recovery link) or a pairing code. */
+export type SignInWay = 'link' | 'code';
 export type SignInOutcome = { ok: true; meta: MetaRow; queued: number } | { ok: false; reason: SignInFailure };
 
 /** The pause before the one automatic retry of a sign-in request. */
@@ -36,7 +40,7 @@ export const SIGN_IN_RETRY_MS = 2000;
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export const FAILURE_TEXT: Record<SignInFailure, StringKey> = {
+export const FAILURE_TEXT: Record<Exclude<SignInFailure, 'noAnswer'>, StringKey> = {
   invalid: 'signin.invalid',
   tooMany: 'signin.tooMany',
   already: 'signin.already',
@@ -46,8 +50,23 @@ export const FAILURE_TEXT: Record<SignInFailure, StringKey> = {
   error: 'signin.error',
 };
 
+/** The text of a failed sign-in: no answer from the server after the retry has its own per way in (R45). */
+export function failureText(reason: SignInFailure, way: SignInWay): StringKey {
+  if (reason === 'noAnswer') return way === 'link' ? 'signin.errorLink' : 'signin.errorCode';
+  return FAILURE_TEXT[reason];
+}
+
+/**
+ * The sign-in request itself, after the retry (R45): no answer or a 5xx (a 1102 page included) is
+ * `noAnswer`, except no answer while the browser is offline — the request never reached the server.
+ */
+export function signInFailureOf(result: { status: number; error: string }, online: boolean): SignInFailure {
+  if (result.status >= 500 || (result.status === 0 && online)) return 'noAnswer';
+  return failureOf(result);
+}
+
 /** An API failure → what the user is told. */
-export function failureOf(result: { status: number; error: string }): SignInFailure {
+export function failureOf(result: { status: number; error: string }): Exclude<SignInFailure, 'noAnswer'> {
   if (result.status === 0) return 'offline';
   switch (result.error) {
     case 'invalid':
@@ -69,7 +88,8 @@ export function failureOf(result: { status: number; error: string }): SignInFail
  * `send` gets the device and, on a transfer, the local userId (null otherwise); the caller puts
  * it into the request as the invitation's kind wants it. `transfer` — the user said "yes" to
  * adding this device's answers (without answers the question is not asked: false). `wait` — the
- * pause before the automatic retry (tests pass none).
+ * pause before the automatic retry (tests pass none); `online` — whether the browser thinks it is
+ * online when the request fails (navigator.onLine).
  */
 export async function signInWith(
   db: ManaDb,
@@ -77,6 +97,7 @@ export async function signInWith(
   transfer: boolean,
   send: (device: DeviceRef, localUserId: string | null) => Promise<ApiResult<SignedIn>>,
   wait: (ms: number) => Promise<void> = pause,
+  online: () => boolean = () => navigator.onLine !== false,
 ): Promise<SignInOutcome> {
   let meta = transfer ? await beginTransfer(db) : await db.meta.get('device');
   if (!meta) return { ok: false, reason: 'error' };
@@ -94,7 +115,7 @@ export async function signInWith(
   if (!result.ok) {
     // No answer at all: the server may have taken it — the start of the app asks (/api/auth/me).
     if (transfer && result.status !== 0) await forgetTransfer(db);
-    return { ok: false, reason: failureOf(result) };
+    return { ok: false, reason: signInFailureOf(result, online()) };
   }
   const { userId, device, formerUserIds = [] } = result.data;
   if (!transfer) return { ok: true, meta: await markSignedIn(db, userId, device.name, new Date(), formerUserIds), queued: 0 };
