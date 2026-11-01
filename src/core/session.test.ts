@@ -618,3 +618,58 @@ describe('new cards: new entries and catch-up together (phone check 19.10.2026)'
     expect(forced.noNew).toBeNull();
   });
 });
+
+/**
+ * Guard (R44 item 3, STATUS open item 12): cards of a deck that is not installed — the journal of a
+ * deleted deck, cards built from what the server sent — give no debts, no reviews, no new cards
+ * and no numbers; that deck's answers still count toward the daily limits (R17.5).
+ */
+describe('cards of a deck that is not installed (R17.5, R44 item 3)', () => {
+  const here = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => entry(id, k));
+  // Deck "gone": cards in every place of the outlook, no entries on this device.
+  const gone = [
+    card('g1', local(10, 9), 'speak', 'gone'),
+    card('g2', local(13, 9), 'write', 'gone'),
+    card('g3', local(14, 9), 'speak', 'gone'),
+    card('g4', local(15, 9), 'listen', 'gone'),
+    card('g5', local(18, 9), 'speak', 'gone'),
+  ];
+  const day = { now: NOW, tz: LUX, deckId: 'd', entries: here, cards: gone, log: [] as LogRecord[], newPerDay: 5 };
+
+  it('no debts, no reviews and no figures: the plan and the outlook are those of a device without them', () => {
+    const plan = run({ entries: here, cards: gone });
+    expect(plan).toMatchObject({ due: 0, debts: [], noNew: null, introduced: 5 });
+    expect(plan.items.every((i) => i.entry.deckId === 'd')).toBe(true);
+    expect(outlook(day)).toEqual(outlook({ ...day, cards: [] }));
+    expect(outlook(day)).toMatchObject({ today: 0, tomorrow: 0, week: 0, debts: [] });
+  });
+
+  it('studied as the deck itself (a stale address): nothing is issued and nothing counted', () => {
+    const plan = run({ deckId: 'gone', entries: here, cards: gone });
+    expect(plan).toMatchObject({ items: [], due: 0, debts: [], noNew: 'noMaterial' });
+    expect(outlook({ ...day, deckId: 'gone' })).toMatchObject({ today: 0, tomorrow: 0, week: 0, fresh: 0, debts: [] });
+  });
+
+  it('beside a debt of an installed deck: only that debt is named', () => {
+    const plan = run({ entries: here, cards: [...gone, card('a', local(12, 9))] });
+    expect(plan).toMatchObject({ due: 1, noNew: 'overdue', debts: [{ deckId: 'd', count: 1 }] });
+  });
+
+  it('its introductions today count toward the daily limit of new entries', () => {
+    const log = ['g1', 'g2', 'g3'].map((id) => intro(id, local(14, 8), 'gone'));
+    expect(run({ entries: here, cards: gone, log })).toMatchObject({ introduced: 2, newLeft: 0, noNew: null });
+    const full = run({ entries: here, cards: gone, log: [...log, intro('g4', local(14, 8), 'gone'), intro('g5', local(14, 8), 'gone')] });
+    expect(full).toMatchObject({ items: [], introduced: 0, noNew: 'dailyLimit', debts: [] });
+    expect(outlook({ ...day, log }).fresh).toBe(2);
+  });
+
+  it('its first answers today count toward the catch-up of known entries', () => {
+    // Entries of "d" known from yesterday, a skill never answered: catch-up material.
+    const entries = here.map((e) => ({ ...e, skills: ['speak', 'write'] as Skill[] }));
+    const known = ['a', 'b'].flatMap((id) => [intro(id, local(13, 9)), firstAnswer(id, local(13, 9), 'speak')]);
+    const cards = [...gone, ...['a', 'b'].map((id) => card(id, local(20, 9)))];
+    const others = Array.from({ length: CATCH_UP_PER_DAY }, (_, k) => [intro(`g${k}`, local(12, 9), 'gone'), firstAnswer(`g${k}`, local(14, 8), 'write', 'gone')]).flat();
+    expect(run({ entries, cards, log: known, newPerDay: 0 })).toMatchObject({ catchUp: 2 });
+    expect(run({ entries, cards, log: [...known, ...others], newPerDay: 0 })).toMatchObject({ catchUp: 0, noNew: 'dailyLimit', debts: [] });
+  });
+});
