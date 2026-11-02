@@ -29,7 +29,7 @@
 | `decks.overdue` | Повторений с прошлых дней: {n} | Reviews from earlier days: {n} | Такрорҳои ақибафтода: {n} |
 | `deck.dueToday` | К повторению сегодня: {n} | Due today: {n} | Имрӯз барои такрор: {n} |
 | `deck.dueNew` |  · новых: {m} |  · new: {m} |  · нав: {m} |
-| `deck.overdue` | С прошлых дней: {n} — новые записи после них | From earlier days: {n} — new entries after them | Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
+| `deck.overdue` | С прошлых дней: {n} — новые записи после них | From earlier days: {n} — new entries after them | Такрорҳои ақибафтода: {n} — омӯзбаргҳои нав баъд аз онҳо |
 | `deck.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар рӯз |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
 | `deck.play` | Слушать | Play | Пахш |

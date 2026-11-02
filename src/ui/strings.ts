@@ -48,8 +48,9 @@ export const STRINGS = {
   'deck.dueToday': { tg: 'Имрӯз барои такрор: {n}', ru: 'К повторению сегодня: {n}', en: 'Due today: {n}' },
   /** Appended to deck.dueToday when new cards wait today: new entries and catch-up together (19.10.2026). */
   'deck.dueNew': { tg: ' · нав: {m}', ru: ' · новых: {m}', en: ' · new: {m}' },
+  // tg approved 02.11.2026 (R47): the term of overdue reviews, as in decks.overdue and study.noNew.overdue.
   'deck.overdue': {
-    tg: 'Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо',
+    tg: 'Такрорҳои ақибафтода: {n} — омӯзбаргҳои нав баъд аз онҳо',
     ru: 'С прошлых дней: {n} — новые записи после них',
     en: 'From earlier days: {n} — new entries after them',
   },
