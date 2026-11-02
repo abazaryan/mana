@@ -1,11 +1,12 @@
 /**
- * Session composition (R17, R22.4, R25, R29). Pure: the caller loads entries, cards
+ * Session composition (R17, R22.4, R25, R29, R47). Pure: the caller loads entries, cards
  * and the journal; nothing here touches the database.
  *
  * A card is one (entry × skill) pair: `speak`, `write`, `listen` (R3). A card is due
  * on its due day — the app day of its last answer + the interval in days (R29.3) —
- * and a debt once that day is past. Debts in any deck hold back new entries until
- * they are done, unless the user adds new ones anyway for one portion (R17.4, R29.5).
+ * and a debt once that day is past. Debts of a deck hold back new entries of that deck
+ * until they are done, unless the user adds new ones anyway for one portion (R17.4,
+ * R29.5); every deck has its own daily limits and its own debts (R47).
  * The volume advice of R7 comes at stage 4.4b.
  */
 import { State } from 'ts-fsrs';
@@ -19,7 +20,8 @@ export const PORTION_SIZE = 15;
 /**
  * Entries introduced on an earlier day whose skills have no card yet (a skill added
  * by a new revision, a recall missed when the app was closed): at most this many a
- * day get their first cards (R25). Counted apart from the limit of introductions.
+ * day get their first cards (R25). Counted apart from the limit of introductions, in
+ * each deck on its own (R47 item 9).
  */
 export const CATCH_UP_PER_DAY = 5;
 /** Two cards of one entry (or of entries that sound the same) stand at least this many other cards apart, when there are enough cards. */
@@ -66,12 +68,6 @@ export type ReviewItem = Extract<SessionItem, { kind: 'review' }>;
  */
 export type NoNewReason = 'noMaterial' | 'dailyLimit' | 'overdue' | 'portionFull';
 
-/** Debts of one deck. */
-export interface DeckCount {
-  deckId: string;
-  count: number;
-}
-
 export interface SessionPlan {
   items: SessionItem[];
   /** Reviews in the portion (debts and today's). */
@@ -85,11 +81,11 @@ export interface SessionPlan {
   /** Introductions left for today after this portion. */
   newLeft: number;
   noNew: NoNewReason | null;
-  /** Debts by deck, exact (this deck first, then by count): any of them holds back new entries (R29.5). */
-  debts: DeckCount[];
+  /** Debts of this deck, exact: they hold back its new entries (R29.5, R47). */
+  debts: number;
 }
 
-/** What the session and the outlook see: every deck of the user (debts and limits span them all). */
+/** What the session and the outlook see: every deck of the user ("tomorrow" and "7 days" span them all). */
 export interface DayInput {
   now: Date;
   /** Zone of the device now (IANA): "today" is counted in it (R29.3). */
@@ -108,8 +104,9 @@ export interface DayInput {
 }
 
 export interface SessionInput extends DayInput {
-  /** The user's journal: introductions and first answers of every deck count toward the daily limits. */
+  /** The user's journal: introductions and first answers of this deck count toward its daily limits (R47). */
   log: readonly LogRecord[];
+  /** New entries a day in this deck (R47). */
   newPerDay: number;
   portion?: number;
   /** Two entries sound the same (ravi / ravie, R16): kept apart like cards of one entry. */
@@ -143,8 +140,11 @@ interface DueCard {
   day: number;
 }
 
-/** Cards of every deck that may be issued (R17.8) with their due day; `today` in the zone of the device. */
-function dueCards(input: DayInput): { today: number; cards: DueCard[] } {
+/**
+ * Cards of every installed deck that may be issued (R17.8) with their due day; `today` in the
+ * zone of the device. A card with no entry on this device (its deck is not installed) is left out.
+ */
+function dueCards(input: Omit<DayInput, 'deckId'>): { today: number; cards: DueCard[] } {
   const today = appToday(input.now, input.tz);
   const byKey = new Map(input.entries.map((e) => [pairKey(e.deckId, e.entryId), e]));
   const cards: DueCard[] = [];
@@ -155,12 +155,16 @@ function dueCards(input: DayInput): { today: number; cards: DueCard[] } {
   return { today, cards };
 }
 
-function debtsOf(cards: readonly DueCard[], today: number, deckId: string): DeckCount[] {
+function debtsIn(cards: readonly DueCard[], today: number, deckId: string): number {
+  return cards.filter((c) => c.day < today && c.card.deckId === deckId).length;
+}
+
+/** Debts of every installed deck that has some, exact: each deck on the main screen (R47 item 2). */
+export function debtsByDeck(input: Omit<DayInput, 'deckId'>): Map<string, number> {
+  const { today, cards } = dueCards(input);
   const by = new Map<string, number>();
   for (const c of cards) if (c.day < today) by.set(c.card.deckId, (by.get(c.card.deckId) ?? 0) + 1);
-  return [...by]
-    .map(([d, count]) => ({ deckId: d, count }))
-    .sort((a, b) => Number(b.deckId === deckId) - Number(a.deckId === deckId) || b.count - a.count || a.deckId.localeCompare(b.deckId));
+  return by;
 }
 
 /** Figures for the end of a portion, the empty queue and the deck screen (R29.6); exact, capped only when shown. */
@@ -177,7 +181,8 @@ export interface Outlook {
    * counted. Debts do not lower it (they only hold the new cards back, R29.5).
    */
   fresh: number;
-  debts: DeckCount[];
+  /** Debts of this deck. */
+  debts: number;
 }
 
 export function outlook(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>): Outlook {
@@ -193,7 +198,7 @@ export function outlook(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'
   const m = newMaterial(input);
   const skills = (list: readonly Recall[]) => list.reduce((n, r) => n + r.skills.length, 0);
   const fresh = skills(m.startedToday) + skills(m.startedBefore.slice(0, m.catchBudget)) + skills(m.notIntroduced.slice(0, m.budget));
-  return { today: here, tomorrow, week, fresh, debts: debtsOf(cards, today, input.deckId) };
+  return { today: here, tomorrow, week, fresh, debts: debtsIn(cards, today, input.deckId) };
 }
 
 /** True when `at` falls in the app day of `now` in `tz`. */
@@ -202,31 +207,30 @@ function inToday(at: Date, now: Date, tz: string): boolean {
 }
 
 /**
- * Entries introduced since the start of today, in any deck, hidden entries included (R17.5,
- * R17.9). An entry counts once: after sync, one entry introduced on two devices offline has
- * two introductions in the journal (stage 6a.3, R39).
+ * Entries of `deckId` introduced since the start of today, hidden entries included (R17.5,
+ * R17.9, R47). An entry counts once: after sync, one entry introduced on two devices offline
+ * has two introductions in the journal (stage 6a.3, R39). Introductions in other decks — those
+ * not installed too — count toward no limit here (R47 item 7).
  */
-export function introsToday(log: readonly LogRecord[], now: Date, tz: string): number {
-  return new Set(log.filter((r) => r.type === 'intro' && inToday(r.at, now, tz)).map((r) => pairKey(r.deckId, r.entryId))).size;
+export function introsToday(log: readonly LogRecord[], now: Date, tz: string, deckId: string): number {
+  return new Set(log.filter((r) => r.type === 'intro' && r.deckId === deckId && inToday(r.at, now, tz)).map((r) => r.entryId)).size;
 }
 
 /**
- * Entries, in any deck, introduced before today that had the first answer of some
- * skill today: the catch-up count (R25).
+ * Entries of `deckId` introduced before today that had the first answer of some skill
+ * today: the catch-up count of that deck (R25, R47 item 9).
  */
-export function catchUpToday(log: readonly LogRecord[], now: Date, tz: string): number {
+export function catchUpToday(log: readonly LogRecord[], now: Date, tz: string, deckId: string): number {
   const from = dayStart(now, tz).getTime();
   const introAt = new Map<string, number>();
   for (const r of log) {
-    if (r.type !== 'intro') continue;
-    const k = pairKey(r.deckId, r.entryId);
-    introAt.set(k, Math.min(introAt.get(k) ?? Infinity, r.at.getTime()));
+    if (r.type !== 'intro' || r.deckId !== deckId) continue;
+    introAt.set(r.entryId, Math.min(introAt.get(r.entryId) ?? Infinity, r.at.getTime()));
   }
   const entries = new Set<string>();
   for (const r of log) {
-    if (r.type !== 'review' || r.fsrs.stateBefore !== State.New || !inToday(r.at, now, tz)) continue;
-    const k = pairKey(r.deckId, r.entryId);
-    if ((introAt.get(k) ?? Infinity) < from) entries.add(k);
+    if (r.type !== 'review' || r.deckId !== deckId || r.fsrs.stateBefore !== State.New || !inToday(r.at, now, tz)) continue;
+    if ((introAt.get(r.entryId) ?? Infinity) < from) entries.add(r.entryId);
   }
   return entries.size;
 }
@@ -281,8 +285,8 @@ function newMaterial(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>):
     startedToday: started.filter((r) => introAt.get(r.entry.entryId)! >= start),
     startedBefore: started.filter((r) => introAt.get(r.entry.entryId)! < start),
     notIntroduced: ordered.filter((e) => !introAt.has(e.entryId)).map((e) => ({ entry: e, skills: issuableSkills(e, voice) })),
-    budget: Math.max(0, input.newPerDay - introsToday(input.log, input.now, input.tz)),
-    catchBudget: Math.max(0, CATCH_UP_PER_DAY - catchUpToday(input.log, input.now, input.tz)),
+    budget: Math.max(0, input.newPerDay - introsToday(input.log, input.now, input.tz, deckId)),
+    catchBudget: Math.max(0, CATCH_UP_PER_DAY - catchUpToday(input.log, input.now, input.tz, deckId)),
   };
 }
 
@@ -292,7 +296,7 @@ function newMaterial(input: DayInput & Pick<SessionInput, 'log' | 'newPerDay'>):
  * Places, as a rule: due cards of this deck (debts and today's, oldest first), then
  * first cards of entries introduced today and not finished, then catch-up entries,
  * then new entries in deck order, each with all its skills. Checks for new entries:
- * material → daily limit → debts in any deck → room (R17.5, R29.5). With debts, no
+ * material → daily limit → debts of this deck → room (R17.5, R29.5, R47). With debts, no
  * introductions and no catch-up; the recalls of today's introductions always come
  * (R17.3). "Add anyway" (one portion): the recalls of new entries — today's and the
  * new ones within the limit — take places first, the due cards the rest, catch-up last.
@@ -306,10 +310,9 @@ export function buildSession(input: SessionInput): SessionPlan {
   const portion = input.portion ?? PORTION_SIZE;
   const { deckId } = input;
   const { today, cards: allDue } = dueCards(input);
-  const debts = debtsOf(allDue, today, deckId);
-  const anyDebt = debts.length > 0;
-  const forced = anyDebt && input.addAnyway === true;
-  const blocked = anyDebt && !forced;
+  const debts = debtsIn(allDue, today, deckId);
+  const forced = debts > 0 && input.addAnyway === true;
+  const blocked = debts > 0 && !forced;
 
   const entries = input.entries.filter((e) => e.deckId === deckId);
   const due = allDue
