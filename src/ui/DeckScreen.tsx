@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { deckTitle, formHints, pickLocalizedWithLang, primaryLanguage } from '../core/deckFormat';
 import { findLanguagePack, speechLocale } from '../core/languages';
+import { NEW_PER_DAY_CHOICES } from '../core/deckLimits';
 import type { DeckRow, EntryRow } from '../core/model';
 import { buildSession, capped, outlook } from '../core/session';
 import { stopAudio } from '../platform/audio';
@@ -16,15 +17,31 @@ import { playEntry, stopEntryAudio } from './studyHooks';
 import { VoiceCheckSheet } from './VoiceCheck';
 
 /**
- * `due`: reviews due today in this deck (debts included); `debt`: the first deck with
- * debts (this one first) and how many decks have them; `held`: debts hold back new
- * entries now, so "add anyway" is offered (R29.5, R29.6).
+ * `due`: reviews due today in this deck (debts included); `debts`: of this deck only;
+ * `held`: they hold back new entries now, so "add anyway" is offered (R29.5, R29.6, R47).
  */
-type Day = { due: number; fresh: number; debt: { deckId: string; name: string; count: number } | null; held: boolean };
+type Day = { due: number; fresh: number; debts: number; held: boolean };
 type Loaded = { deck: DeckRow; entries: EntryRow[]; day: Day; voiceAsked: boolean } | 'missing' | null;
 
-/** `synced` — grows when records came from the server (stage 6a.3): the counts are read again. */
-export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: ManaDb; deckId: string; userId: string; newPerDay: number; synced?: number }) {
+/**
+ * `synced` — grows when records came from the server (stage 6a.3): the counts are read again.
+ * `newPerDay` — the limit of this deck, chosen here (R47 item 10): `onNewPerDay`.
+ */
+export function DeckScreen({
+  db,
+  deckId,
+  userId,
+  newPerDay,
+  onNewPerDay,
+  synced = 0,
+}: {
+  db: ManaDb;
+  deckId: string;
+  userId: string;
+  newPerDay: number;
+  onNewPerDay(n: number): void;
+  synced?: number;
+}) {
   const { t, lang, meaningLang } = useI18n();
   const [data, setData] = useState<Loaded>(null);
   const [audioError, setAudioError] = useState(false);
@@ -43,14 +60,8 @@ export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: 
       const [entries, all, meta] = await Promise.all([listEntries(db, deckId), loadSessionData(db, userId), db.meta.get('device')]);
       const input = { now: new Date(), tz: deviceZone(), deckId, entries: all.entries, cards: all.cards, log: all.log, newPerDay, voiceDecks: all.voiceDecks };
       const o = outlook(input);
-      const first = o.debts[0];
-      const other = (id: string) => all.decks.find((d) => d.id === id);
-      const name = (id: string) => {
-        const d = other(id);
-        return d ? deckTitle(d, lang) : id;
-      };
       const held = buildSession(input).noNew === 'overdue';
-      const day: Day = { due: o.today, fresh: o.fresh, debt: first ? { deckId: first.deckId, name: name(first.deckId), count: first.count } : null, held };
+      const day: Day = { due: o.today, fresh: o.fresh, debts: o.debts, held };
       // The first time a deck with entries without audio is chosen: "Voice check" (R33 item 14).
       const voiceAsked = meta?.voiceChecks?.[primaryLanguage(deck.language)] !== undefined;
       if (live) {
@@ -63,7 +74,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: 
       stopAudio();
       stopEntryAudio();
     };
-  }, [db, deckId, userId, newPerDay, lang, reload, synced]);
+  }, [db, deckId, userId, newPerDay, reload, synced]);
 
   // Deck audio, or the browser voice for an entry without it (R33 item 14).
   const play = async (e: EntryRow, language: string) => {
@@ -101,13 +112,7 @@ export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: 
         {t('deck.dueToday', { n: capped(day.due) })}
         {day.fresh > 0 && t('deck.dueNew', { m: capped(day.fresh) })}
       </p>
-      {day.debt && (
-        <p className="hint">
-          {day.debt.deckId === deck.id
-            ? t('deck.overdue', { n: capped(day.debt.count) })
-            : t('deck.overdueIn', { deck: day.debt.name, n: capped(day.debt.count) })}
-        </p>
-      )}
+      {day.debts > 0 && <p className="hint">{t('deck.overdue', { n: capped(day.debts) })}</p>}
       <div className="stack">
         <a className="primary big center" href={studyHref(deck.id)}>
           {t('study.start')}
@@ -118,6 +123,16 @@ export function DeckScreen({ db, deckId, userId, newPerDay, synced = 0 }: { db: 
           </a>
         )}
       </div>
+      <label className="field mt">
+        <span>{t('deck.newPerDay')}</span>
+        <select value={newPerDay} onChange={(e) => onNewPerDay(Number(e.target.value))}>
+          {[...new Set([...NEW_PER_DAY_CHOICES, newPerDay])].sort((a, b) => a - b).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
       {audioError && (
         <p className="hint err" role="alert">
           {t('deck.audioError')}

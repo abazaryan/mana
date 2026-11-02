@@ -54,9 +54,9 @@ const scheduler = createScheduler();
 
 type Hints = Omit<RecognitionSetup, 'onPhrasesUnsupported'>;
 /** What comes after this portion (R29.6): the figures and the portion "Another round" would build. */
-type After = { outlook: Outlook; next: SessionPlan; decks: Map<string, DeckRow> };
+type After = { outlook: Outlook; next: SessionPlan };
 type Round =
-  | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; decks: Map<string, DeckRow>; after: After | null }
+  | { deck: DeckRow; plan: SessionPlan; items: SessionItem[]; sessionId: string; hints: Hints; after: After | null }
   | 'missing'
   | null;
 type DrillResult = { echo: IntroEcho | null; copy: IntroCopy | null; skipped: boolean };
@@ -99,7 +99,7 @@ function planFor(data: SessionData, deck: DeckRow, newPerDay: number, addAnyway:
 
 function lookAhead(data: SessionData, deck: DeckRow, newPerDay: number): After {
   const day = { now: new Date(), tz: deviceZone(), deckId: deck.id, entries: data.entries, cards: data.cards, log: data.log, newPerDay, voiceDecks: data.voiceDecks };
-  return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false), decks: new Map(data.decks.map((d) => [d.id, d])) };
+  return { outlook: outlook(day), next: planFor(data, deck, newPerDay, false) };
 }
 
 export function StudyScreen({
@@ -139,9 +139,8 @@ export function StudyScreen({
     const data = await loadSessionData(db, actor.userId);
     const p = planFor(data, deck, newPerDay, force);
     const hints = await prepareHints(db, deck, biasing);
-    const decks = new Map(data.decks.map((d) => [d.id, d]));
     const after = p.items.length === 0 ? lookAhead(data, deck, newPerDay) : null;
-    setRound({ deck, plan: p, items: p.items, sessionId: randomId(), hints, decks, after });
+    setRound({ deck, plan: p, items: p.items, sessionId: randomId(), hints, after });
     setIndex(0);
     setRatings([]);
     setPrevious(null);
@@ -220,18 +219,13 @@ export function StudyScreen({
     );
   }
   const locale = speechLocale(deck.language) ?? pack.defaultLocale;
-  /** One line: why no new entries came (R17.7). Debts elsewhere name the deck (R29.5). */
+  /** One line: why no new entries came (R17.7). Only debts of this deck hold them back (R47). */
   const noNewText = (p: SessionPlan): string | null => {
     if (p.noNew === 'dailyLimit') return t('study.noNew.dailyLimit');
     if (p.noNew === 'portionFull') return t('study.noNew.portionFull');
     // "No new entries left" only when the portion has nothing at all: otherwise the figures tell.
     if (p.noNew === 'noMaterial') return p.items.length === 0 ? t('study.noNew.noMaterial') : null;
-    if (p.noNew !== 'overdue') return null;
-    const first = p.debts[0];
-    if (!first || first.deckId === deck.id) return t('study.noNew.overdue');
-    const more = p.debts.length > 1 ? t('study.noNew.overdueMore', { n: p.debts.length - 1 }) : '';
-    const other = round.decks.get(first.deckId);
-    return t('study.noNew.overdueIn', { deck: other ? deckTitle(other, lang) : first.deckId, more });
+    return p.noNew === 'overdue' ? t('study.noNew.overdue') : null;
   };
   const noNewLine = noNewText(plan);
 

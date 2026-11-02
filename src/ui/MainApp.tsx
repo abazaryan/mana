@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BUILD } from '../core/build';
+import { deckNewLimit, withDeckLimit } from '../core/deckLimits';
 import { defaultSettings, type MetaRow, type SettingsRow } from '../core/model';
 import { createScheduler, RULES_VERSION } from '../core/scheduler';
 import { setUnauthorizedHandler, syncTransport } from '../platform/api';
@@ -8,7 +9,7 @@ import { ensureDevice, getSettings, markAccountLost, needsRulesUpdate, putSettin
 import { finishPendingWipe, onWipeSignal } from '../platform/wipe';
 import { SyncEngine } from '../platform/syncClient';
 import { onQueued, onSyncChanged } from '../platform/syncEvents';
-import { saveSettings as storeSettings, settleUpdate } from '../platform/syncStore';
+import { saveSettings as storeSettings, settleUpdate, spreadDeckLimits } from '../platform/syncStore';
 import { ConsentScreen } from './ConsentScreen';
 import { startSignedIn } from './consentFlow';
 import { DeckScreen } from './DeckScreen';
@@ -61,6 +62,8 @@ async function load(): Promise<Boot> {
   const rulesUpdate = await needsRulesUpdate(db, meta);
   // After an update the "older version" mark of sync goes; cards left for it are rebuilt.
   const needsUpdate = await settleUpdate(db, createScheduler(), BUILD, RULES_VERSION);
+  // Once on this device: the shared limit of new entries goes to the installed decks (R47).
+  await spreadDeckLimits(db, meta.userId);
   return { phase: 'ready', meta: (await db.meta.get('device')) ?? meta, settings: (await getSettings(db, meta.userId)) ?? null, rulesUpdate, needsUpdate, deletedAtStart };
 }
 
@@ -220,13 +223,20 @@ export function MainApp({ route }: { route: Route }) {
 
   const blocked = rulesUpdate || (update !== null && updateShown);
 
-  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>) => {
+  const saveSettings = async (patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'biasing'>>) => {
     // Switching the hints on again forgets that this browser once rejected them.
     // The flag lives in the database (a study round may have set it since boot): always clear it.
     const freshMeta = patch.biasing === true ? await setPhrasesUnsupported(db, false) : meta;
     const s = { ...settings, ...patch, updatedAt: new Date() };
     await storeSettings(db, s);
     setBoot({ phase: 'ready', meta: freshMeta, settings: s, rulesUpdate, needsUpdate });
+  };
+
+  /** The daily limit of new entries of one deck, chosen on its screen (R47). */
+  const saveDeckLimit = async (deckId: string, n: number) => {
+    const s = withDeckLimit(settings, deckId, n, new Date());
+    await storeSettings(db, s);
+    setBoot({ phase: 'ready', meta, settings: s, rulesUpdate, needsUpdate });
   };
 
   const saveSystemKeyboard = async (on: boolean) => {
@@ -246,14 +256,23 @@ export function MainApp({ route }: { route: Route }) {
         <Shell route={route}>
           {update && updateShown && <UpdateScreen reason={update} />}
           {!(update && updateShown) && rulesUpdate && <RulesUpdate db={db} meta={meta} onDone={reload} />}
-          {!blocked && route.name === 'deck' && <DeckScreen db={db} deckId={route.deckId} userId={meta.userId} newPerDay={settings.newPerDay} synced={synced} />}
+          {!blocked && route.name === 'deck' && (
+            <DeckScreen
+              db={db}
+              deckId={route.deckId}
+              userId={meta.userId}
+              newPerDay={deckNewLimit(settings, route.deckId)}
+              onNewPerDay={(n) => void saveDeckLimit(route.deckId, n)}
+              synced={synced}
+            />
+          )}
           {!blocked && route.name === 'study' && (
             <StudyScreen
               key={`${route.deckId}${route.addAnyway ? '/new' : ''}`}
               db={db}
               deckId={route.deckId}
               actor={meta}
-              newPerDay={settings.newPerDay}
+              newPerDay={deckNewLimit(settings, route.deckId)}
               biasing={settings.biasing === true}
               addAnyway={route.addAnyway === true}
             />
@@ -262,14 +281,13 @@ export function MainApp({ route }: { route: Route }) {
             <SettingsScreen
               db={db}
               meta={meta}
-              newPerDay={settings.newPerDay}
               biasing={settings.biasing === true}
               systemKeyboard={meta.systemKeyboard === true}
               onSystemKeyboard={(on) => void saveSystemKeyboard(on)}
               onChange={(p) => void saveSettings(p)} onDataReplaced={reload}
               onAccountChange={(m) => void accountChanged(m)} />
           )}
-          {!blocked && route.name === 'decks' && <DecksScreen db={db} />}
+          {!blocked && route.name === 'decks' && <DecksScreen db={db} userId={meta.userId} synced={synced} />}
           {!blocked && route.name === 'join' && (
             <JoinFlow key={inviteOpened()} db={db} meta={meta} token={inviteToken()} onSignedIn={(m) => void accountChanged(m)} />
           )}

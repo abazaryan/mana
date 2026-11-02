@@ -26,10 +26,11 @@
 | `decks.entries` | Записей: {n} | Entries: {n} | Омӯзбаргҳо: {n} |
 | `decks.revision` | Редакция: {n} | Revision: {n} | Нусха: {n} |
 | `decks.audio` | Аудио: {mb} МБ | Audio: {mb} MB | Садо: {mb} МБ |
+| `decks.overdue` | Повторений с прошлых дней: {n} | Reviews from earlier days: {n} | Такрорҳои ақибафтода: {n} |
 | `deck.dueToday` | К повторению сегодня: {n} | Due today: {n} | Имрӯз барои такрор: {n} |
 | `deck.dueNew` |  · новых: {m} |  · new: {m} |  · нав: {m} |
 | `deck.overdue` | С прошлых дней: {n} — новые записи после них | From earlier days: {n} — new entries after them | Аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
-| `deck.overdueIn` | В колоде «{deck}» с прошлых дней: {n} — новые записи после них | In “{deck}”: {n} from earlier days — new entries after them | Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо |
+| `deck.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар рӯз |
 | `deck.hidden` | Скрыто: {n} — нет в новой редакции, их прогресс сохранён. | Hidden: {n} — not in the new revision; their progress is kept. | Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст. |
 | `deck.play` | Слушать | Play | Пахш |
 | `deck.contents` | Записи ({n}) | Entries ({n}) | Омӯзбаргҳо ({n}) |
@@ -52,9 +53,7 @@
 | `study.done` | Порция пройдена | Round done | Давр тамом шуд |
 | `study.more` | Ещё порция | Another round | Даври дигар |
 | `study.introduced` | Знакомств: {n} | Introductions: {n} | Ошноӣ: {n} |
-| `study.noNew.overdue` | Сначала — повторения с прошлых дней, потом новые записи. | Reviews from earlier days first, then new entries. | Аввал такрорҳои рӯзҳои гузашта, баъд омӯзбаргҳои нав. |
-| `study.noNew.overdueIn` | Сначала — повторения с прошлых дней в колоде «{deck}»{more}, потом новые записи. | First the reviews from earlier days in “{deck}”{more}, then new entries. | Аввал такрорҳои рӯзҳои гузашта дар маҷмӯаи «{deck}»{more}, баъд омӯзбаргҳои нав. |
-| `study.noNew.overdueMore` |  и ещё в {n} |  and {n} more |  ва {n} маҷмӯаи дигар |
+| `study.noNew.overdue` | Сначала — повторения с прошлых дней, потом новые записи. | Reviews from earlier days first, then new entries. | Аввал такрорҳои ақибафтода, баъд омӯзбаргҳои нав. |
 | `study.addAnyway` | Всё равно добавить | Add anyway | Ба ҳар ҳол илова |
 | `study.left.today` | Сегодня ещё: {n} | Still today: {n} | Имрӯз мондааст: {n} |
 | `study.left.tomorrow` | Завтра: {n} | Tomorrow: {n} | Фардо: {n} |
@@ -146,7 +145,6 @@
 | `settings.uiLang` | Язык интерфейса | Interface language | Забони барнома |
 | `settings.meaningLang` | Язык значений | Meaning language | Забони маъноҳо |
 | `settings.meaningHint` | Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся. | Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one. | Маъно, роҳнамо ва ёддошти омӯзбаргҳо бо ин забон нишон дода мешаванд; агар бо ин забон набошад — бо забони дигари мавҷуда. |
-| `settings.newPerDay` | Новых записей в день | New entries per day | Омӯзбаргҳои нав дар рӯз |
 | `settings.recognition` | Распознавание речи | Speech recognition | Бозшиносии гуфтор |
 | `settings.biasing` | Подсказки распознавателю (эксперимент) | Recognizer hints (experiment) | Вожаҳо барои бозшиносии гуфтор (озмоишӣ) |
 | `settings.biasingHint` | Распознаватель получает слова ваших колод, чтобы лучше их узнавать. Работает не во всех браузерах. | The recognizer gets the words of your decks to recognise them better. Not every browser supports it. | Ба бозшиносии гуфтор вожаҳои маҷмӯаҳои шумо дода мешаванд, то онҳоро беҳтар бишносад. Дар ҳама мурургарҳо кор намекунад. |

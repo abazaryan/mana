@@ -66,12 +66,11 @@ function VoiceChecks({ db }: { db: ManaDb }) {
 interface Props {
   db: ManaDb;
   meta: MetaRow;
-  newPerDay: number;
   biasing: boolean;
   /** Answers on the device's own keyboard (R31, device-only). */
   systemKeyboard: boolean;
   onSystemKeyboard(on: boolean): void;
-  onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'newPerDay' | 'biasing'>>): void;
+  onChange(patch: Partial<Pick<SettingsRow, 'uiLang' | 'meaningLang' | 'biasing'>>): void;
   /** The restore adopted another user: reload meta and settings. */
   onDataReplaced(): void;
   /** Signed in or out on this screen (stage 6a.2). */
@@ -79,9 +78,6 @@ interface Props {
 }
 
 const LANGS: Lang[] = ['tg', 'ru', 'en'];
-/** New entries per day (R7): 5 by default, 10 the alternative; the user may go higher. */
-const NEW_PER_DAY = [5, 10, 15, 20];
-
 const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
   persisted: 'storage.persisted',
   'not-persisted': 'storage.notPersisted',
@@ -90,7 +86,7 @@ const PERSISTENCE_TEXT: Record<Persistence, StringKey> = {
 
 type Msg = { text: string; err: boolean } | null;
 
-export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, onSystemKeyboard, onChange, onDataReplaced, onAccountChange }: Props) {
+export function SettingsScreen({ db, meta, biasing, systemKeyboard, onSystemKeyboard, onChange, onDataReplaced, onAccountChange }: Props) {
   const { t, lang, meaningLang } = useI18n();
   const [persist, setPersist] = useState<Persistence | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -214,16 +210,6 @@ export function SettingsScreen({ db, meta, newPerDay, biasing, systemKeyboard, o
         </select>
       </label>
       <p className="hint">{t('settings.meaningHint')}</p>
-      <label className="field">
-        <span>{t('settings.newPerDay')}</span>
-        <select value={newPerDay} onChange={(e) => onChange({ newPerDay: Number(e.target.value) })}>
-          {[...new Set([...NEW_PER_DAY, newPerDay])].sort((a, b) => a - b).map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </label>
 
       <h2 className="h2">{t('settings.recognition')}</h2>
       <p className="hint">{t('privacy.voice')}</p>

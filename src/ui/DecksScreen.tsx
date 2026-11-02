@@ -5,9 +5,11 @@ import { deckTitle } from '../core/deckFormat';
 import { installedForAi } from '../core/deckReport';
 import { findLanguagePack, LANGUAGE_PACKS } from '../core/languages';
 import type { DeckRow } from '../core/model';
+import { capped, debtsByDeck } from '../core/session';
 import type { ManaDb } from '../platform/db';
+import { deviceZone } from '../platform/device';
 import { requestPersistence } from '../platform/persist';
-import { applyImport, listDecks, listEntries, prepareImport } from '../platform/repo';
+import { applyImport, listDecks, listEntries, loadSessionData, prepareImport } from '../platform/repo';
 import { CopyButton } from './CopyButton';
 import { deckPromptText, promptLanguage } from './deckPrompt';
 import { useI18n } from './i18n';
@@ -93,16 +95,30 @@ function PromptSheet({ db, onClose }: { db: ManaDb; onClose(): void }) {
   );
 }
 
-export function DecksScreen({ db }: { db: ManaDb }) {
+/**
+ * The decks, each with its debts (R47 item 2: a deck that lags behind is seen). The debts come
+ * after the list: they need the whole journal. `synced` — records came from the server.
+ */
+export function DecksScreen({ db, userId, synced = 0 }: { db: ManaDb; userId: string; synced?: number }) {
   const { t, lang } = useI18n();
   const [decks, setDecks] = useState<DeckRow[] | null>(null);
+  const [debts, setDebts] = useState<Map<string, number>>(new Map());
   const [imp, setImp] = useState<ImportState | null>(null);
   const [sheet, setSheet] = useState<'paste' | 'prompt' | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
-    void listDecks(db).then(setDecks);
-  }, [db]);
+    let live = true;
+    void listDecks(db).then((d) => {
+      if (live) setDecks(d);
+    });
+    void loadSessionData(db, userId).then((all) => {
+      if (live) setDebts(debtsByDeck({ now: new Date(), tz: deviceZone(), entries: all.entries, cards: all.cards, voiceDecks: all.voiceDecks }));
+    });
+    return () => {
+      live = false;
+    };
+  }, [db, userId, synced]);
   useEffect(refresh, [refresh]);
 
   const write = async (plan: ImportPlan, archive: DeckArchive, checked: Checked) => {
@@ -175,6 +191,7 @@ export function DecksScreen({ db }: { db: ManaDb }) {
                   {languageName(d.language, lang)} · {t('decks.entries', { n: d.entryCount })} ·{' '}
                   {t('decks.revision', { n: d.revision })}
                 </span>
+                {(debts.get(d.id) ?? 0) > 0 && <span className="hint">{t('decks.overdue', { n: capped(debts.get(d.id)!) })}</span>}
               </a>
             </li>
           ))}

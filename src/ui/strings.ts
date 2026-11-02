@@ -41,6 +41,8 @@ export const STRINGS = {
   'decks.entries': { tg: 'Омӯзбаргҳо: {n}', ru: 'Записей: {n}', en: 'Entries: {n}' },
   'decks.revision': { tg: 'Нусха: {n}', ru: 'Редакция: {n}', en: 'Revision: {n}' },
   'decks.audio': { tg: 'Садо: {mb} МБ', ru: 'Аудио: {mb} МБ', en: 'Audio: {mb} MB' },
+  // Debts of each deck on the main screen (R47 item 2; tg approved 02.11.2026).
+  'decks.overdue': { tg: 'Такрорҳои ақибафтода: {n}', ru: 'Повторений с прошлых дней: {n}', en: 'Reviews from earlier days: {n}' },
 
   // One deck
   'deck.dueToday': { tg: 'Имрӯз барои такрор: {n}', ru: 'К повторению сегодня: {n}', en: 'Due today: {n}' },
@@ -51,11 +53,8 @@ export const STRINGS = {
     ru: 'С прошлых дней: {n} — новые записи после них',
     en: 'From earlier days: {n} — new entries after them',
   },
-  'deck.overdueIn': {
-    tg: 'Дар маҷмӯаи «{deck}» аз рӯзҳои гузашта: {n} — омӯзбаргҳои нав баъд аз онҳо',
-    ru: 'В колоде «{deck}» с прошлых дней: {n} — новые записи после них',
-    en: 'In “{deck}”: {n} from earlier days — new entries after them',
-  },
+  // The daily limit of new entries of this deck: 5 / 10 / 15 / 20 (R47 item 10; tg approved 02.11.2026).
+  'deck.newPerDay': { tg: 'Омӯзбаргҳои нав дар рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
   'deck.hidden': {
     tg: 'Пинҳон: {n} — дар нусхаи нав нестанд, пешрафташон ҳифз шудааст.',
     ru: 'Скрыто: {n} — нет в новой редакции, их прогресс сохранён.',
@@ -110,16 +109,10 @@ export const STRINGS = {
   'study.introduced': { tg: 'Ошноӣ: {n}', ru: 'Знакомств: {n}', en: 'Introductions: {n}' },
   // Debts and the end of a portion (Р29.5, Р29.6; tg approved 18.10.2026)
   'study.noNew.overdue': {
-    tg: 'Аввал такрорҳои рӯзҳои гузашта, баъд омӯзбаргҳои нав.',
+    tg: 'Аввал такрорҳои ақибафтода, баъд омӯзбаргҳои нав.',
     ru: 'Сначала — повторения с прошлых дней, потом новые записи.',
     en: 'Reviews from earlier days first, then new entries.',
   },
-  'study.noNew.overdueIn': {
-    tg: 'Аввал такрорҳои рӯзҳои гузашта дар маҷмӯаи «{deck}»{more}, баъд омӯзбаргҳои нав.',
-    ru: 'Сначала — повторения с прошлых дней в колоде «{deck}»{more}, потом новые записи.',
-    en: 'First the reviews from earlier days in “{deck}”{more}, then new entries.',
-  },
-  'study.noNew.overdueMore': { tg: ' ва {n} маҷмӯаи дигар', ru: ' и ещё в {n}', en: ' and {n} more' },
   'study.addAnyway': { tg: 'Ба ҳар ҳол илова', ru: 'Всё равно добавить', en: 'Add anyway' },
   'study.left.today': { tg: 'Имрӯз мондааст: {n}', ru: 'Сегодня ещё: {n}', en: 'Still today: {n}' },
   'study.left.tomorrow': { tg: 'Фардо: {n}', ru: 'Завтра: {n}', en: 'Tomorrow: {n}' },
@@ -308,7 +301,6 @@ export const STRINGS = {
     ru: 'Значения, подсказки и заметки записей показываются на этом языке; если его нет — на другом имеющемся.',
     en: 'Meanings, hints and notes are shown in this language; if an entry lacks it, in another available one.',
   },
-  'settings.newPerDay': { tg: 'Омӯзбаргҳои нав дар рӯз', ru: 'Новых записей в день', en: 'New entries per day' },
   'settings.recognition': { tg: 'Бозшиносии гуфтор', ru: 'Распознавание речи', en: 'Speech recognition' },
   'settings.biasing': {
     tg: 'Вожаҳо барои бозшиносии гуфтор (озмоишӣ)',
