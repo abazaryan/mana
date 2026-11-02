@@ -4,7 +4,7 @@
  * the app and the Worker; no imports beyond kinds.ts.
  */
 import type { RecordProblem } from './journalRecord.ts';
-import { UI_LANGS } from './kinds.ts';
+import { ID_PATTERN, UI_LANGS } from './kinds.ts';
 
 /**
  * Records in one push that the server takes; the device sends at most PUSH_BATCH. 100 from
@@ -20,15 +20,37 @@ export const PUSH_BODY_LIMIT = 1024 * 1024;
  */
 export const PULL_MAX = 200;
 
-/** The settings every device of an account shares (R33 item 10); everything else stays on the device. */
+/**
+ * The settings every device of an account shares under a fixed key (R33 item 10); everything else
+ * stays on the device. `newPerDay` is the shared limit from before R47: the server still takes it
+ * (from older builds), this build neither sends nor takes it.
+ */
 export const SYNCED_SETTINGS = ['uiLang', 'meaningLang', 'newPerDay'] as const;
-export type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
 
-export const isSyncedSetting = (key: unknown): key is SyncedSetting => (SYNCED_SETTINGS as readonly unknown[]).includes(key);
+/** The daily limit of one deck (R47): `newPerDeck:<deck id>`; ":" is not in deck ids. */
+export const DECK_LIMIT_PREFIX = 'newPerDeck:';
+export type DeckLimitKey = `${typeof DECK_LIMIT_PREFIX}${string}`;
+export type SyncedSetting = (typeof SYNCED_SETTINGS)[number] | DeckLimitKey;
+
+export const deckLimitKey = (deckId: string): DeckLimitKey => `${DECK_LIMIT_PREFIX}${deckId}`;
+
+/** The deck of a deck limit key; null for any other key. */
+export function deckOfLimitKey(key: unknown): string | null {
+  if (typeof key !== 'string' || !key.startsWith(DECK_LIMIT_PREFIX)) return null;
+  const id = key.slice(DECK_LIMIT_PREFIX.length);
+  return ID_PATTERN.test(id) ? id : null;
+}
+
+export const isSyncedSetting = (key: unknown): key is SyncedSetting => (SYNCED_SETTINGS as readonly unknown[]).includes(key) || deckOfLimitKey(key) !== null;
+
+/** Settings changes in one push at most: the fixed keys and a key per deck (R47). */
+export const MAX_SETTING_CHANGES = 50;
+/** Deck limits one account keeps on the server (R47): a new deck key past this many is not stored. */
+export const MAX_DECK_LIMITS = 200;
 
 /** An allowed value of a synced setting. */
 export function validSetting(key: SyncedSetting, value: unknown): boolean {
-  if (key === 'newPerDay') return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 100;
+  if (key === 'newPerDay' || deckOfLimitKey(key) !== null) return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 100;
   return (UI_LANGS as readonly unknown[]).includes(value);
 }
 
@@ -43,7 +65,7 @@ export interface SettingChange {
 }
 
 /** The account's settings on the server: value and change number by key. */
-export type ServerSettings = Partial<Record<SyncedSetting, { value: unknown; rev: number }>>;
+export type ServerSettings = Partial<Record<string, { value: unknown; rev: number }>>;
 
 export interface PushRequest {
   records: unknown[];

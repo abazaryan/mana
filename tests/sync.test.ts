@@ -8,7 +8,7 @@ import { Rating, type Grade } from 'ts-fsrs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { rebuildCards } from '../src/core/cards';
 import { canonicalJson } from '../src/core/journalRecord';
-import type { CardRow, LogRecord } from '../src/core/model';
+import type { CardRow, DeckRow, LogRecord } from '../src/core/model';
 import { NOTICE_VERSION } from '../src/core/notice';
 import { createScheduler, RULES_VERSION } from '../src/core/scheduler';
 import { introsToday } from '../src/core/session';
@@ -18,7 +18,7 @@ import type { ApiResult, SyncTransport } from '../src/platform/api';
 import { ManaDb } from '../src/platform/db';
 import { ensureDevice, exportJournal, markSignedIn, markSignedOut, recordDrill, recordIntro, recordReview, type ReviewInput } from '../src/platform/repo';
 import { sendBeforeLeaving, syncOnce, type RunResult, type SyncEnv } from '../src/platform/syncClient';
-import { applyPull, nextBatch, queueCounts, saveSettings, settleUpdate } from '../src/platform/syncStore';
+import { applyPull, nextBatch, queueCounts, saveSettings, settleUpdate, spreadDeckLimits } from '../src/platform/syncStore';
 import { send, signedIn, world, type SignedIn, type World } from '../worker/test/accounts';
 
 const LUX = { tz: 'Europe/Luxembourg', tzOffsetMin: 120 };
@@ -232,7 +232,7 @@ describe('two devices in two zones', () => {
     await sync(a);
     const log = await allLog(a);
     expect(log.filter((r) => r.type === 'intro')).toHaveLength(2);
-    expect(introsToday(log, new Date(T + 2 * MIN), 'Europe/Luxembourg')).toBe(1);
+    expect(introsToday(log, new Date(T + 2 * MIN), 'Europe/Luxembourg', 'fr-test-01')).toBe(1);
   });
 
   it('records of a deck this device does not have: kept, and their cards are rebuilt (STAGE6 5.8)', async () => {
@@ -485,40 +485,71 @@ describe('consent to the current notice (R39)', () => {
 });
 
 describe('settings', () => {
-  it('first exchange after sign-in: the account\'s values win, a key the account lacks is sent', async () => {
+  const settingsOf = async (d: { db: ManaDb; who: { userId: string } }) => (await d.db.settings.get(d.who.userId))!;
+
+  it("first exchange after sign-in: the account's values win, a key the account lacks is sent", async () => {
     const w = world();
     const a = await device(w);
-    await saveSettings(a.db, { ...(await a.db.settings.get(a.who.userId))!, newPerDay: 10, uiLang: 'ru' });
+    await saveSettings(a.db, { ...(await settingsOf(a)), newPerDeck: { x: 10 }, uiLang: 'ru' });
     await sync(a);
     const b = await device(w, a.who.userId);
-    await b.db.settings.put({ ...(await b.db.settings.get(b.who.userId))!, uiLang: 'en', newPerDay: 20, biasing: true });
+    await b.db.settings.put({ ...(await settingsOf(b)), uiLang: 'en', newPerDeck: { x: 20, y: 15 }, biasing: true });
     await sync(b);
-    expect(await b.db.settings.get(b.who.userId)).toMatchObject({ uiLang: 'ru', newPerDay: 10, meaningLang: 'tg', biasing: true });
+    expect(await settingsOf(b)).toMatchObject({ uiLang: 'ru', newPerDeck: { x: 10, y: 15 }, meaningLang: 'tg', biasing: true });
+    await sync(a);
+    expect((await settingsOf(a)).newPerDeck).toEqual({ x: 10, y: 15 });
   });
 
-  it('the change the server got last wins, by key; device-only keys never leave', async () => {
+  it('the change the server got last wins, by key — each deck limit on its own (R47); device-only keys never leave', async () => {
     const w = world();
     const a = await device(w);
     const b = await device(w, a.who.userId);
     await sync(a);
     await sync(b);
-    await saveSettings(b.db, { ...(await b.db.settings.get(b.who.userId))!, newPerDay: 15 });
-    await saveSettings(a.db, { ...(await a.db.settings.get(a.who.userId))!, newPerDay: 20, uiLang: 'en', biasing: true });
+    // Offline on both: the same deck on both, and another deck on each.
+    await saveSettings(b.db, { ...(await settingsOf(b)), newPerDeck: { x: 15, z: 20 } });
+    await saveSettings(a.db, { ...(await settingsOf(a)), newPerDeck: { x: 20, y: 10 }, uiLang: 'en', biasing: true });
     await sync(a);
     await sync(b);
     await sync(a);
-    expect(await a.db.settings.get(a.who.userId)).toMatchObject({ newPerDay: 15, uiLang: 'en', biasing: true });
-    expect(await b.db.settings.get(b.who.userId)).toMatchObject({ newPerDay: 15, uiLang: 'en' });
-    expect((await b.db.settings.get(b.who.userId))!.biasing).toBeUndefined();
+    expect(await settingsOf(a)).toMatchObject({ newPerDeck: { x: 15, y: 10, z: 20 }, uiLang: 'en', biasing: true });
+    expect(await settingsOf(b)).toMatchObject({ newPerDeck: { x: 15, y: 10, z: 20 }, uiLang: 'en' });
+    expect((await settingsOf(b)).biasing).toBeUndefined();
     const keys = (w.db.sqlite.prepare('SELECT key FROM user_settings ORDER BY key').all() as { key: string }[]).map((r) => r.key);
-    expect(keys).toEqual(['meaningLang', 'newPerDay', 'uiLang']);
+    expect(keys).toEqual(['meaningLang', 'newPerDeck:x', 'newPerDeck:y', 'newPerDeck:z', 'uiLang']);
+  });
+
+  it('the shared limit spread over the installed decks on two devices (R47): the first to send wins a deck both have', async () => {
+    const w = world();
+    const a = await device(w);
+    const b = await device(w, a.who.userId);
+    const install = (db: ManaDb, ids: string[]) => db.decks.bulkPut(ids.map((id) => ({ id }) as DeckRow));
+    await install(a.db, ['x', 'y']);
+    await install(b.db, ['y', 'z']);
+    // b had not seen the last change of the shared value yet.
+    await a.db.settings.put({ ...(await settingsOf(a)), newPerDay: 10 });
+    await b.db.settings.put({ ...(await settingsOf(b)), newPerDay: 15 });
+    await spreadDeckLimits(a.db, a.who.userId, new Date(T));
+    await spreadDeckLimits(b.db, b.who.userId, new Date(T));
+    expect((await settingsOf(b)).newPerDeck).toEqual({ y: 15, z: 15 });
+    await sync(a);
+    await sync(b);
+    await sync(a);
+    expect((await settingsOf(a)).newPerDeck).toEqual({ x: 10, y: 10, z: 15 });
+    expect((await settingsOf(b)).newPerDeck).toEqual({ x: 10, y: 10, z: 15 });
+    // Once: a deck installed later gets no spread value, and the shared one is not sent.
+    await install(a.db, ['n']);
+    await spreadDeckLimits(a.db, a.who.userId, new Date(T + DAY));
+    expect((await settingsOf(a)).newPerDeck?.n).toBeUndefined();
+    const keys = (w.db.sqlite.prepare('SELECT key FROM user_settings ORDER BY key').all() as { key: string }[]).map((r) => r.key);
+    expect(keys).not.toContain('newPerDay');
   });
 
   it('a setting changed while signed out is not pending', async () => {
     const w = world();
     const a = await device(w);
     await markSignedOut(a.db);
-    expect(await saveSettings(a.db, { ...(await a.db.settings.get(a.who.userId))!, newPerDay: 15 })).toBe(false);
+    expect(await saveSettings(a.db, { ...(await settingsOf(a)), newPerDeck: { x: 15 } })).toBe(false);
   });
 });
 

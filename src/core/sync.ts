@@ -5,7 +5,7 @@
  */
 import type { Skill } from './kinds.ts';
 import { RULES_VERSION } from './scheduler';
-import { SYNCED_SETTINGS, validSetting, type ServerSettings, type SettingChange, type SyncedSetting } from './syncProtocol.ts';
+import { deckLimitKey, deckOfLimitKey, MAX_SETTING_CHANGES, validSetting, type ServerSettings, type SettingChange, type SyncedSetting } from './syncProtocol.ts';
 
 /**
  * Records in one push, and its body at most (the server takes more: PUSH_MAX_RECORDS, 1 MiB).
@@ -133,21 +133,49 @@ export function touchedCards(records: readonly Json[]): [string, string, string,
   return [...keys.values()];
 }
 
-/** The synced settings as the device keeps them (part of SettingsRow). */
-export type SyncedValues = Record<SyncedSetting, unknown>;
+/** The fixed keys this build syncs; the shared `newPerDay` is no longer one of them (R47). */
+const DEVICE_SYNCED = ['uiLang', 'meaningLang'] as const;
+
+/** A key this build sends and takes: the fixed ones and a limit per deck. */
+const syncedHere = (key: string): key is SyncedSetting => (DEVICE_SYNCED as readonly string[]).includes(key) || deckOfLimitKey(key) !== null;
+
+/** The synced settings as the device keeps them, by sync key (from SettingsRow: `syncedValues`). */
+export type SyncedValues = Partial<Record<string, unknown>>;
+
+/** The synced part of the settings as keys: the fixed ones, then a key per deck limit. */
+export function syncedValues(s: { uiLang: unknown; meaningLang: unknown; newPerDeck?: Record<string, number> }): SyncedValues {
+  const out: SyncedValues = { uiLang: s.uiLang, meaningLang: s.meaningLang };
+  for (const [deckId, n] of Object.entries(s.newPerDeck ?? {})) out[deckLimitKey(deckId)] = n;
+  return out;
+}
+
+/** Received values back into the settings fields: fixed keys as they are, deck limits into `newPerDeck`. */
+export function fromSyncedValues<S extends { newPerDeck?: Record<string, number> }>(s: S, values: SyncedValues): S {
+  const next: S = { ...s };
+  for (const [key, value] of Object.entries(values)) {
+    const deckId = deckOfLimitKey(key);
+    if (deckId !== null) next.newPerDeck = { ...next.newPerDeck, [deckId]: value as number };
+    else (next as Record<string, unknown>)[key] = value;
+  }
+  return next;
+}
+
+/** Synced keys whose values differ between two sets of values. */
+export function changedKeys(before: SyncedValues, after: SyncedValues): string[] {
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((k) => syncedHere(k) && before[k] !== after[k]);
+}
 
 /**
  * The settings to send: a key changed here — `set` (it wins on the server); a key this device
- * never got from the server (the first exchange after sign-in) — `init` (kept only if the
- * account has none, so the server's value is taken).
+ * never got from the server (the first exchange after sign-in, a deck limit spread over the
+ * installed decks, R47) — `init` (kept only if the account has none, so the server's value is
+ * taken). Changes first; at most MAX_SETTING_CHANGES, the rest go with the next push.
  */
 export function settingsToSend(local: SyncedValues, rev: Partial<Record<string, number>>, dirty: readonly string[]): SettingChange[] {
-  const out: SettingChange[] = [];
-  for (const key of SYNCED_SETTINGS) {
-    if (dirty.includes(key)) out.push({ key, value: local[key], mode: 'set' });
-    else if (rev[key] === undefined) out.push({ key, value: local[key], mode: 'init' });
-  }
-  return out;
+  const keys = Object.keys(local).filter(syncedHere);
+  const set = keys.filter((key) => dirty.includes(key)).map((key): SettingChange => ({ key, value: local[key], mode: 'set' }));
+  const init = keys.filter((key) => !dirty.includes(key) && rev[key] === undefined).map((key): SettingChange => ({ key, value: local[key], mode: 'init' }));
+  return [...set, ...init].slice(0, MAX_SETTING_CHANGES);
 }
 
 /**
@@ -164,17 +192,17 @@ export function mergeSettings(
   server: ServerSettings,
   sent: readonly SettingChange[] = [],
   rejected: readonly string[] = [],
-): { values: Partial<SyncedValues>; rev: Partial<Record<string, number>>; dirty: string[] } {
+): { values: SyncedValues; rev: Partial<Record<string, number>>; dirty: string[] } {
   const stillDirty = dirty.filter((key) => {
     if (rejected.includes(key)) return false;
     const s = sent.find((c) => c.key === key && c.mode === 'set');
-    return !(s && s.value === local[key as SyncedSetting]);
+    return !(s && s.value === local[key]);
   });
-  const values: Partial<SyncedValues> = {};
+  const values: SyncedValues = {};
   const nextRev = { ...rev };
-  for (const key of SYNCED_SETTINGS) {
-    const remote = server[key];
-    if (!remote || stillDirty.includes(key)) continue;
+  // Every key the account has — deck limits of decks not installed here too (R47 item 3).
+  for (const [key, remote] of Object.entries(server)) {
+    if (!remote || !syncedHere(key) || stillDirty.includes(key)) continue;
     if (nextRev[key] !== undefined && remote.rev <= nextRev[key]!) continue;
     nextRev[key] = remote.rev;
     if (validSetting(key, remote.value) && remote.value !== local[key]) values[key] = remote.value;

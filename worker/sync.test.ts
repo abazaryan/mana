@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, FUTURE_SLACK_MS } from '../src/core/journalRecord.ts';
-import { PULL_MAX, PUSH_BODY_LIMIT, PUSH_MAX_RECORDS, type PullResponse, type PushResponse } from '../src/core/syncProtocol.ts';
+import { MAX_DECK_LIMITS, MAX_SETTING_CHANGES, PULL_MAX, PUSH_BODY_LIMIT, PUSH_MAX_RECORDS, type PullResponse, type PushResponse } from '../src/core/syncProtocol.ts';
 import { ROUTES, type Routes } from './api.ts';
 import { DAY, HOUR, send, signedIn, T0, world, type SignedIn, type World } from './test/accounts.ts';
 import { makePush } from './sync.ts';
@@ -265,6 +265,65 @@ describe('settings', () => {
     expect(res.settingsRejected).toEqual(['systemKeyboard', 'uiLang', 'newPerDay']);
     expect(res.settings).toEqual({ meaningLang: { value: 'en', rev: 1 } });
     expect((await pushTo(w, a, { records: [], settings: [{ key: 'uiLang', value: 'tg', mode: 'later' }] })).status).toBe(400);
+  });
+
+  it('a limit per deck (R47): one key per deck, the change the server got last wins by deck', async () => {
+    const w = world();
+    const a = await signedIn(w);
+    const b = await signedIn(w, a.userId);
+    let res = await pushed(w, a, { records: [], settings: [{ key: 'newPerDeck:fr-tu1-u01', value: 10, mode: 'init' }, { key: 'newPerDeck:fr-tu1-u01-listen', value: 10, mode: 'init' }] });
+    res = await pushed(w, b, { records: [], settings: [{ key: 'newPerDeck:fr-tu1-u01', value: 5, mode: 'init' }, { key: 'newPerDeck:my-deck', value: 5, mode: 'init' }] });
+    expect(res.settings).toEqual({ 'newPerDeck:fr-tu1-u01': { value: 10, rev: 1 }, 'newPerDeck:fr-tu1-u01-listen': { value: 10, rev: 1 }, 'newPerDeck:my-deck': { value: 5, rev: 2 } });
+    await pushed(w, a, { records: [], settings: [{ key: 'newPerDeck:fr-tu1-u01', value: 15, mode: 'set' }] });
+    res = await pushed(w, b, { records: [], settings: [{ key: 'newPerDeck:fr-tu1-u01-listen', value: 20, mode: 'set' }] });
+    expect(res.settings['newPerDeck:fr-tu1-u01']).toEqual({ value: 15, rev: 3 });
+    expect(res.settings['newPerDeck:fr-tu1-u01-listen']).toEqual({ value: 20, rev: 4 });
+    expect((await pulled(w, a)).body.settings).toEqual(res.settings);
+  });
+
+  it('deck limit keys and values are checked; the shared newPerDay of older builds is still taken', async () => {
+    const w = world();
+    const a = await signedIn(w);
+    const bad = ['newPerDeck:', 'newPerDeck:Fr', 'newPerDeck:a:b', 'newPerDeck:-a', `newPerDeck:${'a'.repeat(65)}`, 'newperdeck:a'];
+    const res = await pushed(w, a, {
+      records: [],
+      settings: [
+        ...bad.map((key) => ({ key, value: 10, mode: 'set' })),
+        { key: 'newPerDeck:a', value: 0, mode: 'set' },
+        { key: 'newPerDeck:b', value: 101, mode: 'set' },
+        { key: 'newPerDeck:c', value: '10', mode: 'set' },
+        { key: `newPerDeck:${'d'.repeat(64)}`, value: 100, mode: 'set' },
+        { key: 'newPerDay', value: 10, mode: 'set' },
+      ],
+    });
+    expect(res.settingsRejected).toEqual([...bad, 'newPerDeck:a', 'newPerDeck:b', 'newPerDeck:c']);
+    expect(Object.keys(res.settings).sort()).toEqual(['newPerDay', `newPerDeck:${'d'.repeat(64)}`]);
+  });
+
+  it(`at most ${MAX_SETTING_CHANGES} changes in one push`, async () => {
+    const w = world();
+    const a = await signedIn(w);
+    const keys = (n: number, from = 0) => Array.from({ length: n }, (_, k) => ({ key: `newPerDeck:d${from + k}`, value: 5, mode: 'init' }));
+    expect((await pushTo(w, a, { records: [], settings: keys(MAX_SETTING_CHANGES + 1) })).status).toBe(400);
+    expect(Object.keys((await pushed(w, a, { records: [], settings: keys(MAX_SETTING_CHANGES) })).settings)).toHaveLength(MAX_SETTING_CHANGES);
+  });
+
+  it(`a new deck key past ${MAX_DECK_LIMITS} deck limits is not stored; known keys still change`, async () => {
+    const w = world();
+    const a = await signedIn(w);
+    const keys = (n: number, from: number, value = 5) => Array.from({ length: n }, (_, k) => ({ key: `newPerDeck:d${from + k}`, value, mode: 'set' }));
+    for (let from = 0; from < MAX_DECK_LIMITS - 1; from += MAX_SETTING_CHANGES) await pushed(w, a, { records: [], settings: keys(Math.min(MAX_SETTING_CHANGES, MAX_DECK_LIMITS - 1 - from), from) });
+    const deckRows = () => count(w, "SELECT count(*) AS n FROM user_settings WHERE key LIKE 'newPerDeck:%'");
+    expect(deckRows()).toBe(MAX_DECK_LIMITS - 1);
+    // Below the limit before the push: the whole push is stored, one push past it at most.
+    await pushed(w, a, { records: [], settings: keys(2, 1000) });
+    expect(deckRows()).toBe(MAX_DECK_LIMITS + 1);
+    const res = await pushed(w, a, { records: [], settings: [...keys(1, 2000), ...keys(1, 0, 20), { key: 'uiLang', value: 'ru', mode: 'set' }] });
+    expect(deckRows()).toBe(MAX_DECK_LIMITS + 1);
+    expect(res.settingsRejected).toEqual([]);
+    expect(res.settings['newPerDeck:d2000']).toBeUndefined();
+    expect(res.settings['newPerDeck:d0']?.value).toBe(20);
+    expect(res.settings.uiLang?.value).toBe('ru');
   });
 });
 

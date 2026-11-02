@@ -146,8 +146,18 @@ export interface SettingsRow {
   uiLang: UiLang;
   /** Language of meanings, hints and notes in decks (R8). */
   meaningLang: UiLang;
-  /** New entries per day (R7); used from stage 4.2. */
+  /**
+   * New entries per day shared by every deck (R7, stage 4.2) — until R47. Read once, when this
+   * device spreads it over its installed decks (`newPerDeckFrom`); not shown and not synced since.
+   */
   newPerDay: number;
+  /**
+   * New entries per day by deck id (R47); a deck without a value gets DEFAULT_NEW_PER_DAY. Synced,
+   * a key per deck. Kept when the deck is deleted: a reinstall keeps the choice.
+   */
+  newPerDeck?: Record<string, number>;
+  /** When this device spread `newPerDay` over its installed decks (R47 item 10); absent — not yet. */
+  newPerDeckFrom?: Date;
   /** Recognizer hints from the words of the decks (experiment, off by default); absent = off. */
   biasing?: boolean;
   updatedAt: Date;
@@ -155,8 +165,9 @@ export interface SettingsRow {
 
 export const DEFAULT_NEW_PER_DAY = 5;
 
+/** A new installation has no decks yet: nothing to spread, every deck starts with the default (R47). */
 export function defaultSettings(userId: string, uiLang: UiLang, now: Date): SettingsRow {
-  return { userId, uiLang, meaningLang: uiLang, newPerDay: DEFAULT_NEW_PER_DAY, updatedAt: now };
+  return { userId, uiLang, meaningLang: uiLang, newPerDay: DEFAULT_NEW_PER_DAY, newPerDeck: {}, newPerDeckFrom: now, updatedAt: now };
 }
 
 export interface DeckRow {

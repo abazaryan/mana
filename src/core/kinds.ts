@@ -9,3 +9,6 @@ export type Skill = (typeof SKILLS)[number];
 /** Interface languages; meanings, hints, notes and tag names are given in them. */
 export const UI_LANGS = ['tg', 'ru', 'en'] as const;
 export type UiLang = (typeof UI_LANGS)[number];
+
+/** Stable ids of decks and entries: lowercase latin letters, digits, "-", "_", ".". */
+export const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;

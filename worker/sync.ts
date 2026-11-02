@@ -9,7 +9,10 @@
  */
 import { checkPushed, type RecordProblem, type StoredRecord } from '../src/core/journalRecord.ts';
 import {
+  DECK_LIMIT_PREFIX,
   isSyncedSetting,
+  MAX_DECK_LIMITS,
+  MAX_SETTING_CHANGES,
   PULL_MAX,
   PUSH_MAX_RECORDS,
   validSetting,
@@ -31,9 +34,6 @@ const isObject = (value: unknown): value is Json => typeof value === 'object' &&
 
 const noConsent = () => error('consent_required', 403);
 
-/** Settings changes in one push: a few keys, each once at most. */
-const MAX_SETTINGS = 10;
-
 interface Row extends StoredRecord {
   hash: string;
 }
@@ -48,7 +48,12 @@ const INSERT_RECORDS = `INSERT INTO journal (user_id, id, type, at, device_id, d
 const STORED_HASHES = `SELECT t.id AS id, t.body_hash AS hash FROM json_each(?2) AS j
   JOIN journal t ON t.user_id = ?1 AND t.id = json_extract(j.value, '$.id')`;
 
-/** The settings rows of one push; the change number is the account's next one, given in the writing transaction. */
+/**
+ * The settings rows of one push; the change number is the account's next one, given in the writing
+ * transaction. A deck limit the account does not have yet is stored only while it has fewer than
+ * MAX_DECK_LIMITS of them (R47); the count is the one before this statement, so one push may go
+ * past it by its own new keys at most (MAX_SETTING_CHANGES).
+ */
 function settingsStatement(db: D1Database, mode: 'set' | 'init', userId: string, changes: string, now: number, deviceId: string) {
   const onConflict = mode === 'set' ? 'DO UPDATE SET value = excluded.value, server_rev = excluded.server_rev, updated_at = excluded.updated_at, device_id = excluded.device_id' : 'DO NOTHING';
   return db
@@ -56,10 +61,13 @@ function settingsStatement(db: D1Database, mode: 'set' | 'init', userId: string,
       `INSERT INTO user_settings (user_id, key, value, server_rev, updated_at, device_id)
        SELECT ?1, json_extract(j.value, '$.key'), json_extract(j.value, '$.value'),
          (SELECT COALESCE(MAX(server_rev), 0) + 1 FROM user_settings WHERE user_id = ?1), ?3, ?4
-       FROM json_each(?2) AS j WHERE true
+       FROM json_each(?2) AS j
+       WHERE substr(json_extract(j.value, '$.key'), 1, ?5) <> ?6
+         OR EXISTS (SELECT 1 FROM user_settings WHERE user_id = ?1 AND key = json_extract(j.value, '$.key'))
+         OR (SELECT count(*) FROM user_settings WHERE user_id = ?1 AND substr(key, 1, ?5) = ?6) < ?7
        ON CONFLICT (user_id, key) ${onConflict}`,
     )
-    .bind(userId, changes, now, deviceId);
+    .bind(userId, changes, now, deviceId, DECK_LIMIT_PREFIX.length, DECK_LIMIT_PREFIX, MAX_DECK_LIMITS);
 }
 
 function readSettings(db: D1Database, userId: string) {
@@ -78,7 +86,7 @@ function settingsOf(rows: readonly Json[]): ServerSettings {
 /** The settings part of a push: valid changes by mode (the last of a key wins), and the refused keys. */
 function readSettingChanges(value: unknown): { set: Json[]; init: Json[]; rejected: string[] } | null {
   if (value === undefined) return { set: [], init: [], rejected: [] };
-  if (!Array.isArray(value) || value.length > MAX_SETTINGS) return null;
+  if (!Array.isArray(value) || value.length > MAX_SETTING_CHANGES) return null;
   const byKey = new Map<string, SettingChange>();
   const rejected: string[] = [];
   for (const item of value) {

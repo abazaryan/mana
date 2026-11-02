@@ -9,7 +9,9 @@
 import { contentWarnings } from './deckContent.ts';
 import { FORM_LABELS } from './cyrillicData.ts';
 import { M } from './deckMessages.ts';
-import { SKILLS, UI_LANGS, type Skill, type UiLang } from './kinds.ts';
+import { ID_PATTERN, SKILLS, UI_LANGS, type Skill, type UiLang } from './kinds.ts';
+
+export { ID_PATTERN };
 
 export { SKILLS, UI_LANGS, type Skill, type UiLang };
 
@@ -47,8 +49,6 @@ export const AUDIO_EXTENSIONS = ['mp3', 'wav'] as const;
 /** Above this archive size the validator warns (mobile download, shared library, offline). */
 export const LARGE_ARCHIVE_BYTES = 20 * 1024 * 1024;
 
-/** Stable ids of decks and entries: lowercase latin letters, digits, "-", "_", ".". */
-export const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 /** Simplified BCP-47: language[-Script][-REGION], e.g. "fr-FR", "lb-LU", "de", "sr-Latn-RS". */
 export const LANGUAGE_TAG_PATTERN = /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/;

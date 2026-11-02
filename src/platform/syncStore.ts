@@ -8,8 +8,9 @@ import type { FSRS } from 'ts-fsrs';
 import { rebuildCards } from '../core/cards';
 import { canonicalJson, reviveRecord } from '../core/journalRecord';
 import type { LogRecord, MetaRow, OutboxRow, SettingsRow, SyncState } from '../core/model';
-import { batchLength, hasNewerRules, mergeSettings, settingsToSend, touchedCards, type SyncedValues } from '../core/sync';
-import { SYNCED_SETTINGS, type PullResponse, type PushResponse, type ServerSettings, type SettingChange } from '../core/syncProtocol';
+import { spreadNewPerDay } from '../core/deckLimits';
+import { batchLength, changedKeys, fromSyncedValues, hasNewerRules, mergeSettings, settingsToSend, syncedValues, touchedCards } from '../core/sync';
+import type { PullResponse, PushResponse, ServerSettings, SettingChange } from '../core/syncProtocol';
 import type { ManaDb } from './db';
 import { rebuildCardKeys } from './repo';
 import { notifyQueued } from './syncEvents';
@@ -17,8 +18,6 @@ import { notifyQueued } from './syncEvents';
 const EMPTY: SyncState = { cursor: 0, settingsRev: {}, dirty: [] };
 
 export const syncOf = (meta: MetaRow): SyncState => meta.sync ?? EMPTY;
-
-const valuesOf = (s: SettingsRow): SyncedValues => ({ uiLang: s.uiLang, meaningLang: s.meaningLang, newPerDay: s.newPerDay });
 
 async function deviceRow(db: ManaDb): Promise<MetaRow> {
   const meta = await db.meta.get('device');
@@ -54,7 +53,7 @@ export async function nextBatch(db: ManaDb, maxCount: number, maxBytes: number, 
   const sync = syncOf(meta);
   if (sync.pullFirst) return null;
   const local = withSettings ? await db.settings.get(meta.userId) : undefined;
-  const settings = local ? settingsToSend(valuesOf(local), sync.settingsRev, sync.dirty) : [];
+  const settings = local ? settingsToSend(syncedValues(local), sync.settingsRev, sync.dirty) : [];
   const settingsJson = settings.length > 0 ? `,"settings":${JSON.stringify(settings)}` : '';
   const rows = await pendingRows(db).limit(maxCount).toArray();
   const records = await db.log.bulkGet(rows.map((r) => r.id));
@@ -99,10 +98,10 @@ async function takeSettings(db: ManaDb, server: ServerSettings, sent: readonly S
   let changed = false;
   let next: SyncState = { ...sync, ...extra };
   if (local) {
-    const merged = mergeSettings(valuesOf(local), sync.settingsRev, sync.dirty, server, sent, rejected);
+    const merged = mergeSettings(syncedValues(local), sync.settingsRev, sync.dirty, server, sent, rejected);
     next = { ...next, settingsRev: merged.rev, dirty: merged.dirty };
     if (Object.keys(merged.values).length > 0) {
-      await db.settings.put({ ...local, ...merged.values, updatedAt: now } as SettingsRow);
+      await db.settings.put({ ...fromSyncedValues(local, merged.values), updatedAt: now });
       changed = true;
     }
   }
@@ -233,7 +232,7 @@ export async function saveSettings(db: ManaDb, row: SettingsRow): Promise<boolea
     const before = await db.settings.get(row.userId);
     await db.settings.put(row);
     const meta = await deviceRow(db);
-    const keys = before ? SYNCED_SETTINGS.filter((k) => before[k] !== row[k]) : [];
+    const keys = before ? changedKeys(syncedValues(before), syncedValues(row)) : [];
     if (!meta.account || meta.account.userId !== row.userId || keys.length === 0) return false;
     const sync = syncOf(meta);
     await db.meta.put({ ...meta, sync: { ...sync, dirty: [...new Set([...sync.dirty, ...keys])] } });
@@ -241,4 +240,18 @@ export async function saveSettings(db: ManaDb, row: SettingsRow): Promise<boolea
   });
   if (queued) notifyQueued();
   return queued;
+}
+
+/**
+ * Once on this device, at start (R47 item 10): the shared limit of new entries goes to every
+ * installed deck without a value of its own. Not a change made here: a signed-in device sends the
+ * values as `init`, so the account keeps those it already has (another device spread them first).
+ */
+export async function spreadDeckLimits(db: ManaDb, userId: string, now = new Date()): Promise<void> {
+  await db.transaction('rw', [db.settings, db.decks], async () => {
+    const settings = await db.settings.get(userId);
+    if (!settings || settings.newPerDeckFrom) return;
+    const spread = spreadNewPerDay(settings, (await db.decks.toArray()).map((d) => d.id), now);
+    if (spread) await db.settings.put(spread);
+  });
 }
