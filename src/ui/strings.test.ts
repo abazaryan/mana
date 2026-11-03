@@ -22,6 +22,13 @@ describe('interface strings', () => {
     expect(translate('en', 'decks.entries')).toBe('Entries: {n}');
   });
 
+  it('the four rating buttons: tg Dushvor for Hard (R48), ru and en unchanged', () => {
+    const row = (lang: Lang) => ([1, 2, 3, 4] as const).map((n) => translate(lang, `rating.${n}`));
+    expect(row('tg')).toEqual(['Дубора', 'Душвор', 'Хуб', 'Осон']);
+    expect(row('ru')).toEqual(['Снова', 'Трудно', 'Хорошо', 'Легко']);
+    expect(row('en')).toEqual(['Again', 'Hard', 'Good', 'Easy']);
+  });
+
   it('docs/I18N_TG.md is up to date (npm run i18n:table)', () => {
     expect(table.replace(/\r\n/g, '\n')).toBe(tajikTable(tableExtras(FORM_LABELS, LANGUAGE_PACKS)));
   });

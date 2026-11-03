@@ -111,7 +111,7 @@
 | `mark.diacritic` | только диакритика (é/e) | accent only (é/e) | танҳо аломат (é/e) |
 | `mark.punct` | знак препинания — на оценку не влияет | punctuation — doesn't affect the grade | нишонаи нигоришӣ — ба арзёбӣ таъсир надорад |
 | `rating.1` | Снова | Again | Дубора |
-| `rating.2` | Трудно | Hard | Сахт |
+| `rating.2` | Трудно | Hard | Душвор |
 | `rating.3` | Хорошо | Good | Хуб |
 | `rating.4` | Легко | Easy | Осон |
 | `rating.suggested` | Предложено: {rating} | Suggested: {rating} | Пешниҳод: {rating} |

@@ -216,7 +216,7 @@ export const STRINGS = {
 
   // Rating (Р4)
   'rating.1': { tg: 'Дубора', ru: 'Снова', en: 'Again' },
-  'rating.2': { tg: 'Сахт', ru: 'Трудно', en: 'Hard' },
+  'rating.2': { tg: 'Душвор', ru: 'Трудно', en: 'Hard' },
   'rating.3': { tg: 'Хуб', ru: 'Хорошо', en: 'Good' },
   'rating.4': { tg: 'Осон', ru: 'Легко', en: 'Easy' },
   'rating.suggested': { tg: 'Пешниҳод: {rating}', ru: 'Предложено: {rating}', en: 'Suggested: {rating}' },
