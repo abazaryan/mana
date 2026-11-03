@@ -59,6 +59,14 @@ describe('docs/NOTICE.md — the approved notice, read at build time', () => {
     }
   });
 
+  it('the current text is version 4 of 03.11.2026 (R48): NOTICE_VERSION and the version line of each language', () => {
+    expect(NOTICE_VERSION).toBe(4);
+    const lines = markdown.split('\n');
+    expect(lines).toContain('Вироиши 4 · 03.11.2026');
+    expect(lines).toContain('Версия 4 · 03.11.2026');
+    expect(lines).toContain('Version 4 · 3 November 2026');
+  });
+
   it('the header of the file names the same version', () => {
     expect(markdown.split('\n')[0]).toMatch(new RegExp(`\\s${NOTICE_VERSION} \\(`));
   });

@@ -21,8 +21,8 @@ describe('test accounts only (tools/admin/testOnly.ts)', () => {
     if (NOTICE_VERSION < 3) expect(labelAllowed('Mama')).toBe(false);
   });
 
-  it('notice version 3 or later is on (6a.5c; v4 — R48): invite.ts and recover.ts take a label without test- — no code of their own changed', () => {
-    expect(NOTICE_VERSION).toBeGreaterThanOrEqual(3);
+  it('notice version 4 is on (R48; labels without test- allowed since version 3, 6a.5c): invite.ts and recover.ts take them — no code of their own changed', () => {
+    expect(NOTICE_VERSION).toBe(4);
     expect(realAccountsAllowed()).toBe(true);
     expect(labelAllowed('Mama')).toBe(true);
   });
