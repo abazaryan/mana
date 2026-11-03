@@ -9,7 +9,7 @@
  * server accepts no other. A new text in docs/NOTICE.md means a new version and new consent
  * (STAGE6_RESEARCH 8.5): change both together (a test checks the version line of the text).
  */
-export const NOTICE_VERSION = 3;
+export const NOTICE_VERSION = 4;
 
 export type NoticeLang = 'tg' | 'ru' | 'en';
 

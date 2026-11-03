@@ -11,8 +11,10 @@ export const ORIGIN = 'https://mana.amisipehr.workers.dev';
  * (202610270709), whose consent screen would send version 2: its open tab gets 426 and reloads.
  * 02.11.2026: limits and debts by deck (R47 item 8) — an open tab of an earlier build (the site
  * had 202611021131) would count the limit and the debts over every deck: it gets 426 and reloads.
+ * 03.11.2026: notice version 4 (R48) — above the build of R47 on the site (202611022005), whose
+ * consent screen would show the text of v3 and send version 3: its open tab gets 426 and reloads.
  */
-export const MIN_CLIENT = 202611021910;
+export const MIN_CLIENT = 202611030740;
 
 /** Request body limit when a route sets none, bytes (7.4: sign-in 4 KB). */
 export const DEFAULT_BODY_LIMIT = 4 * 1024;

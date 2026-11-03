@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, FUTURE_SLACK_MS } from '../src/core/journalRecord.ts';
+import { NOTICE_VERSION } from '../src/core/notice.ts';
 import { MAX_DECK_LIMITS, MAX_SETTING_CHANGES, PULL_MAX, PUSH_BODY_LIMIT, PUSH_MAX_RECORDS, type PullResponse, type PushResponse } from '../src/core/syncProtocol.ts';
 import { ROUTES, type Routes } from './api.ts';
 import { DAY, HOUR, send, signedIn, T0, world, type SignedIn, type World } from './test/accounts.ts';
@@ -343,6 +344,7 @@ describe('consent to the current notice (R39)', () => {
   const cases: [string, Parameters<typeof signedIn>[3], number][] = [
     ['no consent at all', { consent: null }, 403],
     ['a consent to version 1 only', { consent: { by: 'self', version: 1 } }, 403],
+    ['a consent to the previous version only (v3 once the notice is v4, R48)', { consent: { by: 'self', version: NOTICE_VERSION - 1 } }, 403],
     ['under 16, consent given by the child (self) to the current version', { minor: true, consent: { by: 'self' } }, 403],
     ['under 16, a parent agreed to the current version', { minor: true, consent: { by: 'parent' } }, 200],
     ['16 or older, agreed to the current version', { consent: { by: 'self' } }, 200],
